@@ -1,0 +1,415 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import SummaryCard from '@/components/dashboard/SummaryCard'
+import { getAnalytics } from '@/lib/api'
+import type { AnalyticsResponse, AnalyticsDayData } from '@/types/api'
+
+type Period = 7 | 30
+
+function shortDate(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+function dayLabel(iso: string) {
+  const d = new Date(iso)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+
+  if (d.toDateString() === today.toDateString()) return 'Today'
+  if (d.toDateString() === yesterday.toDateString()) return 'Yday'
+  return d.toLocaleDateString('en-GB', { weekday: 'short' })
+}
+
+interface BarChartProps {
+  days: AnalyticsDayData[]
+  getValue: (d: AnalyticsDayData) => number
+  goal: number
+  color: string
+  unit: string
+  period: Period
+}
+
+function BarChart({ days, getValue, goal, color, unit, period }: BarChartProps) {
+  const max = Math.max(goal, ...days.map(getValue))
+  // For 30-day view, only show every ~5th label to avoid crowding
+  const labelEvery = period === 30 ? 5 : 1
+
+  return (
+    <div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: period === 30 ? '3px' : '5px',
+        height: '72px',
+      }}>
+        {days.map((d, i) => {
+          const val = getValue(d)
+          const heightPct = max > 0 ? val / max : 0
+          const atGoal = val >= goal * 0.9
+          return (
+            <div
+              key={d.date}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '3px',
+                height: '100%',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <div
+                style={{
+                  width: '100%',
+                  borderRadius: '4px 4px 2px 2px',
+                  backgroundColor: atGoal ? color : `${color}55`,
+                  height: `${Math.max(heightPct * 100, val > 0 ? 4 : 0)}%`,
+                  transition: 'height 0.5s var(--ease-smooth)',
+                  minHeight: val > 0 ? '3px' : '0',
+                }}
+              />
+            </div>
+          )
+        })}
+      </div>
+
+      {/* X-axis labels */}
+      <div style={{
+        display: 'flex',
+        gap: period === 30 ? '3px' : '5px',
+        marginTop: '6px',
+      }}>
+        {days.map((d, i) => (
+          <div key={d.date} style={{ flex: 1, textAlign: 'center' }}>
+            {(period === 7 || i % labelEvery === 0) && (
+              <span style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: period === 30 ? '8px' : '9px',
+                color: 'var(--tg-theme-hint-color)',
+                display: 'block',
+              }}>
+                {period === 7 ? dayLabel(d.date) : shortDate(d.date)}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+interface StatRowProps {
+  label: string
+  value: string
+  sub?: string
+  color?: string
+}
+
+function StatRow({ label, value, sub, color }: StatRowProps) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+      <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
+        {label}
+      </span>
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 500, color: color ?? 'var(--tg-theme-text-color)' }}>
+        {value}
+        {sub && <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginLeft: '3px' }}>{sub}</span>}
+      </span>
+    </div>
+  )
+}
+
+export default function AnalyticsPage() {
+  const [period, setPeriod] = useState<Period>(7)
+  const [data, setData] = useState<AnalyticsResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    getAnalytics(period)
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [period])
+
+  const days = data?.days ?? []
+  const goals = data?.goals
+
+  // Summary stats
+  const activeDays = days.filter(d => d.meals_logged > 0)
+  const avgCalories = activeDays.length > 0
+    ? Math.round(activeDays.reduce((s, d) => s + d.calories, 0) / activeDays.length)
+    : 0
+  const avgProtein = activeDays.length > 0
+    ? Math.round(activeDays.reduce((s, d) => s + d.protein, 0) / activeDays.length * 10) / 10
+    : 0
+  const avgWater = activeDays.length > 0
+    ? Math.round(activeDays.reduce((s, d) => s + d.water, 0) / activeDays.length * 100) / 100
+    : 0
+  const calorieGoalDays = goals
+    ? days.filter(d => d.meals_logged > 0 && d.calories >= goals.calories * 0.9 && d.calories <= goals.calories * 1.1).length
+    : 0
+  const proteinGoalDays = goals
+    ? days.filter(d => d.meals_logged > 0 && d.protein >= goals.protein * 0.9).length
+    : 0
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+
+      {/* Header */}
+      <div className="fade-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div>
+          <p style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '11px',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: 'var(--tg-theme-hint-color)',
+            marginBottom: '5px',
+          }}>
+            Progress
+          </p>
+          <h1 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '36px',
+            fontWeight: 400,
+            lineHeight: 1.1,
+            color: 'var(--tg-theme-text-color)',
+          }}>
+            Trends
+          </h1>
+        </div>
+
+        {/* Period toggle */}
+        <div style={{
+          display: 'flex',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          borderRadius: '99px',
+          padding: '3px',
+          gap: '2px',
+        }}>
+          {([7, 30] as Period[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '99px',
+                border: 'none',
+                backgroundColor: period === p ? 'var(--tg-theme-button-color)' : 'transparent',
+                color: period === p ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-hint-color)',
+                fontFamily: 'var(--font-body)',
+                fontSize: '12px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease',
+              }}
+            >
+              {p === 7 ? '7d' : '30d'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+            Loading…
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Summary stats */}
+          <div className="fade-up fade-up-1">
+            <SummaryCard title={`${period}-day average`}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <StatRow label="Calories" value={avgCalories.toString()} sub="kcal" color="var(--accent-calories)" />
+                <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                <StatRow label="Protein" value={`${avgProtein}`} sub="g" color="var(--accent-protein)" />
+                <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                <StatRow label="Water" value={`${avgWater}`} sub="L" color="var(--accent-water)" />
+                {goals && activeDays.length > 0 && (
+                  <>
+                    <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{
+                        flex: 1, padding: '12px', borderRadius: '12px',
+                        backgroundColor: 'var(--tg-theme-bg-color)',
+                        textAlign: 'center',
+                      }}>
+                        <p style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 500, color: 'var(--accent-calories)', margin: 0 }}>
+                          {calorieGoalDays}
+                          <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>d</span>
+                        </p>
+                        <p style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '2px' }}>
+                          Calorie goal
+                        </p>
+                      </div>
+                      <div style={{
+                        flex: 1, padding: '12px', borderRadius: '12px',
+                        backgroundColor: 'var(--tg-theme-bg-color)',
+                        textAlign: 'center',
+                      }}>
+                        <p style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 500, color: 'var(--accent-protein)', margin: 0 }}>
+                          {proteinGoalDays}
+                          <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>d</span>
+                        </p>
+                        <p style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '2px' }}>
+                          Protein goal
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </SummaryCard>
+          </div>
+
+          {/* Calories chart */}
+          <div className="fade-up fade-up-2">
+            <SummaryCard title="Calories">
+              {days.length > 0 && goals ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Goal line label */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <span style={{
+                      fontFamily: 'var(--font-body)', fontSize: '10px',
+                      color: 'var(--tg-theme-hint-color)',
+                      letterSpacing: '0.06em',
+                    }}>
+                      Goal: {goals.calories} kcal
+                    </span>
+                  </div>
+                  <BarChart
+                    days={days}
+                    getValue={d => d.calories}
+                    goal={goals.calories}
+                    color="var(--accent-calories)"
+                    unit="kcal"
+                    period={period}
+                  />
+                </div>
+              ) : (
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                  No data yet
+                </p>
+              )}
+            </SummaryCard>
+          </div>
+
+          {/* Protein chart */}
+          <div className="fade-up fade-up-3">
+            <SummaryCard title="Protein">
+              {days.length > 0 && goals ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
+                      Goal: {goals.protein}g
+                    </span>
+                  </div>
+                  <BarChart
+                    days={days}
+                    getValue={d => d.protein}
+                    goal={goals.protein}
+                    color="var(--accent-protein)"
+                    unit="g"
+                    period={period}
+                  />
+                </div>
+              ) : (
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                  No data yet
+                </p>
+              )}
+            </SummaryCard>
+          </div>
+
+          {/* Water chart */}
+          <div className="fade-up fade-up-4">
+            <SummaryCard title="Hydration">
+              {days.length > 0 && goals ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
+                      Goal: {goals.water}L
+                    </span>
+                  </div>
+                  <BarChart
+                    days={days}
+                    getValue={d => d.water}
+                    goal={goals.water}
+                    color="var(--accent-water)"
+                    unit="L"
+                    period={period}
+                  />
+                </div>
+              ) : (
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                  No data yet
+                </p>
+              )}
+            </SummaryCard>
+          </div>
+
+          {/* Macro split — show only for 7-day */}
+          {period === 7 && days.length > 0 && activeDays.length > 0 && (
+            <div className="fade-up fade-up-4">
+              <SummaryCard title="Macro split (avg)">
+                {(() => {
+                  const avgCarbs = Math.round(activeDays.reduce((s, d) => s + d.carbohydrates, 0) / activeDays.length)
+                  const avgFats = Math.round(activeDays.reduce((s, d) => s + d.fats, 0) / activeDays.length)
+                  const totalCals = avgCalories || 1
+                  const pP = Math.round((avgProtein * 4 / totalCals) * 100)
+                  const pC = Math.round((avgCarbs * 4 / totalCals) * 100)
+                  const pF = Math.round((avgFats * 9 / totalCals) * 100)
+                  const segments = [
+                    { label: 'P', pct: pP, color: 'var(--accent-protein)' },
+                    { label: 'C', pct: pC, color: 'var(--accent-calories)' },
+                    { label: 'F', pct: pF, color: '#C4A55A' },
+                  ]
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      {/* Stacked bar */}
+                      <div style={{ display: 'flex', height: '8px', borderRadius: '99px', overflow: 'hidden', gap: '2px' }}>
+                        {segments.map(s => (
+                          <div key={s.label} style={{
+                            flex: s.pct,
+                            backgroundColor: s.color,
+                            borderRadius: '99px',
+                            transition: 'flex 0.5s var(--ease-smooth)',
+                          }} />
+                        ))}
+                      </div>
+                      {/* Labels */}
+                      <div style={{ display: 'flex', gap: '16px' }}>
+                        {[
+                          { label: 'Protein', val: `${avgProtein}g`, pct: pP, color: 'var(--accent-protein)' },
+                          { label: 'Carbs', val: `${avgCarbs}g`, pct: pC, color: 'var(--accent-calories)' },
+                          { label: 'Fats', val: `${avgFats}g`, pct: pF, color: '#C4A55A' },
+                        ].map(m => (
+                          <div key={m.label} style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
+                              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: m.color }} />
+                              <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{m.label}</span>
+                            </div>
+                            <span style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>{m.val}</span>
+                            <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginLeft: '3px' }}>{m.pct}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+              </SummaryCard>
+            </div>
+          )}
+        </>
+      )}
+
+    </div>
+  )
+}

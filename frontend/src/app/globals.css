@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Telegram theme variable fallbacks — warm lifestyle palette */
+  --tg-theme-bg-color: #F8F4EF;
+  --tg-theme-secondary-bg-color: #EDE7DE;
+  --tg-theme-text-color: #1C1410;
+  --tg-theme-hint-color: #9A8A7E;
+  --tg-theme-link-color: #8B5E3C;
+  --tg-theme-button-color: #1C1410;
+  --tg-theme-button-text-color: #F8F4EF;
+
+  /* Extended design tokens */
+  --accent: #8B5E3C;
+  --accent-calories: #C47B5A;
+  --accent-protein: #7CA87E;
+  --accent-water: #6B9EAD;
+  --surface-border: rgba(154, 132, 116, 0.2);
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s var(--ease-spring);
+  font-family: var(--font-body);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+textarea::placeholder {
+  color: var(--tg-theme-hint-color);
+  opacity: 0.7;
+}
+
+/* Entrance animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up   { animation: fadeUp 0.45s var(--ease-smooth) both; }
+.fade-up-1 { animation-delay: 0.07s; }
+.fade-up-2 { animation-delay: 0.14s; }
+.fade-up-3 { animation-delay: 0.21s; }
+.fade-up-4 { animation-delay: 0.28s; }

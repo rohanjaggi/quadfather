@@ -1,30 +1,67 @@
 'use client'
 
-import { useState } from 'react'
 import BottleCounter from '@/components/water/BottleCounter'
 import SummaryCard from '@/components/dashboard/SummaryCard'
-
-const BOTTLE_SIZE = 0.5 // litres — matches model default
-const WATER_GOAL  = 3   // litres
+import { useUser } from '@/context/UserContext'
 
 export default function WaterPage() {
-  const [count, setCount] = useState(3) // mock: 1.5L already drunk
+  const { user, summary, waterLogs, logWater, deleteWater } = useUser()
+
+  const totalLiters = summary?.water.total ?? 0
+  const goal = user?.goals.daily_water_goal ?? 3
+  const bottleSize = user?.water_bottle_size ?? 0.5
+  const currentBottles = Math.round(totalLiters / bottleSize)
+  const totalBottles = Math.ceil(goal / bottleSize)
+
+  async function handleAdd() {
+    await logWater({ bottles: 1 })
+  }
+
+  async function handleRemove() {
+    if (waterLogs.length > 0) {
+      await deleteWater(waterLogs[0].id)
+    }
+  }
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-bold" style={{ color: 'var(--tg-theme-text-color)' }}>
-        Water
-      </h1>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
-      <SummaryCard title="Today's Intake">
-        <BottleCounter
-          count={count}
-          goal={WATER_GOAL}
-          bottleSize={BOTTLE_SIZE}
-          onAdd={() => setCount((c) => Math.min(c + 1, Math.ceil(WATER_GOAL / BOTTLE_SIZE)))}
-          onRemove={() => setCount((c) => Math.max(c - 1, 0))}
-        />
-      </SummaryCard>
+      {/* Header */}
+      <div className="fade-up">
+        <p style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: '11px',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: 'var(--tg-theme-hint-color)',
+          marginBottom: '5px',
+        }}>
+          Hydration
+        </p>
+        <h1 style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '36px',
+          fontWeight: 400,
+          lineHeight: 1.1,
+          color: 'var(--tg-theme-text-color)',
+        }}>
+          Water Intake
+        </h1>
+      </div>
+
+      {/* Counter */}
+      <div className="fade-up fade-up-1">
+        <SummaryCard title="Today's Hydration">
+          <BottleCounter
+            count={currentBottles}
+            goal={goal}
+            bottleSize={bottleSize}
+            onAdd={handleAdd}
+            onRemove={handleRemove}
+          />
+        </SummaryCard>
+      </div>
+
     </div>
   )
 }

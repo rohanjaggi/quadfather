@@ -9,6 +9,8 @@ from fastapi import Header, HTTPException
 from .database import SessionLocal
 
 BOT_TOKEN: str = os.getenv("BOTFATHER_TOKEN", "")
+SKIP_TELEGRAM_AUTH: bool = os.getenv("SKIP_TELEGRAM_AUTH", "false").lower() == "true"
+DEV_USER_ID: int = int(os.getenv("DEV_USER_ID", "12345678"))
 
 
 def get_db():
@@ -19,11 +21,14 @@ def get_db():
         db.close()
 
 
-def verify_telegram_auth(x_telegram_init_data: str = Header(...)) -> dict:
+def verify_telegram_auth(x_telegram_init_data: str = Header(default="")) -> dict:
     """
     Validates Telegram's initData HMAC-SHA256 signature and returns the parsed user dict.
     See: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
     """
+    if SKIP_TELEGRAM_AUTH:
+        return {"id": DEV_USER_ID, "username": "devuser", "first_name": "Dev"}
+
     parsed = dict(parse_qsl(x_telegram_init_data, keep_blank_values=True))
     received_hash = parsed.pop("hash", None)
 

@@ -46,9 +46,9 @@ def create_or_get_user(
         "telegram_id": new_user.telegram_id,
         "username": new_user.username,
         "goals": {
-            "protein": new_user.daily_protein_goal,
-            "calories": new_user.daily_calorie_goal,
-            "water": new_user.daily_water_goal,
+            "daily_protein_goal": new_user.daily_protein_goal,
+            "daily_calorie_goal": new_user.daily_calorie_goal,
+            "daily_water_goal": new_user.daily_water_goal,
         },
         "water_bottle_size": new_user.water_bottle_size,
     }

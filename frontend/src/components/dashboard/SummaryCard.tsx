@@ -2,20 +2,28 @@ export default function SummaryCard({
   title,
   children,
 }: {
-  title: string
+  title?: string
   children: React.ReactNode
 }) {
   return (
-    <div
-      className="rounded-2xl p-4"
-      style={{ backgroundColor: 'var(--tg-theme-secondary-bg-color)' }}
-    >
-      <h2
-        className="text-xs font-semibold uppercase tracking-wider mb-3"
-        style={{ color: 'var(--tg-theme-hint-color)' }}
-      >
-        {title}
-      </h2>
+    <div style={{
+      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+      borderRadius: '20px',
+      padding: '20px',
+    }}>
+      {title && (
+        <p style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: '10px',
+          fontWeight: 500,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: 'var(--tg-theme-hint-color)',
+          marginBottom: '18px',
+        }}>
+          {title}
+        </p>
+      )}
       {children}
     </div>
   )

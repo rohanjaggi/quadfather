@@ -18,57 +18,89 @@ export default function BottleCounter({
   const pct = Math.min(liters / goal, 1)
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Bottle icons */}
-      <div className="flex flex-wrap gap-3 justify-center">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+      {/* Dot indicators */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
         {Array.from({ length: totalBottles }).map((_, i) => (
-          <button
+          <div
             key={i}
-            onClick={i < count ? onRemove : onAdd}
-            className="text-4xl transition-transform active:scale-90"
-            style={{ opacity: i < count ? 1 : 0.25 }}
-            aria-label={i < count ? 'Remove bottle' : 'Add bottle'}
-          >
-            💧
-          </button>
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              backgroundColor: i < count ? 'var(--accent-water)' : 'transparent',
+              border: `1.5px solid ${i < count ? 'var(--accent-water)' : 'var(--surface-border)'}`,
+              transition: 'all 0.3s var(--ease-smooth)',
+            }}
+          />
         ))}
       </div>
 
-      {/* Liters label */}
-      <div className="text-center">
-        <span className="text-3xl font-bold" style={{ color: 'var(--tg-theme-text-color)' }}>
-          {liters.toFixed(1)}L
+      {/* Large display */}
+      <div style={{ textAlign: 'center' }}>
+        <span style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '60px',
+          fontWeight: 400,
+          lineHeight: 1,
+          color: 'var(--tg-theme-text-color)',
+        }}>
+          {liters.toFixed(1)}
         </span>
-        <span className="text-sm ml-1" style={{ color: 'var(--tg-theme-hint-color)' }}>
-          / {goal}L goal
+        <span style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '30px',
+          fontWeight: 400,
+          color: 'var(--tg-theme-hint-color)',
+          marginLeft: '4px',
+        }}>
+          L
         </span>
+        <p style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: '10px',
+          letterSpacing: '0.09em',
+          textTransform: 'uppercase',
+          color: 'var(--tg-theme-hint-color)',
+          marginTop: '6px',
+        }}>
+          of {goal}L goal
+        </p>
       </div>
 
-      {/* Animated water fill bar */}
-      <div
-        className="h-4 rounded-full overflow-hidden"
-        style={{ backgroundColor: 'var(--tg-theme-secondary-bg-color)' }}
-      >
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${pct * 100}%`,
-            backgroundColor: '#06b6d4',
-            transition: 'width 0.4s ease',
-          }}
-        />
+      {/* Progress bar */}
+      <div style={{
+        height: '2px',
+        borderRadius: '99px',
+        backgroundColor: 'var(--tg-theme-bg-color)',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          height: '100%',
+          borderRadius: '99px',
+          width: `${pct * 100}%`,
+          backgroundColor: 'var(--accent-water)',
+          transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+        }} />
       </div>
 
       {/* Buttons */}
-      <div className="flex gap-3">
+      <div style={{ display: 'flex', gap: '10px' }}>
         <button
           onClick={onRemove}
           disabled={count === 0}
-          className="flex-1 rounded-xl py-3 text-sm font-semibold"
           style={{
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            flex: 1,
+            padding: '14px',
+            borderRadius: '14px',
+            border: 'none',
+            backgroundColor: 'var(--tg-theme-bg-color)',
             color: 'var(--tg-theme-text-color)',
-            opacity: count === 0 ? 0.4 : 1,
+            fontSize: '13px',
+            fontWeight: 500,
+            opacity: count === 0 ? 0.3 : 1,
+            cursor: count === 0 ? 'not-allowed' : 'pointer',
           }}
         >
           − Remove
@@ -76,16 +108,23 @@ export default function BottleCounter({
         <button
           onClick={onAdd}
           disabled={count >= totalBottles}
-          className="flex-1 rounded-xl py-3 text-sm font-semibold"
           style={{
-            backgroundColor: 'var(--tg-theme-button-color)',
-            color: 'var(--tg-theme-button-text-color)',
-            opacity: count >= totalBottles ? 0.4 : 1,
+            flex: 1,
+            padding: '14px',
+            borderRadius: '14px',
+            border: 'none',
+            backgroundColor: 'var(--accent-water)',
+            color: '#ffffff',
+            fontSize: '13px',
+            fontWeight: 500,
+            opacity: count >= totalBottles ? 0.3 : 1,
+            cursor: count >= totalBottles ? 'not-allowed' : 'pointer',
           }}
         >
           + Add Bottle
         </button>
       </div>
+
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-const RADIUS = 45
+const RADIUS = 36
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 
 export default function GoalRing({
@@ -25,48 +25,68 @@ export default function GoalRing({
   const offset = CIRCUMFERENCE * (1 - (mounted ? pct : 0))
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <svg viewBox="0 0 100 100" className="w-24 h-24 -rotate-90">
-        {/* background track */}
-        <circle
-          cx="50" cy="50" r={RADIUS}
-          fill="none"
-          stroke="var(--tg-theme-hint-color)"
-          strokeWidth="8"
-          opacity="0.2"
-        />
-        {/* progress arc */}
-        <circle
-          cx="50" cy="50" r={RADIUS}
-          fill="none"
-          stroke={color}
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={CIRCUMFERENCE}
-          strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-        />
-        {/* centre text — counter-rotate so it reads normally */}
-        <text
-          x="50" y="50"
-          textAnchor="middle" dominantBaseline="central"
-          className="rotate-90"
-          style={{
-            transform: 'rotate(90deg)',
-            transformOrigin: '50px 50px',
-            fill: 'var(--tg-theme-text-color)',
-            fontSize: '16px',
-            fontWeight: 700,
-          }}
-        >
-          {current}
-        </text>
-      </svg>
-      <span className="text-xs font-medium" style={{ color: 'var(--tg-theme-hint-color)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+      <div style={{ position: 'relative', width: 90, height: 90 }}>
+        <svg viewBox="0 0 100 100" width={90} height={90} style={{ transform: 'rotate(-90deg)' }}>
+          <circle
+            cx="50" cy="50" r={RADIUS} fill="none"
+            stroke="var(--tg-theme-hint-color)"
+            strokeWidth="3" opacity="0.15"
+          />
+          <circle
+            cx="50" cy="50" r={RADIUS} fill="none"
+            stroke={color}
+            strokeWidth="3" strokeLinecap="round"
+            strokeDasharray={CIRCUMFERENCE}
+            strokeDashoffset={offset}
+            style={{ transition: 'stroke-dashoffset 0.85s cubic-bezier(0.4, 0, 0.2, 1)' }}
+          />
+        </svg>
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          gap: 1,
+        }}>
+          <span style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '19px',
+            fontWeight: 600,
+            lineHeight: 1,
+            color: 'var(--tg-theme-text-color)',
+          }}>
+            {current}
+          </span>
+          <span style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '9px',
+            color: 'var(--tg-theme-hint-color)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}>
+            {unit}
+          </span>
+        </div>
+      </div>
+
+      <span style={{
+        fontFamily: 'var(--font-body)',
+        fontSize: '10px',
+        fontWeight: 500,
+        letterSpacing: '0.07em',
+        textTransform: 'uppercase',
+        color: 'var(--tg-theme-hint-color)',
+      }}>
         {label}
       </span>
-      <span className="text-xs" style={{ color: 'var(--tg-theme-hint-color)' }}>
-        / {goal} {unit}
+
+      <span style={{
+        fontFamily: 'var(--font-body)',
+        fontSize: '10px',
+        color: 'var(--tg-theme-hint-color)',
+        opacity: 0.6,
+      }}>
+        / {goal}{unit}
       </span>
     </div>
   )

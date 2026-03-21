@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
 
-from ..deps import get_db, verify_telegram_auth
+from ..deps import get_db, verify_telegram_auth, verify_bot_auth
 from ..models import User, SavedFood, FoodLog
+from ..services.gemini import analyse_meal
 
 router = APIRouter()
 
@@ -139,6 +140,48 @@ def delete_food_log(
 
     db.delete(log)
     db.commit()
+
+
+@router.post("/analyse")
+async def analyse_food(
+    image: UploadFile = File(...),
+    description: str = Form(""),
+    _telegram_user: dict = Depends(verify_telegram_auth),
+):
+    """Send a meal photo to Gemini and get back estimated macros. Does not log anything."""
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=422, detail="File must be an image")
+
+    image_bytes = await image.read()
+    try:
+        result = analyse_meal(image_bytes, image.content_type, description)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    return result
+
+
+@router.post("/bot/analyse")
+async def bot_analyse_food(
+    image: UploadFile = File(...),
+    description: str = Form(""),
+    _telegram_id: int = Depends(verify_bot_auth),
+):
+    """Bot-authenticated meal photo analysis — no WebApp initData required."""
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=422, detail="File must be an image")
+
+    image_bytes = await image.read()
+    try:
+        result = analyse_meal(image_bytes, image.content_type, description)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    return result
 
 
 @router.get("/saved")

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import engine
 from . import models
-from .routers import foods, water, users
+from .routers import foods, water, users, analytics
 
 app = FastAPI()
 
@@ -24,6 +24,7 @@ app.add_middleware(
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(foods.router, prefix="/foods", tags=["foods"])
 app.include_router(water.router, prefix="/water", tags=["water"])
+app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 
 
 @app.get("/")

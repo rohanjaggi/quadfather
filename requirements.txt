@@ -1,5 +1,6 @@
 pytelegrambotapi>=4.0.0
 python-dotenv
+requests
 fastapi
 uvicorn[standard]
 sqlalchemy

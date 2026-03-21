@@ -1,5 +1,5 @@
 import WebApp from '@twa-dev/sdk'
-import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate } from '@/types/api'
+import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, MealAnalysis, SavedFood, SavedFoodCreate, AnalyticsResponse } from '@/types/api'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
@@ -29,3 +29,23 @@ export const deleteFood = (id: number) => apiFetch<void>(`/foods/${id}`, { metho
 export const getWaterLogs = () => apiFetch<WaterLog[]>('/water/')
 export const logWater = (data: WaterLogCreate) => apiFetch<WaterLog>('/water/', { method: 'POST', body: JSON.stringify(data) })
 export const deleteWater = (id: number) => apiFetch<void>(`/water/${id}`, { method: 'DELETE' })
+export const updateGoals = (data: GoalsUpdate) => apiFetch<User>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
+
+export const getSavedFoods = () => apiFetch<SavedFood[]>('/foods/saved')
+export const saveFood = (data: SavedFoodCreate) => apiFetch<SavedFood>('/foods/saved', { method: 'POST', body: JSON.stringify(data) })
+export const deleteSavedFood = (id: number) => apiFetch<void>(`/foods/saved/${id}`, { method: 'DELETE' })
+export const getAnalytics = (days: number) => apiFetch<AnalyticsResponse>(`/analytics/daily?days=${days}`)
+
+export async function analyseMeal(imageFile: File, description: string): Promise<MealAnalysis> {
+  const initData = typeof window !== 'undefined' ? WebApp.initData : ''
+  const form = new FormData()
+  form.append('image', imageFile)
+  form.append('description', description)
+  const res = await fetch(`${API_BASE}/foods/analyse`, {
+    method: 'POST',
+    headers: { 'X-Telegram-Init-Data': initData },
+    body: form,
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}

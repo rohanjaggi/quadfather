@@ -36,25 +36,33 @@ function WaterIcon({ active }: { active: boolean }) {
   )
 }
 
-function TrainIcon({ active }: { active: boolean }) {
+function TrendsIcon({ active }: { active: boolean }) {
   const c = active ? 'var(--accent)' : 'var(--tg-theme-hint-color)'
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c}
       strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="6.5" y1="12" x2="17.5" y2="12" />
-      <rect x="4" y="9.5" width="2.5" height="5" rx="1.25" />
-      <rect x="17.5" y="9.5" width="2.5" height="5" rx="1.25" />
-      <rect x="1.5" y="10.5" width="2.5" height="3" rx="1.25" />
-      <rect x="20" y="10.5" width="2.5" height="3" rx="1.25" />
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  )
+}
+
+function ProfileIcon({ active }: { active: boolean }) {
+  const c = active ? 'var(--accent)' : 'var(--tg-theme-hint-color)'
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c}
+      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
   )
 }
 
 const tabs = [
-  { href: '/',         label: 'Today',     Icon: HomeIcon  },
-  { href: '/food',     label: 'Nutrition', Icon: FoodIcon  },
-  { href: '/water',    label: 'Water',     Icon: WaterIcon },
-  { href: '/workouts', label: 'Train',     Icon: TrainIcon },
+  { href: '/',          label: 'Today',     Icon: HomeIcon    },
+  { href: '/food',      label: 'Nutrition', Icon: FoodIcon    },
+  { href: '/water',     label: 'Water',     Icon: WaterIcon   },
+  { href: '/analytics', label: 'Trends',    Icon: TrendsIcon  },
+  { href: '/profile',   label: 'Goals',     Icon: ProfileIcon },
 ]
 
 export default function BottomNav() {

@@ -4,7 +4,7 @@ import json
 import os
 from urllib.parse import parse_qsl
 
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Query
 
 from .database import SessionLocal
 
@@ -43,3 +43,16 @@ def verify_telegram_auth(x_telegram_init_data: str = Header(default="")) -> dict
         raise HTTPException(status_code=401, detail="Invalid initData signature")
 
     return json.loads(parsed["user"])
+
+
+def verify_bot_auth(
+    x_bot_token: str = Header(default=""),
+    telegram_id: int = Query(...),
+) -> int:
+    """
+    Simple auth for bot-initiated requests: validates the shared bot token
+    and returns the telegram_id the bot is acting on behalf of.
+    """
+    if not BOT_TOKEN or x_bot_token != BOT_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid bot token")
+    return telegram_id

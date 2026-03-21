@@ -3,16 +3,36 @@
 import { useState } from 'react'
 import MealCard from '@/components/food/MealCard'
 import ManualFoodForm from '@/components/food/ManualFoodForm'
+import PhotoUpload from '@/components/food/PhotoUpload'
+import SavedFoodCard from '@/components/food/SavedFoodCard'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { useUser } from '@/context/UserContext'
+import type { SavedFood } from '@/types/api'
 
 function formatTime(isoString: string) {
   return new Date(isoString).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
+type Mode = null | 'scan' | 'manual'
+
 export default function FoodPage() {
-  const { summary, foodLogs, deleteFood } = useUser()
-  const [showForm, setShowForm] = useState(false)
+  const { summary, foodLogs, deleteFood, savedFoods, deleteSavedFood, logFood } = useUser()
+  const [mode, setMode] = useState<Mode>(null)
+
+  function toggle(next: Mode) {
+    setMode(prev => prev === next ? null : next)
+  }
+
+  async function handleQuickAdd(food: SavedFood) {
+    await logFood({
+      food_name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      carbohydrates: food.carbohydrates,
+      fats: food.fats,
+      source: food.source,
+    })
+  }
 
   const caloriesData = summary?.macros.calories
   const macros = [
@@ -62,30 +82,56 @@ export default function FoodPage() {
             Log a Meal
           </h1>
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '99px',
-            border: '1px solid var(--surface-border)',
-            backgroundColor: showForm ? 'var(--tg-theme-button-color)' : 'transparent',
-            color: showForm ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-            fontFamily: 'var(--font-body)',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-        >
-          + Add
-        </button>
+        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+          <button
+            onClick={() => toggle('scan')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '99px',
+              border: '1px solid var(--surface-border)',
+              backgroundColor: mode === 'scan' ? 'var(--tg-theme-button-color)' : 'transparent',
+              color: mode === 'scan' ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+              fontFamily: 'var(--font-body)',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            📷 Scan
+          </button>
+          <button
+            onClick={() => toggle('manual')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '99px',
+              border: '1px solid var(--surface-border)',
+              backgroundColor: mode === 'manual' ? 'var(--tg-theme-button-color)' : 'transparent',
+              color: mode === 'manual' ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+              fontFamily: 'var(--font-body)',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            + Add
+          </button>
+        </div>
       </div>
 
-      {/* Manual food form */}
-      {showForm && (
+      {/* Scan mode */}
+      {mode === 'scan' && (
         <div className="fade-up">
-          <SummaryCard title="">
-            <ManualFoodForm onClose={() => setShowForm(false)} />
+          <SummaryCard>
+            <PhotoUpload onClose={() => setMode(null)} />
+          </SummaryCard>
+        </div>
+      )}
+
+      {/* Manual mode */}
+      {mode === 'manual' && (
+        <div className="fade-up">
+          <SummaryCard>
+            <ManualFoodForm onClose={() => setMode(null)} />
           </SummaryCard>
         </div>
       )}
@@ -174,8 +220,27 @@ export default function FoodPage() {
         </SummaryCard>
       </div>
 
+      {/* Favourites */}
+      {savedFoods.length > 0 && (
+        <div className="fade-up fade-up-2">
+          <SummaryCard title="Favourites">
+            <div>
+              {savedFoods.map((food, i) => (
+                <SavedFoodCard
+                  key={food.id}
+                  food={food}
+                  isLast={i === savedFoods.length - 1}
+                  onAdd={handleQuickAdd}
+                  onDelete={deleteSavedFood}
+                />
+              ))}
+            </div>
+          </SummaryCard>
+        </div>
+      )}
+
       {/* Meals list */}
-      <div className="fade-up fade-up-2">
+      <div className="fade-up fade-up-3">
         <SummaryCard title="Today's Meals">
           <div>
             {foodLogs.length === 0 ? (

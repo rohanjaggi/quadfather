@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..deps import get_db, verify_telegram_auth
+from ..deps import get_db, verify_telegram_auth, verify_bot_auth
 from ..models import User, FoodLog, WaterLog
 
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -66,7 +66,7 @@ def get_daily_summary(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
 
     food_logs = db.query(FoodLog).filter(
         FoodLog.user_id == user.id,
@@ -110,12 +110,52 @@ def get_daily_summary(
     }
 
 
+@router.get("/bot/summary")
+def bot_get_daily_summary(
+    db: Session = Depends(get_db),
+    telegram_id: int = Depends(verify_bot_auth),
+):
+    """Bot-authenticated daily summary — no WebApp initData required."""
+    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    if not user:
+        return None  # bot handles the "not registered" case
+
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+
+    food_logs = db.query(FoodLog).filter(
+        FoodLog.user_id == user.id,
+        FoodLog.logged_at >= today_start,
+    ).all()
+
+    water_logs = db.query(WaterLog).filter(
+        WaterLog.user_id == user.id,
+        WaterLog.logged_at >= today_start,
+    ).all()
+
+    total_calories = sum(log.calories or 0.0 for log in food_logs)
+    total_protein = sum(log.protein or 0.0 for log in food_logs)
+    total_water = sum(log.amount_liters for log in water_logs)
+
+    return {
+        "calories": {"total": round(total_calories), "goal": round(user.daily_calorie_goal)},
+        "protein": {"total": round(total_protein, 1), "goal": round(user.daily_protein_goal, 1)},
+        "water": {"total": round(total_water, 2), "goal": round(user.daily_water_goal, 2)},
+        "meals_logged": len(food_logs),
+    }
+
+
+from pydantic import BaseModel
+
+class GoalsUpdate(BaseModel):
+    daily_calorie_goal: Optional[float] = None
+    daily_protein_goal: Optional[float] = None
+    daily_water_goal: Optional[float] = None
+    water_bottle_size: Optional[float] = None
+
+
 @router.put("/me/goals")
 def update_goals(
-    daily_calorie_goal: Optional[float] = None,
-    daily_protein_goal: Optional[float] = None,
-    daily_water_goal: Optional[float] = None,
-    bottle_size: Optional[float] = None,
+    body: GoalsUpdate,
     db: Session = Depends(get_db),
     telegram_user: dict = Depends(verify_telegram_auth),
 ):
@@ -126,14 +166,14 @@ def update_goals(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if daily_calorie_goal is not None:
-        user.daily_calorie_goal = daily_calorie_goal
-    if daily_protein_goal is not None:
-        user.daily_protein_goal = daily_protein_goal
-    if daily_water_goal is not None:
-        user.daily_water_goal = daily_water_goal
-    if bottle_size is not None:
-        user.water_bottle_size = bottle_size
+    if body.daily_calorie_goal is not None:
+        user.daily_calorie_goal = body.daily_calorie_goal
+    if body.daily_protein_goal is not None:
+        user.daily_protein_goal = body.daily_protein_goal
+    if body.daily_water_goal is not None:
+        user.daily_water_goal = body.daily_water_goal
+    if body.water_bottle_size is not None:
+        user.water_bottle_size = body.water_bottle_size
 
     db.commit()
     db.refresh(user)
@@ -141,9 +181,9 @@ def update_goals(
     return {
         "message": "Goals updated",
         "goals": {
-            "protein": user.daily_protein_goal,
-            "calories": user.daily_calorie_goal,
-            "water": user.daily_water_goal,
+            "daily_protein_goal": user.daily_protein_goal,
+            "daily_calorie_goal": user.daily_calorie_goal,
+            "daily_water_goal": user.daily_water_goal,
         },
         "water_bottle_size": user.water_bottle_size,
     }

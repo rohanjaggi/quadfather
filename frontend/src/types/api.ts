@@ -57,3 +57,63 @@ export interface WaterLogCreate {
   amount_liters?: number
   bottles?: number
 }
+
+export interface MealAnalysis {
+  food_name: string
+  calories: number
+  protein: number
+  carbohydrates: number
+  fats: number
+  confidence: 'high' | 'medium' | 'low'
+  notes: string
+}
+
+export interface GoalsUpdate {
+  daily_calorie_goal?: number
+  daily_protein_goal?: number
+  daily_water_goal?: number
+  water_bottle_size?: number
+}
+
+export interface SavedFood {
+  id: number
+  name: string
+  description?: string
+  calories: number
+  protein: number
+  carbohydrates: number
+  fats: number
+  serving_label?: string
+  source: string
+  created_at: string
+}
+
+export interface SavedFoodCreate {
+  name: string
+  calories: number
+  protein: number
+  carbohydrates: number
+  fats: number
+  description?: string
+  serving_label?: string
+  source?: string
+}
+
+export interface AnalyticsDayData {
+  date: string
+  calories: number
+  protein: number
+  carbohydrates: number
+  fats: number
+  water: number
+  meals_logged: number
+}
+
+export interface AnalyticsResponse {
+  days: AnalyticsDayData[]
+  goals: {
+    calories: number
+    protein: number
+    water: number
+  }
+}

@@ -1,6 +1,5 @@
-from sqlalchemy import Column, DateTime, Integer, String, Text, ForeignKey, Table, Float, UniqueConstraint
+from sqlalchemy import Column, DateTime, Integer, String, Text, ForeignKey, Float, UniqueConstraint
 from sqlalchemy.orm import declarative_base, relationship, Mapped, mapped_column
-from .database import Base
 from datetime import datetime
 from typing import Optional
 

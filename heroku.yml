@@ -1,0 +1,8 @@
+build:
+  docker:
+    web:
+      dockerfile: fastapi/Dockerfile
+      context: .   # repo root — COPY paths in Dockerfile are prefixed with fastapi/
+
+run:
+  web: uvicorn api.main:app --host 0.0.0.0 --port $PORT

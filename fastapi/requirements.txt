@@ -5,3 +5,5 @@ psycopg2-binary
 python-dotenv
 google-genai
 python-multipart
+pytelegrambotapi>=4.0.0
+requests

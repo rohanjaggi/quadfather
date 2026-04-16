@@ -67,8 +67,7 @@ def log_water(
         amount_liters = body.bottles * bottle_size
         bottles = body.bottles
     else:
-        amount_liters = body.amount_liters  # guaranteed non-None by earlier check
-        assert amount_liters is not None
+        amount_liters = body.amount_liters or 0.0
         bottles = round(amount_liters / bottle_size, 2) if bottle_size else None
 
     log = WaterLog(

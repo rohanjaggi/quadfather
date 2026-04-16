@@ -1,13 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from typing import Optional
+from datetime import datetime, timezone
 
 from ..deps import get_db, verify_telegram_auth, verify_bot_auth
 from ..models import User, FoodLog, WaterLog
 
-from typing import Optional
-from datetime import datetime, timezone
-
 router = APIRouter()
+
+
+class GoalsUpdate(BaseModel):
+    daily_calorie_goal: Optional[float] = None
+    daily_protein_goal: Optional[float] = None
+    daily_water_goal: Optional[float] = None
+    water_bottle_size: Optional[float] = None
 
 
 @router.post("/", status_code=201)
@@ -142,15 +149,6 @@ def bot_get_daily_summary(
         "water": {"total": round(total_water, 2), "goal": round(user.daily_water_goal, 2)},
         "meals_logged": len(food_logs),
     }
-
-
-from pydantic import BaseModel
-
-class GoalsUpdate(BaseModel):
-    daily_calorie_goal: Optional[float] = None
-    daily_protein_goal: Optional[float] = None
-    daily_water_goal: Optional[float] = None
-    water_bottle_size: Optional[float] = None
 
 
 @router.put("/me/goals")

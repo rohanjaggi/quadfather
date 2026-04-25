@@ -8,11 +8,19 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ secret: string }> },
 ) {
-  const { secret } = await params;
-  if (WEBHOOK_SECRET && secret !== WEBHOOK_SECRET) {
-    return NextResponse.json({ detail: "Forbidden" }, { status: 403 });
-  }
+  try {
+    const { secret } = await params;
+    if (WEBHOOK_SECRET && secret !== WEBHOOK_SECRET) {
+      return NextResponse.json({ detail: "Forbidden" }, { status: 403 });
+    }
 
-  const handleUpdate = webhookCallback(getBot(), "std/http");
-  return handleUpdate(request);
+    const handleUpdate = webhookCallback(getBot(), "std/http");
+    return handleUpdate(request);
+  } catch (e) {
+    console.error("Webhook error:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Unknown error" },
+      { status: 500 },
+    );
+  }
 }

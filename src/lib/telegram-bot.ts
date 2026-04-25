@@ -11,6 +11,9 @@ let _bot: Bot | null = null;
 function initBot(): Bot {
   if (_bot) return _bot;
   _bot = new Bot(BOT_TOKEN);
+  _bot.catch((err) => {
+    console.error("Bot error:", err);
+  });
   registerHandlers(_bot);
   return _bot;
 }
@@ -91,11 +94,13 @@ function registerHandlers(bot: Bot) {
     await ctx.reply(
       "<b>Quadfather commands</b>\n\n" +
         "/today — today's calorie, protein &amp; water summary\n" +
-        "/log — open the meal logger (scan or manual)\n" +
+        "/log — open the meal logger (scan, text, or manual)\n" +
         "/water — open the water tracker\n" +
         "/trends — view 7-day &amp; 30-day progress charts\n" +
         "/goals — update your daily calorie, protein &amp; water goals\n\n" +
-        "\u{1F4F8} <b>Send any photo</b> and I'll analyse the macros with AI.",
+        "\u{1F4F8} <b>Send a photo</b> of your meal for AI macro analysis\n" +
+        "\u{270F}\u{FE0F} <b>Text mode</b> — describe a meal in words and get estimated macros\n" +
+        "\u{1F4A1} <b>AI Suggestions</b> — get meal ideas that fit your remaining daily budget",
       { parse_mode: "HTML" },
     );
   });

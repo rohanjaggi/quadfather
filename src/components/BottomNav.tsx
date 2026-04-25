@@ -76,8 +76,10 @@ export default function BottomNav() {
         left: 0,
         right: 0,
         display: 'flex',
-        backgroundColor: 'var(--tg-theme-bg-color)',
-        borderTop: '1px solid var(--surface-border)',
+        background: 'rgba(248, 244, 239, 0.85)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: '0 -1px 12px rgba(28, 20, 16, 0.04)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >

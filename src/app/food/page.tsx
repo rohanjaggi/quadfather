@@ -85,52 +85,13 @@ export default function FoodPage() {
           </h1>
         </div>
         <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-          <button
-            onClick={() => toggle('scan')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '99px',
-              border: '1px solid var(--surface-border)',
-              backgroundColor: mode === 'scan' ? 'var(--tg-theme-button-color)' : 'transparent',
-              color: mode === 'scan' ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-              fontFamily: 'var(--font-body)',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
+          <button className="btn-pill" data-active={mode === 'scan' ? 'true' : undefined} onClick={() => toggle('scan')}>
             📷 Scan
           </button>
-          <button
-            onClick={() => toggle('text')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '99px',
-              border: '1px solid var(--surface-border)',
-              backgroundColor: mode === 'text' ? 'var(--tg-theme-button-color)' : 'transparent',
-              color: mode === 'text' ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-              fontFamily: 'var(--font-body)',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
+          <button className="btn-pill" data-active={mode === 'text' ? 'true' : undefined} onClick={() => toggle('text')}>
             ✏️ Text
           </button>
-          <button
-            onClick={() => toggle('manual')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '99px',
-              border: '1px solid var(--surface-border)',
-              backgroundColor: mode === 'manual' ? 'var(--tg-theme-button-color)' : 'transparent',
-              color: mode === 'manual' ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-              fontFamily: 'var(--font-body)',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
+          <button className="btn-pill" data-active={mode === 'manual' ? 'true' : undefined} onClick={() => toggle('manual')}>
             + Add
           </button>
         </div>
@@ -249,7 +210,7 @@ export default function FoodPage() {
 
       {/* Favourites */}
       {savedFoods.length > 0 && (
-        <div className="fade-up fade-up-2">
+        <div className="fade-up fade-up-2" style={{ marginTop: '10px' }}>
           <SummaryCard title="Favourites">
             <div>
               {savedFoods.map((food, i) => (
@@ -267,14 +228,14 @@ export default function FoodPage() {
       )}
 
       {/* AI Suggestions */}
-      <div className="fade-up fade-up-3">
+      <div className="fade-up fade-up-3" style={{ marginTop: '10px' }}>
         <SummaryCard>
           <MealSuggestions />
         </SummaryCard>
       </div>
 
       {/* Meals list */}
-      <div className="fade-up fade-up-4">
+      <div className="fade-up fade-up-4" style={{ marginTop: '10px' }}>
         <SummaryCard title="Today's Meals">
           <div>
             {foodLogs.length === 0 ? (

@@ -6,21 +6,9 @@ export default function SummaryCard({
   children: React.ReactNode
 }) {
   return (
-    <div style={{
-      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-      borderRadius: '20px',
-      padding: '20px',
-    }}>
+    <div className="card">
       {title && (
-        <p style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: '10px',
-          fontWeight: 500,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)',
-          marginBottom: '18px',
-        }}>
+        <p className="label-caps" style={{ letterSpacing: '0.1em', marginBottom: '18px' }}>
           {title}
         </p>
       )}

@@ -64,14 +64,7 @@ export default function MealSuggestions() {
           cursor: 'pointer',
         }}
       >
-        <span style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: '10px',
-          fontWeight: 500,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)',
-        }}>
+        <span className="label-caps" style={{ marginBottom: 0 }}>
           AI Suggestions
         </span>
         <span style={{
@@ -165,17 +158,11 @@ export default function MealSuggestions() {
               <button
                 onClick={() => handleLog(s, i)}
                 disabled={loggingIdx !== null}
+                className="btn-primary"
                 style={{
                   padding: '8px 14px',
                   borderRadius: '10px',
-                  border: 'none',
-                  backgroundColor: 'var(--tg-theme-button-color)',
-                  color: 'var(--tg-theme-button-text-color)',
-                  fontFamily: 'var(--font-body)',
                   fontSize: '11px',
-                  fontWeight: 500,
-                  cursor: loggingIdx !== null ? 'not-allowed' : 'pointer',
-                  opacity: loggingIdx !== null ? 0.5 : 1,
                   flexShrink: 0,
                 }}
               >
@@ -187,17 +174,12 @@ export default function MealSuggestions() {
           {!loading && suggestions && (
             <button
               onClick={fetchSuggestions}
+              className="btn-secondary"
               style={{
                 alignSelf: 'center',
                 padding: '8px 18px',
                 borderRadius: '99px',
-                border: '1px solid var(--surface-border)',
-                backgroundColor: 'transparent',
-                color: 'var(--tg-theme-hint-color)',
-                fontFamily: 'var(--font-body)',
                 fontSize: '11px',
-                fontWeight: 500,
-                cursor: 'pointer',
                 marginTop: '2px',
               }}
             >

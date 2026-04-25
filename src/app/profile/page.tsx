@@ -101,19 +101,6 @@ export default function ProfilePage() {
     { key: 'water_bottle_size', label: 'Bottle Size', unit: 'L', step: '0.1' },
   ]
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    borderRadius: '12px',
-    padding: '12px 14px',
-    fontSize: '15px',
-    fontFamily: 'var(--font-display)',
-    fontWeight: 400,
-    border: 'none',
-    outline: 'none',
-    backgroundColor: 'var(--tg-theme-bg-color)',
-    color: 'var(--tg-theme-text-color)',
-  }
-
   const labelStyle: React.CSSProperties = {
     fontFamily: 'var(--font-body)',
     fontSize: '12px',
@@ -170,7 +157,7 @@ export default function ProfilePage() {
                   value={form[key as keyof typeof form]}
                   onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                   required
-                  style={inputStyle}
+                  className="input-field"
                 />
               </div>
             ))}
@@ -178,21 +165,9 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving}
+              className="btn-primary"
               style={{
-                width: '100%',
-                padding: '15px',
-                borderRadius: '14px',
-                border: 'none',
-                backgroundColor: saved ? 'var(--accent-protein)' : 'var(--tg-theme-button-color)',
-                color: 'var(--tg-theme-button-text-color)',
-                fontFamily: 'var(--font-body)',
-                fontSize: '11px',
-                fontWeight: 500,
-                letterSpacing: '0.09em',
-                textTransform: 'uppercase',
-                opacity: saving ? 0.5 : 1,
-                transition: 'background-color 0.3s ease, opacity 0.2s ease',
-                cursor: saving ? 'not-allowed' : 'pointer',
+                backgroundColor: saved ? 'var(--accent-protein)' : undefined,
                 marginTop: '4px',
               }}
             >
@@ -229,18 +204,9 @@ export default function ProfilePage() {
                     key={p.value}
                     type="button"
                     onClick={() => setKeyProvider(p.value)}
-                    style={{
-                      flex: 1,
-                      padding: '10px 8px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--surface-border)',
-                      backgroundColor: keyProvider === p.value ? 'var(--tg-theme-button-color)' : 'transparent',
-                      color: keyProvider === p.value ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-                      fontFamily: 'var(--font-body)',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
+                    className="btn-pill"
+                    data-active={keyProvider === p.value ? 'true' : undefined}
+                    style={{ flex: 1 }}
                   >
                     {p.label}
                   </button>
@@ -256,7 +222,7 @@ export default function ProfilePage() {
                 value={keyValue}
                 onChange={e => setKeyValue(e.target.value)}
                 placeholder={user?.has_api_key ? '••••••••••••••••' : 'Paste your API key'}
-                style={inputStyle}
+                className="input-field"
               />
             </div>
 
@@ -273,20 +239,10 @@ export default function ProfilePage() {
                   type="button"
                   onClick={handleRemoveKey}
                   disabled={keySaving}
+                  className="btn-secondary"
                   style={{
                     flex: 1,
-                    padding: '14px',
-                    borderRadius: '13px',
-                    border: '1px solid var(--surface-border)',
-                    backgroundColor: 'transparent',
                     color: 'var(--accent-calories)',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: '11px',
-                    fontWeight: 500,
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                    cursor: keySaving ? 'not-allowed' : 'pointer',
-                    opacity: keySaving ? 0.5 : 1,
                   }}
                 >
                   {keyStatus === 'removed' ? 'Removed' : 'Remove Key'}
@@ -295,21 +251,10 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={keySaving || !keyValue.trim()}
+                className="btn-primary"
                 style={{
                   flex: 2,
-                  padding: '14px',
-                  borderRadius: '13px',
-                  border: 'none',
-                  backgroundColor: keyStatus === 'saved' ? 'var(--accent-protein)' : 'var(--tg-theme-button-color)',
-                  color: 'var(--tg-theme-button-text-color)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  letterSpacing: '0.09em',
-                  textTransform: 'uppercase',
-                  opacity: (keySaving || !keyValue.trim()) ? 0.5 : 1,
-                  cursor: (keySaving || !keyValue.trim()) ? 'not-allowed' : 'pointer',
-                  transition: 'background-color 0.3s ease',
+                  backgroundColor: keyStatus === 'saved' ? 'var(--accent-protein)' : undefined,
                 }}
               >
                 {keySaving ? 'Saving…' : keyStatus === 'saved' ? 'Saved ✓' : 'Save Key'}

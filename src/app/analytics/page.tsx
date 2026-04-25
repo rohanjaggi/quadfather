@@ -33,6 +33,9 @@ interface BarChartProps {
 }
 
 function BarChart({ days, getValue, goal, color, unit, period }: BarChartProps) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   const max = Math.max(goal, ...days.map(getValue))
   // For 30-day view, only show every ~5th label to avoid crowding
   const labelEvery = period === 30 ? 5 : 1
@@ -67,8 +70,9 @@ function BarChart({ days, getValue, goal, color, unit, period }: BarChartProps) 
                   width: '100%',
                   borderRadius: '4px 4px 2px 2px',
                   backgroundColor: atGoal ? color : `${color}55`,
-                  height: `${Math.max(heightPct * 100, val > 0 ? 4 : 0)}%`,
+                  height: mounted ? `${Math.max(heightPct * 100, val > 0 ? 4 : 0)}%` : '0%',
                   transition: 'height 0.5s var(--ease-smooth)',
+                  transitionDelay: `${i * 40}ms`,
                   minHeight: val > 0 ? '3px' : '0',
                 }}
               />
@@ -285,6 +289,7 @@ export default function AnalyticsPage() {
                     </span>
                   </div>
                   <BarChart
+                    key={period}
                     days={days}
                     getValue={d => d.calories}
                     goal={goals.calories}
@@ -312,6 +317,7 @@ export default function AnalyticsPage() {
                     </span>
                   </div>
                   <BarChart
+                    key={period}
                     days={days}
                     getValue={d => d.protein}
                     goal={goals.protein}
@@ -339,6 +345,7 @@ export default function AnalyticsPage() {
                     </span>
                   </div>
                   <BarChart
+                    key={period}
                     days={days}
                     getValue={d => d.water}
                     goal={goals.water}

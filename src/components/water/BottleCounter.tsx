@@ -1,5 +1,7 @@
 'use client'
 
+import { useHaptic } from '@/components/TelegramProvider'
+
 export default function BottleCounter({
   count,
   goal,
@@ -13,9 +15,20 @@ export default function BottleCounter({
   onAdd: () => void
   onRemove: () => void
 }) {
+  const haptic = useHaptic()
   const totalBottles = Math.ceil(goal / bottleSize)
   const liters = count * bottleSize
   const pct = Math.min(liters / goal, 1)
+
+  function handleAdd() {
+    haptic.impact('light')
+    onAdd()
+  }
+
+  function handleRemove() {
+    haptic.impact('light')
+    onRemove()
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -88,37 +101,21 @@ export default function BottleCounter({
       {/* Buttons */}
       <div style={{ display: 'flex', gap: '10px' }}>
         <button
-          onClick={onRemove}
+          onClick={handleRemove}
           disabled={count === 0}
-          style={{
-            flex: 1,
-            padding: '14px',
-            borderRadius: '14px',
-            border: 'none',
-            backgroundColor: 'var(--tg-theme-bg-color)',
-            color: 'var(--tg-theme-text-color)',
-            fontSize: '13px',
-            fontWeight: 500,
-            opacity: count === 0 ? 0.3 : 1,
-            cursor: count === 0 ? 'not-allowed' : 'pointer',
-          }}
+          className="btn-ghost"
+          style={{ flex: 1, padding: '14px' }}
         >
           − Remove
         </button>
         <button
-          onClick={onAdd}
+          onClick={handleAdd}
           disabled={count >= totalBottles}
+          className="btn-primary"
           style={{
             flex: 1,
             padding: '14px',
-            borderRadius: '14px',
-            border: 'none',
             backgroundColor: 'var(--accent-water)',
-            color: '#ffffff',
-            fontSize: '13px',
-            fontWeight: 500,
-            opacity: count >= totalBottles ? 0.3 : 1,
-            cursor: count >= totalBottles ? 'not-allowed' : 'pointer',
           }}
         >
           + Add Bottle

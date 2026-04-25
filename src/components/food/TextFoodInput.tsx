@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { parseFood } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
+import { useHaptic } from '@/components/TelegramProvider'
 import type { MealAnalysis } from '@/types/api'
 
 type Phase = 'idle' | 'analysing' | 'result' | 'logging' | 'saving'
 
 export default function TextFoodInput({ onClose }: { onClose: () => void }) {
   const { user, logFood, saveFood } = useUser()
+  const haptic = useHaptic()
 
   const [text, setText] = useState('')
   const [phase, setPhase] = useState<Phase>('idle')
@@ -44,6 +46,7 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
       fats: Number(merged.fats ?? result.fats),
       source: 'ai-text',
     })
+    haptic.notification('success')
     onClose()
   }
 
@@ -80,30 +83,6 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
     setSavedConfirm(false)
   }
 
-  const inputStyle = {
-    width: '100%',
-    borderRadius: '12px',
-    padding: '11px 13px',
-    fontSize: '15px',
-    fontFamily: 'var(--font-display)',
-    fontWeight: 400,
-    border: 'none',
-    outline: 'none',
-    backgroundColor: 'var(--tg-theme-bg-color)',
-    color: 'var(--tg-theme-text-color)',
-  }
-
-  const labelStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-body)',
-    fontSize: '10px',
-    fontWeight: 500,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: 'var(--tg-theme-hint-color)',
-    display: 'block',
-    marginBottom: '5px',
-  }
-
   if (phase === 'result' || phase === 'logging' || phase === 'saving') {
     if (!result) return null
     const val = (key: keyof MealAnalysis) =>
@@ -124,9 +103,9 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
         </div>
 
         <div>
-          <label style={labelStyle}>Food name</label>
+          <label className="label-caps">Food name</label>
           <input
-            style={inputStyle}
+            className="input-field"
             value={val('food_name')}
             onChange={e => setEdited(d => ({ ...d, food_name: e.target.value }))}
           />
@@ -140,9 +119,9 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
             { key: 'fats', label: 'Fats', unit: 'g' },
           ] as const).map(({ key, label, unit }) => (
             <div key={key}>
-              <label style={labelStyle}>{label} <span style={{ opacity: 0.6 }}>({unit})</span></label>
+              <label className="label-caps">{label} <span style={{ opacity: 0.6 }}>({unit})</span></label>
               <input
-                style={inputStyle}
+                className="input-field"
                 type="number"
                 min="0"
                 step="0.1"
@@ -173,45 +152,25 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
         )}
 
         <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-          <button
-            onClick={reset}
-            style={{
-              flex: 1, padding: '13px', borderRadius: '13px', border: 'none',
-              backgroundColor: 'var(--tg-theme-bg-color)',
-              color: 'var(--tg-theme-hint-color)',
-              fontFamily: 'var(--font-body)', fontSize: '12px', fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
+          <button className="btn-ghost" onClick={reset} style={{ flex: 1 }}>
             Clear
           </button>
           <button
+            className="btn-secondary"
             onClick={handleSaveFavourite}
             disabled={phase === 'saving' || phase === 'logging' || savedConfirm}
             style={{
-              flex: 1, padding: '13px', borderRadius: '13px',
-              border: '1px solid var(--surface-border)',
-              backgroundColor: 'transparent',
-              color: savedConfirm ? 'var(--accent-protein)' : 'var(--tg-theme-text-color)',
-              fontFamily: 'var(--font-body)', fontSize: '12px', fontWeight: 500,
-              opacity: (phase === 'saving' || phase === 'logging') ? 0.5 : 1,
-              cursor: 'pointer',
+              flex: 1,
+              color: savedConfirm ? 'var(--accent-protein)' : undefined,
             }}
           >
             {phase === 'saving' ? 'Saving…' : savedConfirm ? '✓ Saved' : '♡ Favourite'}
           </button>
           <button
+            className="btn-primary"
             onClick={handleLog}
             disabled={phase === 'logging' || phase === 'saving'}
-            style={{
-              flex: 2, padding: '13px', borderRadius: '13px', border: 'none',
-              backgroundColor: 'var(--tg-theme-button-color)',
-              color: 'var(--tg-theme-button-text-color)',
-              fontFamily: 'var(--font-body)', fontSize: '12px', fontWeight: 500,
-              letterSpacing: '0.06em', textTransform: 'uppercase',
-              opacity: (phase === 'logging' || phase === 'saving') ? 0.5 : 1,
-              cursor: 'pointer',
-            }}
+            style={{ flex: 2, fontSize: '12px', padding: '13px' }}
           >
             {phase === 'logging' ? 'Logging…' : 'Log Meal'}
           </button>
@@ -233,17 +192,12 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <textarea
+        className="textarea-field"
         value={text}
         onChange={e => setText(e.target.value)}
         placeholder="2 eggs and toast with butter, a glass of orange juice..."
         rows={3}
-        style={{
-          width: '100%', borderRadius: '14px', padding: '13px 16px',
-          fontSize: '14px', fontFamily: 'var(--font-body)',
-          resize: 'none', outline: 'none', border: 'none',
-          backgroundColor: 'var(--tg-theme-bg-color)',
-          color: 'var(--tg-theme-text-color)',
-        }}
+        style={{ backgroundColor: 'var(--tg-theme-bg-color)' }}
       />
 
       {error && (
@@ -253,18 +207,10 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
       )}
 
       <button
+        className="btn-primary"
         onClick={handleAnalyse}
         disabled={!text.trim() || phase === 'analysing'}
-        style={{
-          width: '100%', borderRadius: '14px', padding: '15px',
-          fontFamily: 'var(--font-body)', fontSize: '11px', fontWeight: 500,
-          letterSpacing: '0.09em', textTransform: 'uppercase',
-          border: 'none',
-          backgroundColor: 'var(--tg-theme-button-color)',
-          color: 'var(--tg-theme-button-text-color)',
-          opacity: (!text.trim() || phase === 'analysing') ? 0.3 : 1,
-          cursor: (!text.trim() || phase === 'analysing') ? 'not-allowed' : 'pointer',
-        }}
+        style={{ padding: '15px' }}
       >
         {phase === 'analysing' ? 'Analysing…' : 'Estimate Macros'}
       </button>

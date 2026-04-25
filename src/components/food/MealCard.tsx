@@ -1,3 +1,7 @@
+'use client'
+
+import { useHaptic } from '@/components/TelegramProvider'
+
 export default function MealCard({
   name,
   calories,
@@ -17,6 +21,13 @@ export default function MealCard({
   isLast?: boolean
   onDelete?: () => void
 }) {
+  const haptic = useHaptic()
+
+  function handleDelete() {
+    haptic.notification('warning')
+    onDelete?.()
+  }
+
   return (
     <div style={{
       display: 'flex',
@@ -78,7 +89,7 @@ export default function MealCard({
         </p>
         {onDelete && (
           <button
-            onClick={onDelete}
+            onClick={handleDelete}
             style={{
               background: 'none',
               border: 'none',

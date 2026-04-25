@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react'
 import { useUser } from '@/context/UserContext'
+import { useHaptic } from '@/components/TelegramProvider'
 import type { FoodLogCreate } from '@/types/api'
 
 interface ManualFoodFormProps {
@@ -10,6 +11,7 @@ interface ManualFoodFormProps {
 
 export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
   const { logFood } = useUser()
+  const haptic = useHaptic()
   const [saving, setSaving] = useState(false)
   const [fields, setFields] = useState<FoodLogCreate>({
     food_name: '',
@@ -34,40 +36,17 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
     setSaving(true)
     try {
       await logFood(fields)
+      haptic.notification('success')
       onClose()
     } finally {
       setSaving(false)
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: '10px',
-    border: '1px solid var(--surface-border)',
-    backgroundColor: 'var(--tg-theme-bg-color)',
-    color: 'var(--tg-theme-text-color)',
-    fontFamily: 'var(--font-body)',
-    fontSize: '14px',
-    outline: 'none',
-    boxSizing: 'border-box',
-  }
-
-  const labelStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-body)',
-    fontSize: '11px',
-    fontWeight: 500,
-    letterSpacing: '0.07em',
-    textTransform: 'uppercase',
-    color: 'var(--tg-theme-hint-color)',
-    marginBottom: '5px',
-    display: 'block',
-  }
-
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       <div>
-        <label htmlFor="food_name" style={labelStyle}>Food name</label>
+        <label htmlFor="food_name" className="label-caps">Food name</label>
         <input
           id="food_name"
           name="food_name"
@@ -76,13 +55,13 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
           onChange={handleChange}
           placeholder="e.g. Chicken breast"
           required
-          style={inputStyle}
+          className="input-field-bordered"
         />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <div>
-          <label htmlFor="calories" style={labelStyle}>Calories</label>
+          <label htmlFor="calories" className="label-caps">Calories</label>
           <input
             id="calories"
             name="calories"
@@ -92,11 +71,11 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
             value={fields.calories || ''}
             onChange={handleChange}
             placeholder="0"
-            style={inputStyle}
+            className="input-field-bordered"
           />
         </div>
         <div>
-          <label htmlFor="protein" style={labelStyle}>Protein (g)</label>
+          <label htmlFor="protein" className="label-caps">Protein (g)</label>
           <input
             id="protein"
             name="protein"
@@ -106,11 +85,11 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
             value={fields.protein || ''}
             onChange={handleChange}
             placeholder="0"
-            style={inputStyle}
+            className="input-field-bordered"
           />
         </div>
         <div>
-          <label htmlFor="carbohydrates" style={labelStyle}>Carbs (g)</label>
+          <label htmlFor="carbohydrates" className="label-caps">Carbs (g)</label>
           <input
             id="carbohydrates"
             name="carbohydrates"
@@ -120,11 +99,11 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
             value={fields.carbohydrates || ''}
             onChange={handleChange}
             placeholder="0"
-            style={inputStyle}
+            className="input-field-bordered"
           />
         </div>
         <div>
-          <label htmlFor="fats" style={labelStyle}>Fats (g)</label>
+          <label htmlFor="fats" className="label-caps">Fats (g)</label>
           <input
             id="fats"
             name="fats"
@@ -134,13 +113,13 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
             value={fields.fats || ''}
             onChange={handleChange}
             placeholder="0"
-            style={inputStyle}
+            className="input-field-bordered"
           />
         </div>
       </div>
 
       <div>
-        <label htmlFor="servings" style={labelStyle}>Servings</label>
+        <label htmlFor="servings" className="label-caps">Servings</label>
         <input
           id="servings"
           name="servings"
@@ -150,46 +129,15 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
           value={fields.servings || ''}
           onChange={handleChange}
           placeholder="1"
-          style={inputStyle}
+          className="input-field-bordered"
         />
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-        <button
-          type="button"
-          onClick={onClose}
-          style={{
-            flex: 1,
-            padding: '12px',
-            borderRadius: '12px',
-            border: '1px solid var(--surface-border)',
-            backgroundColor: 'transparent',
-            color: 'var(--tg-theme-hint-color)',
-            fontFamily: 'var(--font-body)',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}
-        >
+        <button type="button" onClick={onClose} className="btn-secondary" style={{ flex: 1 }}>
           Cancel
         </button>
-        <button
-          type="submit"
-          disabled={saving}
-          style={{
-            flex: 1,
-            padding: '12px',
-            borderRadius: '12px',
-            border: 'none',
-            backgroundColor: 'var(--tg-theme-button-color)',
-            color: 'var(--tg-theme-button-text-color)',
-            fontFamily: 'var(--font-body)',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: saving ? 'not-allowed' : 'pointer',
-            opacity: saving ? 0.7 : 1,
-          }}
-        >
+        <button type="submit" disabled={saving} className="btn-primary" style={{ flex: 1 }}>
           {saving ? 'Saving…' : 'Save'}
         </button>
       </div>

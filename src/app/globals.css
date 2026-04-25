@@ -38,8 +38,16 @@ html {
 }
 
 body {
-  background-color: var(--tg-theme-bg-color);
-  color: var(--tg-theme-text-color);
+  --tg-theme-bg-color: #F8F4EF !important;
+  --tg-theme-secondary-bg-color: #EDE7DE !important;
+  --tg-theme-text-color: #1C1410 !important;
+  --tg-theme-hint-color: #9A8A7E !important;
+  --tg-theme-link-color: #8B5E3C !important;
+  --tg-theme-button-color: #1C1410 !important;
+  --tg-theme-button-text-color: #F8F4EF !important;
+
+  background-color: #F8F4EF;
+  color: #1C1410;
   font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.5;
@@ -73,3 +81,165 @@ textarea::placeholder {
 .fade-up-2 { animation-delay: 0.14s; }
 .fade-up-3 { animation-delay: 0.21s; }
 .fade-up-4 { animation-delay: 0.28s; }
+
+/* ======= Component utility classes ======= */
+
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s var(--ease-spring);
+}
+.btn-primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.btn-secondary {
+  padding: 13px;
+  border-radius: 14px;
+  border: 1px solid var(--surface-border);
+  background-color: transparent;
+  color: var(--tg-theme-text-color);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s var(--ease-spring),
+              background-color 0.15s ease;
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--tg-theme-secondary-bg-color);
+}
+
+.btn-ghost {
+  padding: 13px;
+  border-radius: 14px;
+  border: none;
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-hint-color);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s var(--ease-spring);
+}
+.btn-ghost:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.btn-ghost:hover:not(:disabled) {
+  opacity: 0.75;
+}
+
+.btn-pill {
+  padding: 8px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--surface-border);
+  background-color: transparent;
+  color: var(--tg-theme-text-color);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-pill[data-active="true"] {
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  border-color: var(--tg-theme-button-color);
+}
+
+.input-field {
+  width: 100%;
+  border-radius: 12px;
+  padding: 11px 13px;
+  font-size: 15px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  border: none;
+  outline: none;
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  transition: box-shadow 0.2s ease;
+}
+.input-field:focus {
+  box-shadow: 0 0 0 2px rgba(139, 94, 60, 0.25);
+}
+.input-field::placeholder {
+  color: var(--tg-theme-hint-color);
+  opacity: 0.7;
+}
+
+.input-field-bordered {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.input-field-bordered:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(139, 94, 60, 0.15);
+}
+
+.textarea-field {
+  width: 100%;
+  border-radius: 14px;
+  padding: 13px 16px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  resize: none;
+  outline: none;
+  border: none;
+  background-color: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-text-color);
+  transition: box-shadow 0.2s ease;
+}
+.textarea-field:focus {
+  box-shadow: 0 0 0 2px rgba(139, 94, 60, 0.2);
+}
+
+.label-caps {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tg-theme-hint-color);
+  display: block;
+  margin-bottom: 5px;
+}
+
+.card {
+  background-color: var(--tg-theme-secondary-bg-color);
+  border-radius: 20px;
+  padding: 20px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.15; }
+}

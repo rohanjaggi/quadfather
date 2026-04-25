@@ -1,5 +1,6 @@
 'use client'
 
+import { useHaptic } from '@/components/TelegramProvider'
 import type { SavedFood } from '@/types/api'
 
 interface Props {
@@ -10,6 +11,13 @@ interface Props {
 }
 
 export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) {
+  const haptic = useHaptic()
+
+  function handleAdd() {
+    haptic.impact('light')
+    onAdd(food)
+  }
+
   return (
     <div style={{
       display: 'flex',
@@ -67,18 +75,13 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
 
       {/* Add to today */}
       <button
-        onClick={() => onAdd(food)}
+        onClick={handleAdd}
+        className="btn-primary"
         style={{
           padding: '8px 14px',
           borderRadius: '99px',
-          border: 'none',
-          backgroundColor: 'var(--tg-theme-button-color)',
-          color: 'var(--tg-theme-button-text-color)',
-          fontFamily: 'var(--font-body)',
           fontSize: '12px',
-          fontWeight: 500,
           flexShrink: 0,
-          cursor: 'pointer',
         }}
       >
         + Add

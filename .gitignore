@@ -1,10 +1,6 @@
-.venv/
-.env
 .claude/
-__pycache__/
-
-# Next.js
-frontend/.next/
-frontend/out/
-frontend/node_modules/
-frontend/.env*.local
+node_modules/
+.next/
+out/
+.env
+.env*.local

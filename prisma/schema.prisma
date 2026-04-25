@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int      @id @default(autoincrement())
+  telegram_id     Int      @unique
+  username        String?  @db.VarChar(50)
+  daily_protein_goal Float @default(120.0)
+  daily_calorie_goal Float @default(2000.0)
+  daily_water_goal   Float @default(3.0)
+  water_bottle_size  Float @default(0.5)
+  created_at      DateTime? @default(now())
+
+  saved_foods SavedFood[]
+  food_logs   FoodLog[]
+  water_logs  WaterLog[]
+
+  @@map("users")
+}
+
+model SavedFood {
+  id            Int      @id @default(autoincrement())
+  user_id       Int
+  name          String   @db.VarChar(100)
+  description   String?
+  image_path    String?  @db.VarChar(255)
+  calories      Float
+  protein       Float
+  carbohydrates Float
+  fats          Float
+  serving_label String?  @db.VarChar(100)
+  source        String?  @default("gemini") @db.VarChar(20)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now()) @updatedAt
+
+  user User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  logs FoodLog[]
+
+  @@unique([user_id, name], name: "uq_user_food_name")
+  @@index([user_id])
+  @@index([name])
+  @@map("saved_foods")
+}
+
+model FoodLog {
+  id             Int      @id @default(autoincrement())
+  user_id        Int
+  saved_food_id  Int?
+  food_name      String?  @db.VarChar(100)
+  raw_text_input String?
+  image_path     String?  @db.VarChar(255)
+  servings       Float    @default(1.0)
+  calories       Float?
+  protein        Float?
+  carbohydrates  Float?
+  fats           Float?
+  source         String?  @default("gemini") @db.VarChar(20)
+  logged_at      DateTime @default(now())
+
+  user       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  saved_food SavedFood? @relation(fields: [saved_food_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([saved_food_id])
+  @@map("food_logs")
+}
+
+model WaterLog {
+  id                Int      @id @default(autoincrement())
+  user_id           Int
+  amount_liters     Float
+  bottles           Float?
+  water_bottle_size Float?
+  logged_at         DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("water_logs")
+}

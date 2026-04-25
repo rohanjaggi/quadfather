@@ -1,0 +1,81 @@
+import crypto from "node:crypto";
+import { NextRequest } from "next/server";
+import { prisma } from "./prisma";
+
+const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
+const SKIP_TELEGRAM_AUTH =
+  (process.env.SKIP_TELEGRAM_AUTH ?? "false").toLowerCase() === "true";
+const DEV_USER_ID = parseInt(process.env.DEV_USER_ID ?? "12345678", 10);
+
+interface TelegramUser {
+  id: number;
+  username?: string;
+  first_name?: string;
+}
+
+export function verifyTelegramAuth(initData: string): TelegramUser {
+  if (SKIP_TELEGRAM_AUTH) {
+    return { id: DEV_USER_ID, username: "devuser", first_name: "Dev" };
+  }
+
+  const params = new URLSearchParams(initData);
+  const hash = params.get("hash");
+  params.delete("hash");
+
+  if (!hash) {
+    throw new Error("Missing hash in initData");
+  }
+
+  const dataCheckString = Array.from(params.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("\n");
+
+  const secretKey = crypto
+    .createHmac("sha256", "WebAppData")
+    .update(BOT_TOKEN)
+    .digest();
+  const expectedHash = crypto
+    .createHmac("sha256", secretKey)
+    .update(dataCheckString)
+    .digest("hex");
+
+  if (
+    !crypto.timingSafeEqual(
+      Buffer.from(expectedHash),
+      Buffer.from(hash),
+    )
+  ) {
+    throw new Error("Invalid initData signature");
+  }
+
+  return JSON.parse(params.get("user") ?? "{}");
+}
+
+export function verifyBotAuth(request: NextRequest): number {
+  const botToken = request.headers.get("x-bot-token") ?? "";
+  const telegramId = request.nextUrl.searchParams.get("telegram_id");
+
+  if (!BOT_TOKEN || botToken !== BOT_TOKEN) {
+    throw new Error("Invalid bot token");
+  }
+  if (!telegramId) {
+    throw new Error("Missing telegram_id");
+  }
+  return parseInt(telegramId, 10);
+}
+
+export async function getAuthenticatedUser(request: NextRequest) {
+  const initData = request.headers.get("x-telegram-init-data") ?? "";
+  const telegramUser = verifyTelegramAuth(initData);
+
+  const user = await prisma.user.findUnique({
+    where: { telegram_id: telegramUser.id },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return user;
+}

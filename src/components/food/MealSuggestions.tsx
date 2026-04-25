@@ -6,7 +6,7 @@ import { useUser } from '@/context/UserContext'
 import type { MealSuggestion } from '@/types/api'
 
 export default function MealSuggestions() {
-  const { logFood } = useUser()
+  const { user, logFood } = useUser()
 
   const [expanded, setExpanded] = useState(false)
   const [suggestions, setSuggestions] = useState<MealSuggestion[] | null>(null)
@@ -28,6 +28,7 @@ export default function MealSuggestions() {
   }, [])
 
   function handleToggle() {
+    if (!user?.has_api_key) return
     const next = !expanded
     setExpanded(next)
     if (next && !suggestions && !loading) {
@@ -84,6 +85,15 @@ export default function MealSuggestions() {
           ▾
         </span>
       </button>
+
+      {!user?.has_api_key && (
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: '12px',
+          color: 'var(--tg-theme-hint-color)', padding: '4px 0',
+        }}>
+          Set up your AI API key in Settings to get suggestions.
+        </p>
+      )}
 
       {expanded && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

@@ -1,10 +1,13 @@
 import { Bot, InlineKeyboard } from "grammy";
 import { prisma } from "./prisma";
-import { analyseMeal } from "./openai";
+import { analyseMeal, type AIProvider } from "./ai";
+import { encrypt, decrypt } from "./crypto";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
 const MINI_APP_URL =
   process.env.MINI_APP_URL ?? "https://your-app.vercel.app";
+
+const VALID_PROVIDERS: AIProvider[] = ["openai", "anthropic", "gemini"];
 
 let _bot: Bot | null = null;
 
@@ -72,6 +75,18 @@ async function getSummary(telegramId: number) {
   };
 }
 
+async function getUserAI(telegramId: number) {
+  const user = await prisma.user.findUnique({
+    where: { telegram_id: telegramId },
+  });
+  if (!user) return null;
+  if (!user.ai_provider || !user.ai_api_key) return null;
+  return {
+    provider: user.ai_provider as AIProvider,
+    apiKey: decrypt(user.ai_api_key),
+  };
+}
+
 function registerHandlers(bot: Bot) {
   bot.command("start", async (ctx) => {
     const name = ctx.from?.first_name ?? "there";
@@ -84,6 +99,7 @@ function registerHandlers(bot: Bot) {
         "/water — track water\n" +
         "/trends — view your progress\n" +
         "/goals — manage your goals\n" +
+        "/key — set up your AI API key\n" +
         "/help — show this list\n\n" +
         "Or just <b>send a photo</b> of your meal and I'll analyse the macros.",
       { parse_mode: "HTML", reply_markup: appButton("Open Quadfather", "") },
@@ -97,7 +113,8 @@ function registerHandlers(bot: Bot) {
         "/log — open the meal logger (scan, text, or manual)\n" +
         "/water — open the water tracker\n" +
         "/trends — view 7-day &amp; 30-day progress charts\n" +
-        "/goals — update your daily calorie, protein &amp; water goals\n\n" +
+        "/goals — update your daily calorie, protein &amp; water goals\n" +
+        "/key — set or update your AI API key\n\n" +
         "\u{1F4F8} <b>Send a photo</b> of your meal for AI macro analysis\n" +
         "\u{270F}\u{FE0F} <b>Text mode</b> — describe a meal in words and get estimated macros\n" +
         "\u{1F4A1} <b>AI Suggestions</b> — get meal ideas that fit your remaining daily budget",
@@ -184,7 +201,74 @@ function registerHandlers(bot: Bot) {
     );
   });
 
+  bot.command("key", async (ctx) => {
+    const ai = await getUserAI(ctx.from!.id);
+    let status = "";
+    if (ai) {
+      status = `\u{2705} You currently have a <b>${ai.provider}</b> key set.\n\n`;
+    }
+
+    await ctx.reply(
+      status +
+        "Send your API key in this format:\n\n" +
+        "<code>openai sk-abc123...</code>\n" +
+        "<code>anthropic sk-ant-...</code>\n" +
+        "<code>gemini AIza...</code>\n\n" +
+        "I'll store it securely and delete your message.",
+      { parse_mode: "HTML" },
+    );
+  });
+
+  bot.on("message:text", async (ctx) => {
+    const text = ctx.message!.text!.trim();
+    const match = text.match(
+      /^(openai|anthropic|gemini)\s+(\S+)$/i,
+    );
+    if (!match) return;
+
+    const provider = match[1].toLowerCase() as AIProvider;
+    const apiKey = match[2];
+
+    if (!VALID_PROVIDERS.includes(provider)) return;
+    if (apiKey.length < 10) {
+      await ctx.reply("That key looks too short. Please try again.");
+      return;
+    }
+
+    try {
+      await ctx.api.deleteMessage(ctx.chat!.id, ctx.message!.message_id);
+    } catch {
+      // may fail if bot lacks delete permission
+    }
+
+    try {
+      const encrypted = encrypt(apiKey);
+      await prisma.user.updateMany({
+        where: { telegram_id: ctx.from!.id },
+        data: { ai_provider: provider, ai_api_key: encrypted },
+      });
+
+      await ctx.reply(
+        `\u{1F511} <b>${provider}</b> key saved successfully!\n\n` +
+          "You can now send photos for AI analysis or use /key to update it.",
+        { parse_mode: "HTML" },
+      );
+    } catch {
+      await ctx.reply(
+        "Something went wrong saving your key. Make sure you've opened the app at least once, then try again.",
+      );
+    }
+  });
+
   bot.on("message:photo", async (ctx) => {
+    const ai = await getUserAI(ctx.from!.id);
+    if (!ai) {
+      await ctx.reply(
+        "You need to set up an API key first.\n\nUse /key to get started.",
+      );
+      return;
+    }
+
     const thinking = await ctx.reply("\u{1F50D} Analysing your meal\u{2026}");
     try {
       const photos = ctx.message!.photo!;
@@ -196,6 +280,8 @@ function registerHandlers(bot: Bot) {
       const imageBytes = Buffer.from(await res.arrayBuffer());
 
       const result = await analyseMeal(
+        ai.provider,
+        ai.apiKey,
         imageBytes,
         "image/jpeg",
         ctx.message!.caption ?? "",

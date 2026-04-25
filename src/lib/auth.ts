@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { NextRequest } from "next/server";
 import { prisma } from "./prisma";
+import { decrypt } from "./crypto";
+import type { AIProvider } from "./ai";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
 const SKIP_TELEGRAM_AUTH =
@@ -78,4 +80,17 @@ export async function getAuthenticatedUser(request: NextRequest) {
   }
 
   return user;
+}
+
+export function getUserAICredentials(user: {
+  ai_provider: string | null;
+  ai_api_key: string | null;
+}): { provider: AIProvider; apiKey: string } {
+  if (!user.ai_provider || !user.ai_api_key) {
+    throw new Error("No API key configured. Set one up in Settings.");
+  }
+  return {
+    provider: user.ai_provider as AIProvider,
+    apiKey: decrypt(user.ai_api_key),
+  };
 }

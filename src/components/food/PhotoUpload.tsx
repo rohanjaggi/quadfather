@@ -8,7 +8,7 @@ import type { MealAnalysis } from '@/types/api'
 type Phase = 'idle' | 'analysing' | 'result' | 'logging' | 'saving'
 
 export default function PhotoUpload({ onClose }: { onClose: () => void }) {
-  const { logFood, saveFood } = useUser()
+  const { user, logFood, saveFood } = useUser()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [file, setFile] = useState<File | null>(null)
@@ -245,6 +245,16 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
+      </div>
+    )
+  }
+
+  if (!user?.has_api_key) {
+    return (
+      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', marginBottom: '4px' }}>
+          Set up your AI API key in Settings to use photo analysis.
+        </p>
       </div>
     )
   }

@@ -36,6 +36,11 @@ export const getAnalytics = (days: number) => apiFetch<AnalyticsResponse>(`/anal
 export const parseFood = (text: string) => apiFetch<MealAnalysis>('/foods/parse', { method: 'POST', body: JSON.stringify({ text }) })
 export const getMealSuggestions = () => apiFetch<MealSuggestion[]>('/foods/suggest')
 
+export const setApiKey = (data: { provider: string; api_key: string }) =>
+  apiFetch<{ provider: string; has_api_key: boolean }>('/users/me/key', { method: 'POST', body: JSON.stringify(data) })
+export const deleteApiKey = () =>
+  apiFetch<{ has_api_key: boolean }>('/users/me/key', { method: 'DELETE' })
+
 export async function analyseMeal(imageFile: File, description: string): Promise<MealAnalysis> {
   const initData = typeof window !== 'undefined' ? WebApp.initData : ''
   const form = new FormData()

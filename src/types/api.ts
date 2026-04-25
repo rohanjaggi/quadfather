@@ -8,6 +8,8 @@ export interface User {
     daily_water_goal: number
   }
   water_bottle_size: number
+  ai_provider?: string
+  has_api_key: boolean
 }
 
 export interface DailySummary {

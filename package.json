@@ -10,6 +10,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
+    "@google/genai": "^1.50.1",
     "@prisma/client": "^6.19.3",
     "@twa-dev/sdk": "^7.10.0",
     "grammy": "^1.42.0",

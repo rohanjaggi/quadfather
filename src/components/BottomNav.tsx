@@ -62,7 +62,7 @@ const tabs = [
   { href: '/food',      label: 'Nutrition', Icon: FoodIcon    },
   { href: '/water',     label: 'Water',     Icon: WaterIcon   },
   { href: '/analytics', label: 'Trends',    Icon: TrendsIcon  },
-  { href: '/profile',   label: 'Goals',     Icon: ProfileIcon },
+  { href: '/profile',   label: 'Settings',  Icon: ProfileIcon },
 ]
 
 export default function BottomNav() {

@@ -16,6 +16,7 @@ Respond with ONLY a raw JSON object — no markdown, no code fences, no explanat
   "protein": <number in grams, one decimal>,
   "carbohydrates": <number in grams, one decimal>,
   "fats": <number in grams, one decimal>,
+  "fiber": <number in grams, one decimal>,
   "confidence": "high" | "medium" | "low",
   "notes": "brief note on portion assumptions"
 }
@@ -34,6 +35,7 @@ Respond with ONLY a raw JSON object — no markdown, no code fences, no explanat
   "protein": <number in grams, one decimal>,
   "carbohydrates": <number in grams, one decimal>,
   "fats": <number in grams, one decimal>,
+  "fiber": <number in grams, one decimal>,
   "confidence": "high" | "medium" | "low",
   "notes": "brief note on portion assumptions"
 }
@@ -57,7 +59,8 @@ Respond with ONLY a raw JSON array — no markdown, no code fences, no explanati
     "calories": <integer>,
     "protein": <number, one decimal>,
     "carbohydrates": <number, one decimal>,
-    "fats": <number, one decimal>
+    "fats": <number, one decimal>,
+    "fiber": <number, one decimal>
   }
 ]`;
 
@@ -68,6 +71,7 @@ export interface MealSuggestion {
   protein: number;
   carbohydrates: number;
   fats: number;
+  fiber: number;
 }
 
 export interface MealAnalysisResult {
@@ -76,6 +80,7 @@ export interface MealAnalysisResult {
   protein: number;
   carbohydrates: number;
   fats: number;
+  fiber: number;
   confidence: string;
   notes: string;
 }
@@ -110,6 +115,7 @@ function parseAnalysisResponse(raw: string): MealAnalysisResult {
     protein: Math.round(Number(data.protein) * 10) / 10,
     carbohydrates: Math.round(Number(data.carbohydrates) * 10) / 10,
     fats: Math.round(Number(data.fats) * 10) / 10,
+    fiber: Math.round(Number(data.fiber ?? 0) * 10) / 10,
     confidence: String(data.confidence ?? "medium"),
     notes: String(data.notes ?? ""),
   };
@@ -127,6 +133,7 @@ function parseSuggestionsResponse(raw: string): MealSuggestion[] {
     protein: Math.round(Number(s.protein) * 10) / 10,
     carbohydrates: Math.round(Number(s.carbohydrates) * 10) / 10,
     fats: Math.round(Number(s.fats) * 10) / 10,
+    fiber: Math.round(Number(s.fiber ?? 0) * 10) / 10,
   }));
 }
 

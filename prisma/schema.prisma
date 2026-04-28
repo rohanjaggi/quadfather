@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -15,8 +16,17 @@ model User {
   daily_calorie_goal Float @default(2000.0)
   daily_water_goal   Float @default(3.0)
   water_bottle_size  Float @default(0.5)
+  daily_carbs_goal   Float @default(200.0)
+  daily_fats_goal    Float @default(65.0)
+  daily_fiber_goal   Float @default(30.0)
   ai_provider        String?  @db.VarChar(20)
   ai_api_key         String?
+  sex                String?  @db.VarChar(10)
+  weight_kg          Float?
+  height_cm          Float?
+  age                Int?
+  activity_level     String?  @db.VarChar(20)
+  fitness_goal       String?  @db.VarChar(20)
   created_at      DateTime? @default(now())
 
   saved_foods SavedFood[]
@@ -36,6 +46,7 @@ model SavedFood {
   protein       Float
   carbohydrates Float
   fats          Float
+  fiber         Float    @default(0.0)
   serving_label String?  @db.VarChar(100)
   source        String?  @default("gemini") @db.VarChar(20)
   created_at    DateTime @default(now())
@@ -62,6 +73,7 @@ model FoodLog {
   protein        Float?
   carbohydrates  Float?
   fats           Float?
+  fiber          Float?   @default(0.0)
   source         String?  @default("gemini") @db.VarChar(20)
   logged_at      DateTime @default(now())
 

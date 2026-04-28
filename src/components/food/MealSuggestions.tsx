@@ -44,6 +44,7 @@ export default function MealSuggestions() {
       protein: suggestion.protein,
       carbohydrates: suggestion.carbohydrates,
       fats: suggestion.fats,
+      fiber: suggestion.fiber,
       source: 'ai-suggest',
     })
     setLoggingIdx(null)
@@ -152,7 +153,7 @@ export default function MealSuggestions() {
                   fontSize: '11px',
                   color: 'var(--tg-theme-hint-color)',
                 }}>
-                  {s.calories} kcal · {s.protein}g P · {s.carbohydrates}g C · {s.fats}g F
+                  {s.calories} kcal · {s.protein}g P · {s.carbohydrates}g C · {s.fats}g F · {s.fiber}g Fi
                 </p>
               </div>
               <button

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import * as api from '@/lib/api'
-import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, SavedFood, SavedFoodCreate } from '@/types/api'
+import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, PersonalUpdate, SavedFood, SavedFoodCreate } from '@/types/api'
 
 interface UserContextType {
   user: User | null
@@ -17,6 +17,7 @@ interface UserContextType {
   logWater: (data: WaterLogCreate) => Promise<void>
   deleteWater: (id: number) => Promise<void>
   updateGoals: (data: GoalsUpdate) => Promise<void>
+  updatePersonal: (data: PersonalUpdate) => Promise<void>
   saveFood: (data: SavedFoodCreate) => Promise<SavedFood>
   deleteSavedFood: (id: number) => Promise<void>
   refresh: () => Promise<void>
@@ -93,6 +94,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     await refresh()
   }, [refresh])
 
+  const updatePersonal = useCallback(async (data: PersonalUpdate) => {
+    await api.updatePersonal(data)
+    const userData = await api.registerUser()
+    setUser(userData)
+  }, [])
+
   const saveFood = useCallback(async (data: SavedFoodCreate): Promise<SavedFood> => {
     const saved = await api.saveFood(data)
     setSavedFoods(prev => [...prev, saved].sort((a, b) => a.name.localeCompare(b.name)))
@@ -107,7 +114,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   return (
     <UserContext.Provider value={{
       user, summary, foodLogs, waterLogs, savedFoods, loading, error,
-      logFood, deleteFood, logWater, deleteWater, updateGoals,
+      logFood, deleteFood, logWater, deleteWater, updateGoals, updatePersonal,
       saveFood, deleteSavedFood, refresh,
     }}>
       {children}

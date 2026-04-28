@@ -22,6 +22,21 @@ export async function PUT(request: NextRequest) {
         ...(body.water_bottle_size != null && {
           water_bottle_size: body.water_bottle_size,
         }),
+        ...(body.daily_carbs_goal != null && {
+          daily_carbs_goal: body.daily_carbs_goal,
+        }),
+        ...(body.daily_fats_goal != null && {
+          daily_fats_goal: body.daily_fats_goal,
+        }),
+        ...(body.daily_fiber_goal != null && {
+          daily_fiber_goal: body.daily_fiber_goal,
+        }),
+        ...(body.sex !== undefined && { sex: body.sex }),
+        ...(body.weight_kg !== undefined && { weight_kg: body.weight_kg }),
+        ...(body.height_cm !== undefined && { height_cm: body.height_cm }),
+        ...(body.age !== undefined && { age: body.age }),
+        ...(body.activity_level !== undefined && { activity_level: body.activity_level }),
+        ...(body.fitness_goal !== undefined && { fitness_goal: body.fitness_goal }),
       },
     });
 
@@ -31,7 +46,20 @@ export async function PUT(request: NextRequest) {
         daily_protein_goal: updated.daily_protein_goal,
         daily_calorie_goal: updated.daily_calorie_goal,
         daily_water_goal: updated.daily_water_goal,
+        daily_carbs_goal: updated.daily_carbs_goal,
+        daily_fats_goal: updated.daily_fats_goal,
+        daily_fiber_goal: updated.daily_fiber_goal,
       },
+      ...(updated.sex && {
+        personal: {
+          sex: updated.sex,
+          weight_kg: updated.weight_kg,
+          height_cm: updated.height_cm,
+          age: updated.age,
+          activity_level: updated.activity_level,
+          fitness_goal: updated.fitness_goal,
+        },
+      }),
       water_bottle_size: updated.water_bottle_size,
     });
   } catch (e) {

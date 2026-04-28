@@ -58,6 +58,10 @@ export async function GET(request: NextRequest) {
           Math.round(
             foodLogs.reduce((s, l) => s + (l.fats ?? 0), 0) * 10,
           ) / 10,
+        fiber:
+          Math.round(
+            foodLogs.reduce((s, l) => s + (l.fiber ?? 0), 0) * 10,
+          ) / 10,
         water:
           Math.round(
             waterLogs.reduce((s, l) => s + l.amount_liters, 0) * 100,
@@ -71,6 +75,9 @@ export async function GET(request: NextRequest) {
       goals: {
         calories: user.daily_calorie_goal,
         protein: user.daily_protein_goal,
+        carbohydrates: user.daily_carbs_goal,
+        fats: user.daily_fats_goal,
+        fiber: user.daily_fiber_goal,
         water: user.daily_water_goal,
       },
     });

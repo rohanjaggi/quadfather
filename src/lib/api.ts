@@ -1,5 +1,5 @@
 import WebApp from '@twa-dev/sdk'
-import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, MealAnalysis, MealSuggestion, SavedFood, SavedFoodCreate, AnalyticsResponse } from '@/types/api'
+import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, PersonalUpdate, MealAnalysis, MealSuggestion, SavedFood, SavedFoodCreate, AnalyticsResponse } from '@/types/api'
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const initData = typeof window !== 'undefined' ? WebApp.initData : ''
@@ -28,6 +28,7 @@ export const getWaterLogs = () => apiFetch<WaterLog[]>('/water')
 export const logWater = (data: WaterLogCreate) => apiFetch<WaterLog>('/water', { method: 'POST', body: JSON.stringify(data) })
 export const deleteWater = (id: number) => apiFetch<void>(`/water/${id}`, { method: 'DELETE' })
 export const updateGoals = (data: GoalsUpdate) => apiFetch<User>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
+export const updatePersonal = (data: PersonalUpdate) => apiFetch<User>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
 
 export const getSavedFoods = () => apiFetch<SavedFood[]>('/foods/saved')
 export const saveFood = (data: SavedFoodCreate) => apiFetch<SavedFood>('/foods/saved', { method: 'POST', body: JSON.stringify(data) })

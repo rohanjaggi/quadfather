@@ -19,6 +19,7 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
     protein: 0,
     carbohydrates: 0,
     fats: 0,
+    fiber: 0,
     servings: 1,
   })
 
@@ -111,6 +112,20 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
             min="0"
             step="0.1"
             value={fields.fats || ''}
+            onChange={handleChange}
+            placeholder="0"
+            className="input-field-bordered"
+          />
+        </div>
+        <div>
+          <label htmlFor="fiber" className="label-caps">Fiber (g)</label>
+          <input
+            id="fiber"
+            name="fiber"
+            type="number"
+            min="0"
+            step="0.1"
+            value={fields.fiber || ''}
             onChange={handleChange}
             placeholder="0"
             className="input-field-bordered"

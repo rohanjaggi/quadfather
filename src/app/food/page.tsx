@@ -32,6 +32,7 @@ export default function FoodPage() {
       protein: food.protein,
       carbohydrates: food.carbohydrates,
       fats: food.fats,
+      fiber: food.fiber,
       source: food.source,
     })
   }
@@ -46,15 +47,21 @@ export default function FoodPage() {
     },
     {
       label: 'Carbs',
-      value: summary?.macros.carbohydrates ?? 0,
-      goal: 200,
+      value: summary?.macros.carbohydrates.total ?? 0,
+      goal: summary?.macros.carbohydrates.goal ?? 200,
       color: 'var(--accent-calories)',
     },
     {
       label: 'Fats',
-      value: summary?.macros.fats ?? 0,
-      goal: 65,
+      value: summary?.macros.fats.total ?? 0,
+      goal: summary?.macros.fats.goal ?? 65,
       color: '#C4A55A',
+    },
+    {
+      label: 'Fiber',
+      value: summary?.macros.fiber.total ?? 0,
+      goal: summary?.macros.fiber.goal ?? 30,
+      color: 'var(--accent-water)',
     },
   ]
 

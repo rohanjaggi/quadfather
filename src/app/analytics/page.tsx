@@ -154,6 +154,9 @@ export default function AnalyticsPage() {
   const avgWater = activeDays.length > 0
     ? Math.round(activeDays.reduce((s, d) => s + d.water, 0) / activeDays.length * 100) / 100
     : 0
+  const avgFiber = activeDays.length > 0
+    ? Math.round(activeDays.reduce((s, d) => s + d.fiber, 0) / activeDays.length * 10) / 10
+    : 0
   const calorieGoalDays = goals
     ? days.filter(d => d.meals_logged > 0 && d.calories >= goals.calories * 0.9 && d.calories <= goals.calories * 1.1).length
     : 0
@@ -236,6 +239,8 @@ export default function AnalyticsPage() {
                 <StatRow label="Protein" value={`${avgProtein}`} sub="g" color="var(--accent-protein)" />
                 <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
                 <StatRow label="Water" value={`${avgWater}`} sub="L" color="var(--accent-water)" />
+                <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                <StatRow label="Fiber" value={`${avgFiber}`} sub="g" color="var(--accent-water)" />
                 {goals && activeDays.length > 0 && (
                   <>
                     <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
@@ -351,6 +356,34 @@ export default function AnalyticsPage() {
                     goal={goals.water}
                     color="var(--accent-water)"
                     unit="L"
+                    period={period}
+                  />
+                </div>
+              ) : (
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                  No data yet
+                </p>
+              )}
+            </SummaryCard>
+          </div>
+
+          {/* Fiber chart */}
+          <div className="fade-up fade-up-4">
+            <SummaryCard title="Fiber">
+              {days.length > 0 && goals ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
+                      Goal: {goals.fiber}g
+                    </span>
+                  </div>
+                  <BarChart
+                    key={period}
+                    days={days}
+                    getValue={d => d.fiber}
+                    goal={goals.fiber}
+                    color="var(--accent-water)"
+                    unit="g"
                     period={period}
                   />
                 </div>

@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         protein: log.protein,
         carbohydrates: log.carbohydrates,
         fats: log.fats,
+        fiber: log.fiber ?? 0,
         source: log.source,
         saved_food_id: log.saved_food_id,
         logged_at: log.logged_at.toISOString(),
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
         protein: body.protein * servings,
         carbohydrates: body.carbohydrates * servings,
         fats: body.fats * servings,
+        fiber: body.fiber ?? 0,
         source: body.source ?? "manual",
       },
     });
@@ -82,6 +84,7 @@ export async function POST(request: NextRequest) {
         protein: log.protein,
         carbohydrates: log.carbohydrates,
         fats: log.fats,
+        fiber: log.fiber ?? 0,
         source: log.source,
         saved_food_id: log.saved_food_id,
         logged_at: log.logged_at.toISOString(),

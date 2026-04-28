@@ -58,6 +58,7 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
       protein: Number(merged.protein ?? result.protein),
       carbohydrates: Number(merged.carbohydrates ?? result.carbohydrates),
       fats: Number(merged.fats ?? result.fats),
+      fiber: Number(merged.fiber ?? result.fiber),
       source: 'ai-photo',
     })
     haptic.notification('success')
@@ -76,6 +77,7 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
         protein: Number(merged.protein ?? result.protein),
         carbohydrates: Number(merged.carbohydrates ?? result.carbohydrates),
         fats: Number(merged.fats ?? result.fats),
+        fiber: Number(merged.fiber ?? result.fiber),
         description: result.notes || undefined,
         source: 'ai-photo',
       })
@@ -141,6 +143,7 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
             { key: 'protein', label: 'Protein', unit: 'g' },
             { key: 'carbohydrates', label: 'Carbs', unit: 'g' },
             { key: 'fats', label: 'Fats', unit: 'g' },
+            { key: 'fiber', label: 'Fiber', unit: 'g' },
           ] as const).map(({ key, label, unit }) => (
             <div key={key}>
               <label className="label-caps">{label} <span style={{ opacity: 0.6 }}>({unit})</span></label>

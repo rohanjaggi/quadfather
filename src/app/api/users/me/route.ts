@@ -22,7 +22,10 @@ export async function GET(request: NextRequest) {
     const totalProtein = foodLogs.reduce((s, l) => s + (l.protein ?? 0), 0);
     const totalCarbs = foodLogs.reduce((s, l) => s + (l.carbohydrates ?? 0), 0);
     const totalFats = foodLogs.reduce((s, l) => s + (l.fats ?? 0), 0);
+    const totalFiber = foodLogs.reduce((s, l) => s + (l.fiber ?? 0), 0);
     const totalWater = waterLogs.reduce((s, l) => s + l.amount_liters, 0);
+
+    const r = (v: number) => Math.round(v * 10) / 10;
 
     return NextResponse.json({
       date: todayStart.toISOString().split("T")[0],
@@ -35,10 +38,23 @@ export async function GET(request: NextRequest) {
         protein: {
           total: totalProtein,
           goal: user.daily_protein_goal,
-          remaining: Math.round((user.daily_protein_goal - totalProtein) * 10) / 10,
+          remaining: r(user.daily_protein_goal - totalProtein),
         },
-        carbohydrates: totalCarbs,
-        fats: totalFats,
+        carbohydrates: {
+          total: totalCarbs,
+          goal: user.daily_carbs_goal,
+          remaining: r(user.daily_carbs_goal - totalCarbs),
+        },
+        fats: {
+          total: totalFats,
+          goal: user.daily_fats_goal,
+          remaining: r(user.daily_fats_goal - totalFats),
+        },
+        fiber: {
+          total: totalFiber,
+          goal: user.daily_fiber_goal,
+          remaining: r(user.daily_fiber_goal - totalFiber),
+        },
       },
       water: {
         total: totalWater,

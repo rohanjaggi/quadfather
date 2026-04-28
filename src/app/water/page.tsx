@@ -1,6 +1,7 @@
 'use client'
 
 import BottleCounter from '@/components/water/BottleCounter'
+import Link from 'next/link'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { useUser } from '@/context/UserContext'
 
@@ -75,9 +76,31 @@ export default function WaterPage() {
         </SummaryCard>
       </div>
 
+      {/* Bottle size link */}
+      <div className="fade-up fade-up-2" style={{ display: 'flex', justifyContent: 'center' }}>
+        <Link
+          href="/profile/goals"
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '12px',
+            color: 'var(--tg-theme-hint-color)',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          Bottle size: {bottleSize < 1 ? `${bottleSize * 1000}ml` : `${bottleSize}L`}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
+      </div>
+
       {/* Log timeline */}
       {waterLogs.length > 0 && (
-        <div className="fade-up fade-up-2">
+        <div className="fade-up fade-up-3">
           <SummaryCard title="Today's Log">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
               {logsAsc.map((log, i) => {

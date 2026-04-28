@@ -69,7 +69,7 @@ export default function FoodPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
       {/* Header */}
-      <div className="fade-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div className="fade-up">
         <div>
           <p style={{
             fontFamily: 'var(--font-body)',
@@ -91,15 +91,31 @@ export default function FoodPage() {
             Log a Meal
           </h1>
         </div>
-        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-          <button className="btn-pill" data-active={mode === 'scan' ? 'true' : undefined} onClick={() => toggle('scan')}>
-            📷 Scan
+
+        {/* Action buttons with icons below title */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+          <button className="btn-pill" data-active={mode === 'scan' ? 'true' : undefined} onClick={() => toggle('scan')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+            Scan
           </button>
-          <button className="btn-pill" data-active={mode === 'text' ? 'true' : undefined} onClick={() => toggle('text')}>
-            ✏️ Text
+          <button className="btn-pill" data-active={mode === 'text' ? 'true' : undefined} onClick={() => toggle('text')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" />
+            </svg>
+            Text
           </button>
-          <button className="btn-pill" data-active={mode === 'manual' ? 'true' : undefined} onClick={() => toggle('manual')}>
-            + Add
+          <button className="btn-pill" data-active={mode === 'manual' ? 'true' : undefined} onClick={() => toggle('manual')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add
           </button>
         </div>
       </div>

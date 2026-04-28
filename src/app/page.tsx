@@ -1,8 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import GoalRing from '@/components/dashboard/GoalRing'
-import SummaryCard from '@/components/dashboard/SummaryCard'
+import CollapsibleSection from '@/components/dashboard/CollapsibleSection'
+import LogActions from '@/components/dashboard/LogActions'
+import RecentActivity from '@/components/dashboard/RecentActivity'
 import { useUser } from '@/context/UserContext'
 
 function getGreeting() {
@@ -19,16 +20,21 @@ function formatDate() {
 }
 
 export default function DashboardPage() {
-  const { user, summary } = useUser()
+  const { user, summary, foodLogs, waterLogs } = useUser()
 
   const calories = summary?.macros.calories ?? { total: 0, goal: user?.goals.daily_calorie_goal ?? 2000 }
   const protein = summary?.macros.protein ?? { total: 0, goal: user?.goals.daily_protein_goal ?? 120 }
   const water = summary?.water ?? { total: 0, goal: user?.goals.daily_water_goal ?? 3 }
+  const carbs = summary?.macros.carbohydrates ?? { total: 0, goal: user?.goals.daily_carbs_goal ?? 200 }
+  const fats = summary?.macros.fats ?? { total: 0, goal: user?.goals.daily_fats_goal ?? 65 }
+  const fiber = summary?.macros.fiber ?? { total: 0, goal: user?.goals.daily_fiber_goal ?? 30 }
+
+  const username = user?.username
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
-      {/* Header */}
+      {/* Header with personalized greeting */}
       <div className="fade-up" style={{ paddingBottom: '4px' }}>
         <p style={{
           fontFamily: 'var(--font-body)',
@@ -49,84 +55,64 @@ export default function DashboardPage() {
           color: 'var(--tg-theme-text-color)',
           letterSpacing: '-0.01em',
         }}>
-          {getGreeting()}
+          {getGreeting()}{username ? `, ${username}` : ''}
         </h1>
       </div>
 
-      {/* Goal Rings */}
+      {/* Log Actions */}
       <div className="fade-up fade-up-1">
-        <SummaryCard title="Today's Progress">
-          <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-            <GoalRing
-              label="Calories"
-              current={calories.total}
-              goal={calories.goal}
-              unit="kcal"
-              color="var(--accent-calories)"
-            />
-            <GoalRing
-              label="Protein"
-              current={protein.total}
-              goal={protein.goal}
-              unit="g"
-              color="var(--accent-protein)"
-            />
-            <GoalRing
-              label="Water"
-              current={water.total}
-              goal={water.goal}
-              unit="L"
-              color="var(--accent-water)"
-            />
-          </div>
-        </SummaryCard>
+        <LogActions />
       </div>
 
-      {/* Quick Log */}
-      <div className="fade-up fade-up-2" style={{ display: 'flex', gap: '10px' }}>
-        <Link
-          href="/food"
-          style={{
-            flex: 1,
-            backgroundColor: 'var(--tg-theme-button-color)',
-            color: 'var(--tg-theme-button-text-color)',
-            borderRadius: '16px',
-            padding: '18px 16px',
-            textDecoration: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '5px',
-          }}
-        >
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 400, lineHeight: 1, fontStyle: 'italic' }}>
-            Log
-          </span>
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.09em', textTransform: 'uppercase', opacity: 0.6 }}>
-            Meal
-          </span>
-        </Link>
+      {/* Collapsible Progress */}
+      <div className="fade-up fade-up-2">
+        <CollapsibleSection title="Today's Progress" defaultOpen={true}>
+          <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '20px' }}>
+            <GoalRing label="Calories" current={calories.total} goal={calories.goal} unit="kcal" color="var(--accent-calories)" />
+            <GoalRing label="Protein" current={protein.total} goal={protein.goal} unit="g" color="var(--accent-protein)" />
+            <GoalRing label="Water" current={water.total} goal={water.goal} unit="L" color="var(--accent-water)" />
+          </div>
 
-        <Link
-          href="/water"
-          style={{
-            flex: 1,
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            color: 'var(--tg-theme-text-color)',
-            borderRadius: '16px',
-            padding: '18px 16px',
-            textDecoration: 'none',
+          {/* Extended macros */}
+          <div style={{
+            borderTop: '1px solid var(--surface-border)',
+            paddingTop: '16px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '5px',
-          }}
-        >
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 400, lineHeight: 1, fontStyle: 'italic' }}>
-            Log
-          </span>
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.09em', textTransform: 'uppercase', opacity: 0.6 }}>
-            Water
-          </span>
-        </Link>
+            gap: '12px',
+          }}>
+            {[
+              { label: 'Carbs', value: carbs.total, goal: carbs.goal, color: 'var(--accent-calories)' },
+              { label: 'Fats', value: fats.total, goal: fats.goal, color: '#C4A55A' },
+              { label: 'Fiber', value: fiber.total, goal: fiber.goal, color: 'var(--accent-water)' },
+            ].map((m) => (
+              <div key={m.label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
+                    {m.label}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
+                    {Math.round(m.value)}<span style={{ opacity: 0.55 }}> / {m.goal}g</span>
+                  </span>
+                </div>
+                <div style={{ height: '3px', borderRadius: '99px', backgroundColor: 'var(--tg-theme-bg-color)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    borderRadius: '99px',
+                    width: `${Math.min(m.value / m.goal * 100, 100)}%`,
+                    backgroundColor: m.color,
+                    transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CollapsibleSection>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="fade-up fade-up-3">
+        <RecentActivity foodLogs={foodLogs} waterLogs={waterLogs} />
       </div>
 
     </div>

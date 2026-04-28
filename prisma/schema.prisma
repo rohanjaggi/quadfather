@@ -3,14 +3,13 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
   id              Int      @id @default(autoincrement())
-  telegram_id     Int      @unique
+  telegram_id     BigInt   @unique
   username        String?  @db.VarChar(50)
   daily_protein_goal Float @default(120.0)
   daily_calorie_goal Float @default(2000.0)

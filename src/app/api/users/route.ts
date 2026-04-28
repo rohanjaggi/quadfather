@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       id: user.id,
-      telegram_id: user.telegram_id,
+      telegram_id: Number(user.telegram_id),
       username: user.username,
       goals: {
         daily_protein_goal: user.daily_protein_goal,

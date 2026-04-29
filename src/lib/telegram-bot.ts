@@ -1,6 +1,6 @@
 import { Bot, InlineKeyboard } from "grammy";
 import { prisma } from "./prisma";
-import { analyseMeal, type AIProvider } from "./ai";
+import { analyseMeal, parseFood, type AIProvider } from "./ai";
 import { encrypt, decrypt } from "./crypto";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
@@ -181,6 +181,123 @@ function registerHandlers(bot: Bot) {
     });
   });
 
+  bot.command("log_water", async (ctx) => {
+    const user = await prisma.user.findUnique({
+      where: { telegram_id: ctx.from!.id },
+    });
+    if (!user) {
+      await ctx.reply(
+        "You need to open the app first to set up your account.",
+        { reply_markup: appButton("Open Quadfather", "") },
+      );
+      return;
+    }
+
+    const bottleSize = user.water_bottle_size;
+    await prisma.waterLog.create({
+      data: {
+        user_id: user.id,
+        amount_liters: bottleSize,
+        bottles: 1,
+        water_bottle_size: bottleSize,
+      },
+    });
+
+    // Get today's total
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayLogs = await prisma.waterLog.findMany({
+      where: { user_id: user.id, logged_at: { gte: todayStart } },
+    });
+    const totalLiters = todayLogs.reduce((s, l) => s + l.amount_liters, 0);
+    const pct = user.daily_water_goal > 0
+      ? Math.round((totalLiters / user.daily_water_goal) * 100)
+      : 0;
+
+    await ctx.reply(
+      `\u{1F4A7} <b>+${bottleSize}L logged</b>\n\n` +
+        `Total today: ${totalLiters.toFixed(1)}L / ${user.daily_water_goal}L (${pct}%)`,
+      { parse_mode: "HTML" },
+    );
+  });
+
+  bot.command("log_meal", async (ctx) => {
+    const description = ctx.match?.trim();
+    if (!description) {
+      await ctx.reply(
+        "Describe your meal after the command.\n\n" +
+          "Example: <code>/log_meal chicken breast with rice and broccoli</code>",
+        { parse_mode: "HTML" },
+      );
+      return;
+    }
+
+    const ai = await getUserAI(ctx.from!.id);
+    if (!ai) {
+      await ctx.reply(
+        "You need to set up an API key first.\n\nUse /key to get started.",
+      );
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { telegram_id: ctx.from!.id },
+    });
+    if (!user) {
+      await ctx.reply(
+        "You need to open the app first to set up your account.",
+        { reply_markup: appButton("Open Quadfather", "") },
+      );
+      return;
+    }
+
+    const thinking = await ctx.reply("\u{1F50D} Analysing...");
+
+    try {
+      const result = await parseFood(ai.provider, ai.apiKey, description);
+
+      await prisma.foodLog.create({
+        data: {
+          user_id: user.id,
+          food_name: result.food_name,
+          calories: result.calories,
+          protein: result.protein,
+          carbohydrates: result.carbohydrates,
+          fats: result.fats,
+          fiber: result.fiber,
+          raw_text_input: description,
+          source: ai.provider,
+        },
+      });
+
+      const confidenceEmoji: Record<string, string> = {
+        high: "\u{1F7E2}",
+        medium: "\u{1F7E1}",
+        low: "\u{1F534}",
+      };
+
+      await ctx.api.editMessageText(
+        ctx.chat!.id,
+        thinking.message_id,
+        `\u{2705} <b>Logged: ${result.food_name}</b>\n\n` +
+          `\u{1F525} ${result.calories} kcal\n` +
+          `\u{1F4AA} ${result.protein}g protein\n` +
+          `\u{1F33E} ${result.carbohydrates}g carbs\n` +
+          `\u{1F9C8} ${result.fats}g fats\n\n` +
+          `${confidenceEmoji[result.confidence] ?? "\u{1F7E1}"} ${result.confidence} confidence` +
+          (result.notes ? `\n<i>${result.notes}</i>` : ""),
+        { parse_mode: "HTML" },
+      );
+    } catch {
+      await ctx.api.editMessageText(
+        ctx.chat!.id,
+        thinking.message_id,
+        "Sorry, I couldn't analyse that. Try again or log manually in the app.",
+        { reply_markup: appButton("Log Manually", "/food") },
+      );
+    }
+  });
+
   bot.command("trends", async (ctx) => {
     await ctx.reply(
       "\u{1F4C8} See how your nutrition and hydration have tracked over the last 7 or 30 days.",
@@ -269,6 +386,17 @@ function registerHandlers(bot: Bot) {
       return;
     }
 
+    const user = await prisma.user.findUnique({
+      where: { telegram_id: ctx.from!.id },
+    });
+    if (!user) {
+      await ctx.reply(
+        "You need to open the app first to set up your account.",
+        { reply_markup: appButton("Open Quadfather", "") },
+      );
+      return;
+    }
+
     const thinking = await ctx.reply("\u{1F50D} Analysing your meal\u{2026}");
     try {
       const photos = ctx.message!.photo!;
@@ -287,6 +415,20 @@ function registerHandlers(bot: Bot) {
         ctx.message!.caption ?? "",
       );
 
+      // Auto-log the meal
+      await prisma.foodLog.create({
+        data: {
+          user_id: user.id,
+          food_name: result.food_name,
+          calories: result.calories,
+          protein: result.protein,
+          carbohydrates: result.carbohydrates,
+          fats: result.fats,
+          fiber: result.fiber,
+          source: ai.provider,
+        },
+      });
+
       const confidenceEmoji: Record<string, string> = {
         high: "\u{1F7E2}",
         medium: "\u{1F7E1}",
@@ -294,30 +436,41 @@ function registerHandlers(bot: Bot) {
       };
 
       let text =
-        `<b>${result.food_name}</b>\n\n` +
-        `\u{1F525} <b>Calories:</b> ${result.calories} kcal\n` +
-        `\u{1F4AA} <b>Protein:</b> ${result.protein}g\n` +
-        `\u{1F33E} <b>Carbs:</b> ${result.carbohydrates}g\n` +
-        `\u{1F9C8} <b>Fats:</b> ${result.fats}g\n\n` +
-        `${confidenceEmoji[result.confidence] ?? "\u{1F7E1}"} ${result.confidence.charAt(0).toUpperCase() + result.confidence.slice(1)} confidence`;
+        `\u{2705} <b>Logged: ${result.food_name}</b>\n\n` +
+        `\u{1F525} ${result.calories} kcal\n` +
+        `\u{1F4AA} ${result.protein}g protein\n` +
+        `\u{1F33E} ${result.carbohydrates}g carbs\n` +
+        `\u{1F9C8} ${result.fats}g fats\n\n` +
+        `${confidenceEmoji[result.confidence] ?? "\u{1F7E1}"} ${result.confidence} confidence`;
 
       if (result.notes) {
         text += `\n<i>${result.notes}</i>`;
       }
-      text += "\n\nOpen the app to log this meal or adjust the values.";
 
       await ctx.api.deleteMessage(ctx.chat!.id, thinking.message_id);
-      await ctx.reply(text, {
-        parse_mode: "HTML",
-        reply_markup: appButton("Log This Meal \u{1F37D}", "/food"),
-      });
+      await ctx.reply(text, { parse_mode: "HTML" });
     } catch {
       await ctx.api.editMessageText(
         ctx.chat!.id,
         thinking.message_id,
-        "Sorry, I couldn't analyse that photo right now. Try again or log it manually.",
+        "Sorry, I couldn't analyse that photo. Try again or log manually.",
         { reply_markup: appButton("Log Manually", "/food") },
       );
     }
   });
+}
+
+export async function setupBotCommands() {
+  const bot = initBot();
+  await bot.api.setMyCommands([
+    { command: "log_water", description: "Log one bottle of water instantly" },
+    { command: "log_meal", description: "Log a meal from text description" },
+    { command: "today", description: "View today's macros & hydration" },
+    { command: "log", description: "Open the meal logger" },
+    { command: "water", description: "Open the water tracker" },
+    { command: "trends", description: "View your progress charts" },
+    { command: "goals", description: "Update your daily goals" },
+    { command: "key", description: "Set up your AI API key" },
+    { command: "help", description: "Show all commands" },
+  ]);
 }

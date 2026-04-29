@@ -103,7 +103,7 @@ function registerHandlers(bot: Bot) {
         "<code>gemini AIza...</code>\n\n" +
         "<b>3. Start logging</b>\n" +
         "\u{1F4F8} Send a <b>photo</b> of your meal — I'll estimate the macros and log it\n" +
-        "\u{270F}\u{FE0F} Type <code>/log_meal chicken rice broccoli</code> to log via text\n" +
+        "\u{270F}\u{FE0F} Type /log_meal <code>chicken rice broccoli</code> to log via text\n" +
         "\u{1F4A7} Type /log_water to quickly log a bottle\n\n" +
         "Type /help anytime to see all commands.",
       { parse_mode: "HTML", reply_markup: appButton("Open Quadfather", "") },

@@ -143,10 +143,7 @@ export async function fetchStravaActivities(
     throw new Error(`Strava API error: ${res.status}`)
   }
   const activities: StravaActivity[] = await res.json()
-  return activities.filter(a =>
-    a.type === 'Run' || a.sport_type === 'Run' ||
-    a.sport_type === 'TrailRun' || a.sport_type === 'VirtualRun'
-  )
+  return activities
 }
 
 export function stravaActivityToRunData(activity: StravaActivity) {

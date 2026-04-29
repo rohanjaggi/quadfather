@@ -8,16 +8,19 @@ import SummaryCard from '@/components/dashboard/SummaryCard'
 export default function StravaSettingsPage() {
   const { user, refresh } = useUser()
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const connected = !!user?.strava_connected
 
   async function handleConnect() {
     setLoading(true)
+    setError(null)
     try {
       const { url } = await getStravaConnectUrl()
       const { default: WebApp } = await import('@twa-dev/sdk')
       WebApp.openLink(url)
     } catch (e) {
-      console.error('Strava connect error:', e)
+      const msg = e instanceof Error ? e.message : 'Unknown error'
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -98,6 +101,19 @@ export default function StravaSettingsPage() {
                 </p>
               </div>
             </div>
+
+            {error && (
+              <p style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: '12px',
+                color: '#c44',
+                padding: '8px 12px',
+                borderRadius: '10px',
+                backgroundColor: '#c4441a',
+              }}>
+                {error}
+              </p>
+            )}
 
             {/* Action button */}
             {connected ? (

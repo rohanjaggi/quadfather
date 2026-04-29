@@ -92,32 +92,45 @@ function registerHandlers(bot: Bot) {
     const name = ctx.from?.first_name ?? "there";
     await ctx.reply(
       `Hey <b>${name}</b> \u{1F44B}\n\n` +
-        "Welcome to <b>Quadfather</b> — your personal nutrition tracker.\n\n" +
-        "<b>Commands:</b>\n" +
-        "/today — today's macros &amp; hydration\n" +
-        "/log — log a meal\n" +
-        "/water — track water\n" +
-        "/trends — view your progress\n" +
-        "/goals — manage your goals\n" +
-        "/key — set up your AI API key\n" +
-        "/help — show this list\n\n" +
-        "Or just <b>send a photo</b> of your meal and I'll analyse the macros.",
+        "Welcome to <b>Quadfather</b> — your personal nutrition &amp; fitness tracker.\n\n" +
+        "\u{1F3AF} <b>Get started in 3 steps:</b>\n\n" +
+        "<b>1. Set up your profile</b>\n" +
+        "Open the app and go to Settings \u{2192} Personal Info. Enter your weight, height, age, activity level, and fitness goal. This calculates your daily calorie and macro targets.\n\n" +
+        "<b>2. Add your AI key</b>\n" +
+        "For photo &amp; text meal analysis, you need an API key. Send it here:\n" +
+        "<code>openai sk-abc123...</code>\n" +
+        "<code>anthropic sk-ant-...</code>\n" +
+        "<code>gemini AIza...</code>\n\n" +
+        "<b>3. Start logging</b>\n" +
+        "\u{1F4F8} Send a <b>photo</b> of your meal — I'll estimate the macros and log it\n" +
+        "\u{270F}\u{FE0F} Type <code>/log_meal chicken rice broccoli</code> to log via text\n" +
+        "\u{1F4A7} Type /log_water to quickly log a bottle\n\n" +
+        "Type /help anytime to see all commands.",
       { parse_mode: "HTML", reply_markup: appButton("Open Quadfather", "") },
     );
   });
 
   bot.command("help", async (ctx) => {
     await ctx.reply(
-      "<b>Quadfather commands</b>\n\n" +
-        "/today — today's calorie, protein &amp; water summary\n" +
-        "/log — open the meal logger (scan, text, or manual)\n" +
-        "/water — open the water tracker\n" +
-        "/trends — view 7-day &amp; 30-day progress charts\n" +
-        "/goals — update your daily calorie, protein &amp; water goals\n" +
-        "/key — set or update your AI API key\n\n" +
-        "\u{1F4F8} <b>Send a photo</b> of your meal for AI macro analysis\n" +
-        "\u{270F}\u{FE0F} <b>Text mode</b> — describe a meal in words and get estimated macros\n" +
-        "\u{1F4A1} <b>AI Suggestions</b> — get meal ideas that fit your remaining daily budget",
+      "<b>Quadfather — Commands</b>\n\n" +
+        "\u{1F4CB} <b>Quick actions (in chat):</b>\n" +
+        "/log_meal <i>description</i> — log a meal from text\n" +
+        "/log_water — log one bottle of water instantly\n" +
+        "/today — see today's calorie, protein &amp; water progress\n\n" +
+        "\u{1F4F1} <b>Open the app:</b>\n" +
+        "/log — meal logger (photo scan, text, or manual)\n" +
+        "/water — water tracker\n" +
+        "/trends — 7-day &amp; 30-day charts for food &amp; running\n" +
+        "/goals — update daily targets &amp; personal info\n\n" +
+        "\u{1F916} <b>AI features (requires API key):</b>\n" +
+        "\u{1F4F8} Send a <b>photo</b> — auto-analyses &amp; logs macros\n" +
+        "\u{270F}\u{FE0F} <code>/log_meal</code> — text-based macro estimation\n" +
+        "\u{1F4A1} In-app meal suggestions based on remaining budget\n\n" +
+        "\u{2699}\u{FE0F} <b>Setup:</b>\n" +
+        "/key — set or update your AI API key\n" +
+        "Format: <code>openai sk-...</code> or <code>anthropic sk-ant-...</code> or <code>gemini AIza...</code>\n\n" +
+        "\u{1F3C3} <b>Running:</b>\n" +
+        "Connect Strava in Settings to auto-sync runs. Calories burned can be added to your daily allowance.",
       { parse_mode: "HTML" },
     );
   });

@@ -168,6 +168,16 @@ export default function FoodPage() {
             {/* Calories prominently */}
             {caloriesData && (
               <div>
+                <span style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: 'var(--tg-theme-text-color)',
+                  marginBottom: '4px',
+                  display: 'block',
+                }}>
+                  Calories
+                </span>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
                   <span style={{
                     fontFamily: 'var(--font-display)',

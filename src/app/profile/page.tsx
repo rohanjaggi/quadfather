@@ -59,28 +59,35 @@ export default function SettingsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div className="fade-up">
-        <p style={{
-          fontFamily: 'var(--font-body)', fontSize: '11px',
-          letterSpacing: '0.1em', textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)', marginBottom: '5px',
-        }}>
-          Profile
-        </p>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '36px',
-          fontWeight: 400, lineHeight: 1.1, color: 'var(--tg-theme-text-color)',
-        }}>
-          Settings
-        </h1>
-        {user?.username && (
+      <div className="fade-up" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ flex: 1 }}>
           <p style={{
-            fontFamily: 'var(--font-body)', fontSize: '13px',
-            color: 'var(--tg-theme-hint-color)', marginTop: '6px',
+            fontFamily: 'var(--font-body)', fontSize: '11px',
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: 'var(--tg-theme-hint-color)', marginBottom: '5px',
           }}>
-            @{user.username}
+            Profile
           </p>
-        )}
+          <h1 style={{
+            fontFamily: 'var(--font-display)', fontSize: '36px',
+            fontWeight: 400, lineHeight: 1.1, color: 'var(--tg-theme-text-color)',
+          }}>
+            Settings
+          </h1>
+          {user?.username && (
+            <p style={{
+              fontFamily: 'var(--font-body)', fontSize: '13px',
+              color: 'var(--tg-theme-hint-color)', marginTop: '6px',
+            }}>
+              @{user.username}
+            </p>
+          )}
+        </div>
+        <img
+          src="/logo.png"
+          alt="Quadfather"
+          style={{ width: '48px', height: '48px', flexShrink: 0 }}
+        />
       </div>
 
       {SECTIONS.slice(0, 2).map((s, i) => (

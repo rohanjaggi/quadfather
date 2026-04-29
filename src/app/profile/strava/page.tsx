@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import WebApp from '@twa-dev/sdk'
 import { useUser } from '@/context/UserContext'
 import { getStravaConnectUrl, disconnectStrava } from '@/lib/api'
 import SummaryCard from '@/components/dashboard/SummaryCard'
@@ -14,7 +15,9 @@ export default function StravaSettingsPage() {
     setLoading(true)
     try {
       const { url } = await getStravaConnectUrl()
-      window.location.href = url
+      WebApp.openLink(url)
+    } catch (e) {
+      console.error('Strava connect error:', e)
     } finally {
       setLoading(false)
     }

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import * as api from '@/lib/api'
 import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, PersonalUpdate, SavedFood, SavedFoodCreate } from '@/types/api'
+import type { RunLog, RunLogCreate } from '@/types/running'
 
 interface UserContextType {
   user: User | null
@@ -20,6 +21,11 @@ interface UserContextType {
   updatePersonal: (data: PersonalUpdate) => Promise<void>
   saveFood: (data: SavedFoodCreate) => Promise<SavedFood>
   deleteSavedFood: (id: number) => Promise<void>
+  runLogs: RunLog[]
+  logRun: (data: RunLogCreate) => Promise<void>
+  deleteRun: (id: number) => Promise<void>
+  toggleRunAllowance: (id: number, added: boolean) => Promise<void>
+  syncStrava: () => Promise<{ synced: number }>
   refresh: () => Promise<void>
 }
 
@@ -31,21 +37,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [foodLogs, setFoodLogs] = useState<FoodLog[]>([])
   const [waterLogs, setWaterLogs] = useState<WaterLog[]>([])
   const [savedFoods, setSavedFoods] = useState<SavedFood[]>([])
+  const [runLogs, setRunLogs] = useState<RunLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     try {
-      const [summaryData, foodData, waterData, savedData] = await Promise.all([
+      const [summaryData, foodData, waterData, savedData, runData] = await Promise.all([
         api.getDailySummary(),
         api.getFoodLogs(),
         api.getWaterLogs(),
         api.getSavedFoods(),
+        api.getRunLogs(),
       ])
       setSummary(summaryData)
       setFoodLogs(foodData)
       setWaterLogs(waterData)
       setSavedFoods(savedData)
+      setRunLogs(runData)
     } catch (err) {
       console.error('Failed to refresh data:', err)
     }
@@ -111,11 +120,33 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setSavedFoods(prev => prev.filter(f => f.id !== id))
   }, [])
 
+  const logRunAction = useCallback(async (data: RunLogCreate) => {
+    await api.logRun(data)
+    await refresh()
+  }, [refresh])
+
+  const deleteRunAction = useCallback(async (id: number) => {
+    await api.deleteRun(id)
+    await refresh()
+  }, [refresh])
+
+  const toggleRunAllowanceAction = useCallback(async (id: number, added: boolean) => {
+    await api.toggleRunAllowance(id, added)
+    await refresh()
+  }, [refresh])
+
+  const syncStrava = useCallback(async () => {
+    const result = await api.syncStravaRuns()
+    await refresh()
+    return result
+  }, [refresh])
+
   return (
     <UserContext.Provider value={{
-      user, summary, foodLogs, waterLogs, savedFoods, loading, error,
+      user, summary, foodLogs, waterLogs, savedFoods, runLogs, loading, error,
       logFood, deleteFood, logWater, deleteWater, updateGoals, updatePersonal,
-      saveFood, deleteSavedFood, refresh,
+      saveFood, deleteSavedFood, logRun: logRunAction, deleteRun: deleteRunAction,
+      toggleRunAllowance: toggleRunAllowanceAction, syncStrava, refresh,
     }}>
       {children}
     </UserContext.Provider>

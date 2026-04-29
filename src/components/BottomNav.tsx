@@ -26,12 +26,16 @@ function FoodIcon({ active }: { active: boolean }) {
   )
 }
 
-function WaterIcon({ active }: { active: boolean }) {
+function RunIcon({ active }: { active: boolean }) {
   const c = active ? 'var(--accent)' : 'var(--tg-theme-hint-color)'
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c}
       strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
+      <circle cx="17" cy="4" r="2" />
+      <path d="M15.59 13.51l-1.63-1.2-2.45 3.03-2.6-2.6-3.41 3.76" />
+      <path d="M13.96 12.31l2.69-3.39-2.84-2.1-2.84 3.52" />
+      <path d="M9.5 16.5L7 22" />
+      <path d="M14 22l-1.5-5" />
     </svg>
   )
 }
@@ -58,9 +62,9 @@ function ProfileIcon({ active }: { active: boolean }) {
 }
 
 const tabs = [
-  { href: '/',          label: 'Today',     Icon: HomeIcon    },
+  { href: '/',          label: 'Today',    Icon: HomeIcon    },
   { href: '/food',      label: 'Nutrition', Icon: FoodIcon    },
-  { href: '/water',     label: 'Water',     Icon: WaterIcon   },
+  { href: '/running',   label: 'Exercise',  Icon: RunIcon     },
   { href: '/analytics', label: 'Trends',    Icon: TrendsIcon  },
   { href: '/profile',   label: 'Settings',  Icon: ProfileIcon },
 ]

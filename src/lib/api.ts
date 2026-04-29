@@ -55,3 +55,35 @@ export async function analyseMeal(imageFile: File, description: string): Promise
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
+
+import type { RunLog, RunLogCreate, RunAnalysis, RunningAnalyticsResponse } from '@/types/running'
+
+export const getRunLogs = (date?: string) =>
+  apiFetch<RunLog[]>(`/runs${date ? `?date=${date}` : ''}`)
+export const logRun = (data: RunLogCreate) =>
+  apiFetch<RunLog>('/runs', { method: 'POST', body: JSON.stringify(data) })
+export const deleteRun = (id: number) =>
+  apiFetch<void>(`/runs/${id}`, { method: 'DELETE' })
+export const toggleRunAllowance = (id: number, added: boolean) =>
+  apiFetch<RunLog>(`/runs/${id}`, { method: 'PATCH', body: JSON.stringify({ added_to_allowance: added }) })
+export const syncStravaRuns = () =>
+  apiFetch<{ synced: number; total_fetched: number }>('/runs/sync', { method: 'POST' })
+export const getStravaConnectUrl = () =>
+  apiFetch<{ url: string }>('/strava/connect')
+export const disconnectStrava = () =>
+  apiFetch<{ disconnected: boolean }>('/strava/disconnect', { method: 'POST' })
+export const getRunningAnalytics = (days: number) =>
+  apiFetch<RunningAnalyticsResponse>(`/analytics/running?days=${days}`)
+
+export async function analyseRunScreenshot(imageFile: File): Promise<RunAnalysis> {
+  const initData = typeof window !== 'undefined' ? WebApp.initData : ''
+  const form = new FormData()
+  form.append('image', imageFile)
+  const res = await fetch('/api/runs/analyse', {
+    method: 'POST',
+    headers: { 'X-Telegram-Init-Data': initData },
+    body: form,
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}

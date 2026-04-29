@@ -354,3 +354,61 @@ export async function suggestMeals(
 function parseAnalysisResult(raw: string): MealAnalysisResult {
   return parseAnalysisResponse(raw);
 }
+
+export async function analyseRunScreenshot(
+  provider: AIProvider,
+  apiKey: string,
+  imageBase64: string,
+  mimeType: string,
+): Promise<{
+  distance_meters: number
+  duration_seconds: number
+  calories_burned: number
+  pace_per_km?: number
+  average_heartrate?: number
+  confidence: 'high' | 'medium' | 'low'
+  notes: string
+}> {
+  const prompt = `Analyze this running/exercise screenshot and extract the following data.
+Return ONLY valid JSON with these fields:
+- distance_meters: total distance in meters (convert from km/miles if needed)
+- duration_seconds: total duration in seconds (convert from mm:ss or hh:mm:ss)
+- calories_burned: calories/kcal burned (estimate ~70 kcal/km if not shown)
+- pace_per_km: pace in minutes per kilometer (decimal, e.g. 5.5 for 5:30/km). null if not visible
+- average_heartrate: average heart rate in BPM. null if not visible
+- confidence: "high" if all key metrics clearly visible, "medium" if some estimated, "low" if image unclear
+- notes: brief description of what you see (app name, any issues)
+
+If the image is not a running/exercise screenshot, return confidence "low" with notes explaining why.
+Convert all units to metric (meters, seconds, min/km).`
+
+  const imageBytes = Buffer.from(imageBase64, 'base64')
+
+  let raw: string
+  switch (provider) {
+    case 'openai':
+      raw = await openaiVision(apiKey, imageBytes, mimeType, prompt)
+      break
+    case 'anthropic':
+      raw = await anthropicVision(apiKey, imageBytes, mimeType, prompt)
+      break
+    case 'gemini':
+      raw = await geminiVision(apiKey, imageBytes, mimeType, prompt)
+      break
+  }
+
+  const cleaned = cleanJson(raw)
+  if (!cleaned) throw new Error('AI returned an empty response')
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('Failed to parse AI response')
+  const data = JSON.parse(jsonMatch[0])
+
+  const required = ['distance_meters', 'duration_seconds', 'calories_burned'] as const
+  for (const key of required) {
+    if (typeof data[key] !== 'number') {
+      throw new Error(`AI response missing or invalid field: ${key}`)
+    }
+  }
+
+  return data
+}

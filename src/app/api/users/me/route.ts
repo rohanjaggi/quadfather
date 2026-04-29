@@ -8,13 +8,22 @@ export async function GET(request: NextRequest) {
 
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
+    const todayEnd = new Date(todayStart);
+    todayEnd.setUTCHours(23, 59, 59, 999);
 
-    const [foodLogs, waterLogs] = await Promise.all([
+    const [foodLogs, waterLogs, runLogs] = await Promise.all([
       prisma.foodLog.findMany({
         where: { user_id: user.id, logged_at: { gte: todayStart } },
       }),
       prisma.waterLog.findMany({
         where: { user_id: user.id, logged_at: { gte: todayStart } },
+      }),
+      prisma.runLog.findMany({
+        where: {
+          user_id: user.id,
+          run_date: { gte: todayStart, lte: todayEnd },
+          added_to_allowance: true,
+        },
       }),
     ]);
 
@@ -24,6 +33,7 @@ export async function GET(request: NextRequest) {
     const totalFats = foodLogs.reduce((s, l) => s + (l.fats ?? 0), 0);
     const totalFiber = foodLogs.reduce((s, l) => s + (l.fiber ?? 0), 0);
     const totalWater = waterLogs.reduce((s, l) => s + l.amount_liters, 0);
+    const exerciseBurn = runLogs.reduce((s, r) => s + r.calories_burned, 0);
 
     const r = (v: number) => Math.round(v * 10) / 10;
 
@@ -32,8 +42,8 @@ export async function GET(request: NextRequest) {
       macros: {
         calories: {
           total: totalCalories,
-          goal: user.daily_calorie_goal,
-          remaining: Math.round((user.daily_calorie_goal - totalCalories) * 10) / 10,
+          goal: user.daily_calorie_goal + exerciseBurn,
+          remaining: Math.round((user.daily_calorie_goal + exerciseBurn - totalCalories) * 10) / 10,
         },
         protein: {
           total: totalProtein,
@@ -62,6 +72,7 @@ export async function GET(request: NextRequest) {
         remaining: Math.round((user.daily_water_goal - totalWater) * 10) / 10,
       },
       meals_logged: foodLogs.length,
+      exercise_burn: Math.round(exerciseBurn),
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";

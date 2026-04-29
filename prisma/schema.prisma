@@ -26,11 +26,17 @@ model User {
   age                Int?
   activity_level     String?  @db.VarChar(20)
   fitness_goal       String?  @db.VarChar(20)
+  strava_athlete_id    BigInt?
+  strava_access_token  String?
+  strava_refresh_token String?
+  strava_token_expires Int?
+  strava_scope         String?  @db.VarChar(100)
   created_at      DateTime? @default(now())
 
   saved_foods SavedFood[]
   food_logs   FoodLog[]
   water_logs  WaterLog[]
+  run_logs    RunLog[]
 
   @@map("users")
 }
@@ -96,4 +102,27 @@ model WaterLog {
 
   @@index([user_id])
   @@map("water_logs")
+}
+
+model RunLog {
+  id                  Int      @id @default(autoincrement())
+  user_id             Int
+  strava_activity_id  BigInt?  @unique
+  distance_meters     Float
+  duration_seconds    Int
+  calories_burned     Float
+  pace_per_km         Float?
+  average_heartrate   Float?
+  elevation_gain      Float?
+  name                String?  @db.VarChar(200)
+  source              String   @default("manual") @db.VarChar(20)
+  added_to_allowance  Boolean  @default(false)
+  run_date            DateTime
+  logged_at           DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, run_date])
+  @@index([user_id, logged_at])
+  @@map("run_logs")
 }

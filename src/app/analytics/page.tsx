@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import SummaryCard from '@/components/dashboard/SummaryCard'
-import { getAnalytics } from '@/lib/api'
+import { getAnalytics, getRunningAnalytics } from '@/lib/api'
 import type { AnalyticsResponse, AnalyticsDayData } from '@/types/api'
+import type { RunningAnalyticsResponse } from '@/types/running'
 
 type Period = 7 | 30
 
@@ -127,10 +128,15 @@ function StatRow({ label, value, sub, color }: StatRowProps) {
   )
 }
 
+type Domain = 'food' | 'running'
+
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<Period>(7)
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [domain, setDomain] = useState<Domain>('food')
+  const [runningData, setRunningData] = useState<RunningAnalyticsResponse | null>(null)
+  const [runningLoading, setRunningLoading] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -139,6 +145,16 @@ export default function AnalyticsPage() {
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [period])
+
+  useEffect(() => {
+    if (domain === 'running') {
+      setRunningLoading(true)
+      getRunningAnalytics(period)
+        .then(setRunningData)
+        .catch(console.error)
+        .finally(() => setRunningLoading(false))
+    }
+  }, [domain, period])
 
   const days = data?.days ?? []
   const goals = data?.goals
@@ -222,7 +238,39 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {/* Domain toggle */}
+      <div style={{
+        display: 'flex',
+        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+        borderRadius: '99px',
+        padding: '3px',
+        gap: '2px',
+      }}>
+        {(['food', 'running'] as Domain[]).map(d => (
+          <button
+            key={d}
+            onClick={() => setDomain(d)}
+            style={{
+              flex: 1,
+              padding: '8px 16px',
+              borderRadius: '99px',
+              border: 'none',
+              backgroundColor: domain === d ? 'var(--tg-theme-button-color)' : 'transparent',
+              color: domain === d ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-hint-color)',
+              fontFamily: 'var(--font-body)',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background-color 0.2s ease',
+              textTransform: 'capitalize',
+            }}
+          >
+            {d === 'food' ? 'Food' : 'Running'}
+          </button>
+        ))}
+      </div>
+
+      {domain === 'food' && loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
             Loading…
@@ -230,6 +278,7 @@ export default function AnalyticsPage() {
         </div>
       ) : (
         <>
+          {domain === 'food' && !loading && (<>
           {/* Summary stats */}
           <div className="fade-up fade-up-1">
             <SummaryCard title={`${period}-day average`}>
@@ -446,6 +495,107 @@ export default function AnalyticsPage() {
                 })()}
               </SummaryCard>
             </div>
+          )}
+          </>)}
+
+          {domain === 'running' && runningLoading && (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+                Loading…
+              </p>
+            </div>
+          )}
+
+          {domain === 'running' && !runningLoading && runningData && (
+            <>
+              {/* Running summary */}
+              <div className="fade-up fade-up-1">
+                <SummaryCard title={`${period}-day summary`}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <StatRow label="Total Distance" value={`${(runningData.totals.distance / 1000).toFixed(1)}`} sub="km" color="var(--accent-calories)" />
+                    <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                    <StatRow label="Total Runs" value={`${runningData.totals.run_count}`} color="var(--accent-protein)" />
+                    <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                    <StatRow label="Calories Burned" value={`${runningData.totals.calories}`} sub="kcal" color="var(--accent-calories)" />
+                  </div>
+                </SummaryCard>
+              </div>
+
+              {/* Distance chart */}
+              <div className="fade-up fade-up-2">
+                <SummaryCard title="Distance">
+                  {runningData.days.length > 0 ? (
+                    <BarChart
+                      key={`run-dist-${period}`}
+                      days={runningData.days.map(d => ({
+                        date: d.date,
+                        calories: d.total_distance / 1000,
+                        protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
+                      }))}
+                      getValue={d => d.calories}
+                      goal={5}
+                      color="var(--accent-calories)"
+                      unit="km"
+                      period={period}
+                    />
+                  ) : (
+                    <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                      No data yet
+                    </p>
+                  )}
+                </SummaryCard>
+              </div>
+
+              {/* Calories burned chart */}
+              <div className="fade-up fade-up-3">
+                <SummaryCard title="Calories Burned">
+                  {runningData.days.length > 0 ? (
+                    <BarChart
+                      key={`run-cal-${period}`}
+                      days={runningData.days.map(d => ({
+                        date: d.date,
+                        calories: d.total_calories,
+                        protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
+                      }))}
+                      getValue={d => d.calories}
+                      goal={500}
+                      color="var(--accent-protein)"
+                      unit="kcal"
+                      period={period}
+                    />
+                  ) : (
+                    <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                      No data yet
+                    </p>
+                  )}
+                </SummaryCard>
+              </div>
+
+              {/* Frequency chart */}
+              <div className="fade-up fade-up-4">
+                <SummaryCard title="Frequency">
+                  {runningData.days.length > 0 ? (
+                    <BarChart
+                      key={`run-freq-${period}`}
+                      days={runningData.days.map(d => ({
+                        date: d.date,
+                        calories: d.run_count,
+                        protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
+                      }))}
+                      getValue={d => d.calories}
+                      goal={1}
+                      color="var(--accent-water)"
+                      unit="runs"
+                      period={period}
+                    />
+                  ) : (
+                    <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                      No data yet
+                    </p>
+                  )}
+                </SummaryCard>
+              </div>
+            </>
           )}
         </>
       )}

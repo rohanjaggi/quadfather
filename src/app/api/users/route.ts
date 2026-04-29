@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       water_bottle_size: user.water_bottle_size,
       ai_provider: user.ai_provider,
       has_api_key: !!user.ai_api_key,
+      strava_connected: !!user.strava_athlete_id,
     }, { status: 201 });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";

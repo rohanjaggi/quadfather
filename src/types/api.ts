@@ -13,6 +13,7 @@ export interface User {
   water_bottle_size: number
   ai_provider?: string
   has_api_key: boolean
+  strava_connected: boolean
   personal?: {
     sex: string
     weight_kg: number
@@ -34,6 +35,7 @@ export interface DailySummary {
   }
   water: { total: number; goal: number; remaining: number }
   meals_logged: number
+  exercise_burn: number
 }
 
 export interface FoodLog {

@@ -19,6 +19,23 @@ const SEX_OPTIONS: { value: Sex; label: string }[] = [
 const ACTIVITY_OPTIONS = Object.entries(ACTIVITY_LABELS) as [ActivityLevel, string][]
 const GOAL_OPTIONS = Object.entries(GOAL_LABELS) as [FitnessGoal, string][]
 
+const ACTIVITY_DESCRIPTIONS: Record<ActivityLevel, string> = {
+  sedentary: 'Desk job, little to no exercise',
+  lightly_active: 'Light exercise 1–3 days/week',
+  moderately_active: 'Moderate exercise 3–5 days/week',
+  very_active: 'Hard exercise 6–7 days/week',
+  extra_active: 'Intense training or physical job',
+}
+
+const GOAL_DESCRIPTIONS: Record<FitnessGoal, string> = {
+  aggressive_cut: '−750 kcal/day',
+  moderate_cut: '−500 kcal/day',
+  mild_cut: '−250 kcal/day',
+  maintenance: 'No change',
+  lean_bulk: '+250 kcal/day',
+  moderate_bulk: '+500 kcal/day',
+}
+
 export default function PersonalPage() {
   const { user, updatePersonal } = useUser()
   const [saving, setSaving] = useState(false)
@@ -132,7 +149,7 @@ export default function PersonalPage() {
                 value={weight}
                 onChange={e => setWeight(e.target.value)}
                 required
-                className="input-field"
+                className="input-field-bordered"
               />
             </div>
             <div>
@@ -148,7 +165,7 @@ export default function PersonalPage() {
                 value={height}
                 onChange={e => setHeight(e.target.value)}
                 required
-                className="input-field"
+                className="input-field-bordered"
               />
             </div>
             <div>
@@ -164,7 +181,7 @@ export default function PersonalPage() {
                 value={age}
                 onChange={e => setAge(e.target.value)}
                 required
-                className="input-field"
+                className="input-field-bordered"
               />
             </div>
           </div>
@@ -181,9 +198,12 @@ export default function PersonalPage() {
                 className="btn-pill"
                 data-active={activityLevel === value ? 'true' : undefined}
                 onClick={() => setActivityLevel(value)}
-                style={{ textAlign: 'left' }}
+                style={{ textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
-                {label}
+                <span>{label}</span>
+                <span style={{ fontSize: '11px', opacity: 0.6, fontWeight: 400 }}>
+                  {ACTIVITY_DESCRIPTIONS[value]}
+                </span>
               </button>
             ))}
           </div>
@@ -192,7 +212,7 @@ export default function PersonalPage() {
         {/* Fitness Goal */}
         <div className="fade-up fade-up-4">
           <label style={labelStyle}>Fitness Goal</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {GOAL_OPTIONS.map(([value, label]) => (
               <button
                 key={value}
@@ -200,8 +220,12 @@ export default function PersonalPage() {
                 className="btn-pill"
                 data-active={fitnessGoal === value ? 'true' : undefined}
                 onClick={() => setFitnessGoal(value)}
+                style={{ textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
-                {label}
+                <span>{label}</span>
+                <span style={{ fontSize: '11px', opacity: 0.6, fontWeight: 400 }}>
+                  {GOAL_DESCRIPTIONS[value]}
+                </span>
               </button>
             ))}
           </div>

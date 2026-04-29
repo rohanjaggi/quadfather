@@ -70,9 +70,10 @@ function BarChart({ days, getValue, goal, color, unit, period }: BarChartProps) 
                 style={{
                   width: '100%',
                   borderRadius: '4px 4px 2px 2px',
-                  backgroundColor: atGoal ? color : `${color}55`,
+                  backgroundColor: color,
+                  opacity: atGoal ? 1 : 0.4,
                   height: mounted ? `${Math.max(heightPct * 100, val > 0 ? 4 : 0)}%` : '0%',
-                  transition: 'height 0.5s var(--ease-smooth)',
+                  transition: 'height 0.5s var(--ease-smooth), opacity 0.3s ease',
                   transitionDelay: `${i * 40}ms`,
                   minHeight: val > 0 ? '3px' : '0',
                 }}

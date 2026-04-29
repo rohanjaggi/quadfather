@@ -119,7 +119,13 @@ export default function FoodPage() {
             Add
           </button>
           <Link href="/water" className="btn-pill"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none',
+              marginLeft: 'auto',
+              borderColor: 'var(--accent-water)',
+              color: 'var(--accent-water)',
+              borderStyle: 'dashed',
+            }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
             </svg>

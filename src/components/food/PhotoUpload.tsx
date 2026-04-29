@@ -269,9 +269,9 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={handleFile}
+        style={{ display: 'none' }}
       />
 
       <textarea

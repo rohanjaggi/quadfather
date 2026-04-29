@@ -55,7 +55,7 @@ export default function GoalRing({
             lineHeight: 1,
             color: 'var(--tg-theme-text-color)',
           }}>
-            {current}
+            {Number.isInteger(current) ? current : +current.toFixed(1)}
           </span>
           <span style={{
             fontFamily: 'var(--font-body)',

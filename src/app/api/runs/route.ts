@@ -7,15 +7,9 @@ export async function GET(request: NextRequest) {
     const user = await getAuthenticatedUser(request)
     const dateParam = request.nextUrl.searchParams.get('date')
 
-    let dayStart: Date
-    if (dateParam) {
-      dayStart = new Date(dateParam)
-    } else {
-      dayStart = new Date()
-    }
-    dayStart.setUTCHours(0, 0, 0, 0)
-    const dayEnd = new Date(dayStart)
-    dayEnd.setUTCHours(23, 59, 59, 999)
+    const dateStr = dateParam ?? new Date().toISOString().slice(0, 10)
+    const dayStart = new Date(`${dateStr}T00:00:00.000Z`)
+    const dayEnd = new Date(`${dateStr}T23:59:59.999Z`)
 
     const runs = await prisma.runLog.findMany({
       where: {

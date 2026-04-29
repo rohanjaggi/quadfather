@@ -15,6 +15,7 @@ export default function RunningPage() {
   const { syncStrava, user } = useUser()
   const [mode, setMode] = useState<Mode>(null)
   const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
 
   function toggle(next: Mode) {
     setMode(prev => prev === next ? null : next)
@@ -22,8 +23,12 @@ export default function RunningPage() {
 
   async function handleSync() {
     setSyncing(true)
+    setSyncMsg(null)
     try {
-      await syncStrava()
+      const { synced } = await syncStrava()
+      setSyncMsg(synced > 0 ? `Synced ${synced} run${synced > 1 ? 's' : ''}` : 'No new runs to sync')
+    } catch {
+      setSyncMsg('Sync failed')
     } finally {
       setSyncing(false)
     }
@@ -75,6 +80,17 @@ export default function RunningPage() {
             </svg>
             {syncing ? 'Syncing…' : 'Sync from Strava'}
           </button>
+          {syncMsg && (
+            <p style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: '12px',
+              color: syncMsg === 'Sync failed' ? 'var(--accent-calories)' : 'var(--tg-theme-hint-color)',
+              textAlign: 'center',
+              marginTop: '6px',
+            }}>
+              {syncMsg}
+            </p>
+          )}
         </div>
       )}
 

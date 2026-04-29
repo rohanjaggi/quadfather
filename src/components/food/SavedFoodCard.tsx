@@ -47,7 +47,7 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
           fontSize: '11px',
           color: 'var(--tg-theme-hint-color)',
         }}>
-          {Math.round(food.calories)} kcal · {Math.round(food.protein)}g P · {Math.round(food.carbohydrates)}g C · {Math.round(food.fats)}g F · {Math.round(food.fiber)}g Fi
+          {Math.round(food.calories)} kcal · {Math.round(food.protein)}g P · {Math.round(food.carbohydrates)}g C · {Math.round(food.fats)}g F · {Math.round(food.fiber ?? 0)}g Fi
         </p>
       </div>
 
@@ -78,6 +78,7 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
         onClick={handleAdd}
         className="btn-primary"
         style={{
+          width: 'auto',
           padding: '8px 14px',
           borderRadius: '99px',
           fontSize: '12px',

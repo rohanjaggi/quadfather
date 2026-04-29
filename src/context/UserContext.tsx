@@ -48,7 +48,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         api.getFoodLogs(),
         api.getWaterLogs(),
         api.getSavedFoods(),
-        api.getRunLogs(),
+        api.getRunLogs(new Date().toLocaleDateString('en-CA')),
       ])
       setSummary(summaryData)
       setFoodLogs(foodData)

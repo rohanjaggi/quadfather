@@ -161,6 +161,7 @@ export default function MealSuggestions() {
                 disabled={loggingIdx !== null}
                 className="btn-primary"
                 style={{
+                  width: 'auto',
                   padding: '8px 14px',
                   borderRadius: '10px',
                   fontSize: '11px',

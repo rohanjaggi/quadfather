@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
 import { getStravaConnectUrl, disconnectStrava } from '@/lib/api'
 import SummaryCard from '@/components/dashboard/SummaryCard'
@@ -39,6 +40,18 @@ export default function StravaSettingsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
       <div className="fade-up">
+        <Link href="/profile" style={{
+          display: 'inline-flex', alignItems: 'center', gap: '4px',
+          fontFamily: 'var(--font-body)', fontSize: '13px',
+          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
+          marginBottom: '12px',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Settings
+        </Link>
         <p style={{
           fontFamily: 'var(--font-body)',
           fontSize: '11px',

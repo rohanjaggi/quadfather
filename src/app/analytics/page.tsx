@@ -535,7 +535,7 @@ export default function AnalyticsPage() {
                       }))}
                       getValue={d => d.calories}
                       goal={5}
-                      color="var(--accent-calories)"
+                      color="var(--accent-protein)"
                       unit="km"
                       period={period}
                     />
@@ -560,7 +560,7 @@ export default function AnalyticsPage() {
                       }))}
                       getValue={d => d.calories}
                       goal={500}
-                      color="var(--accent-protein)"
+                      color="var(--accent-calories)"
                       unit="kcal"
                       period={period}
                     />

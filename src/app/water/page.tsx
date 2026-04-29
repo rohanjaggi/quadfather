@@ -42,6 +42,18 @@ export default function WaterPage() {
 
       {/* Header */}
       <div className="fade-up">
+        <Link href="/food" style={{
+          display: 'inline-flex', alignItems: 'center', gap: '4px',
+          fontFamily: 'var(--font-body)', fontSize: '13px',
+          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
+          marginBottom: '12px',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Nutrition
+        </Link>
         <p style={{
           fontFamily: 'var(--font-body)',
           fontSize: '11px',

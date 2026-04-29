@@ -20,6 +20,7 @@ interface UserContextType {
   updateGoals: (data: GoalsUpdate) => Promise<void>
   updatePersonal: (data: PersonalUpdate) => Promise<void>
   saveFood: (data: SavedFoodCreate) => Promise<SavedFood>
+  updateSavedFood: (id: number, data: Partial<SavedFoodCreate>) => Promise<void>
   deleteSavedFood: (id: number) => Promise<void>
   runLogs: RunLog[]
   logRun: (data: RunLogCreate) => Promise<void>
@@ -115,6 +116,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return saved
   }, [])
 
+  const updateSavedFood = useCallback(async (id: number, data: Partial<SavedFoodCreate>) => {
+    const updated = await api.updateSavedFood(id, data)
+    setSavedFoods(prev => prev.map(f => f.id === id ? updated : f))
+  }, [])
+
   const deleteSavedFood = useCallback(async (id: number) => {
     await api.deleteSavedFood(id)
     setSavedFoods(prev => prev.filter(f => f.id !== id))
@@ -145,7 +151,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     <UserContext.Provider value={{
       user, summary, foodLogs, waterLogs, savedFoods, runLogs, loading, error,
       logFood, deleteFood, logWater, deleteWater, updateGoals, updatePersonal,
-      saveFood, deleteSavedFood, logRun: logRunAction, deleteRun: deleteRunAction,
+      saveFood, updateSavedFood, deleteSavedFood, logRun: logRunAction, deleteRun: deleteRunAction,
       toggleRunAllowance: toggleRunAllowanceAction, syncStrava, refresh,
     }}>
       {children}

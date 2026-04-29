@@ -32,6 +32,7 @@ export const updatePersonal = (data: PersonalUpdate) => apiFetch<User>('/users/m
 
 export const getSavedFoods = () => apiFetch<SavedFood[]>('/foods/saved')
 export const saveFood = (data: SavedFoodCreate) => apiFetch<SavedFood>('/foods/saved', { method: 'POST', body: JSON.stringify(data) })
+export const updateSavedFood = (id: number, data: Partial<SavedFoodCreate>) => apiFetch<SavedFood>(`/foods/saved/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 export const deleteSavedFood = (id: number) => apiFetch<void>(`/foods/saved/${id}`, { method: 'DELETE' })
 export const getAnalytics = (days: number) => apiFetch<AnalyticsResponse>(`/analytics/daily?days=${days}`)
 export const parseFood = (text: string) => apiFetch<MealAnalysis>('/foods/parse', { method: 'POST', body: JSON.stringify({ text }) })

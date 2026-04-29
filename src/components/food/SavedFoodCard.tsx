@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { useHaptic } from '@/components/TelegramProvider'
+import { useUser } from '@/context/UserContext'
 import type { SavedFood } from '@/types/api'
 
 interface Props {
@@ -12,17 +14,102 @@ interface Props {
 
 export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) {
   const haptic = useHaptic()
+  const { updateSavedFood } = useUser()
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [name, setName] = useState(food.name)
+  const [calories, setCalories] = useState(String(food.calories))
+  const [protein, setProtein] = useState(String(food.protein))
+  const [carbs, setCarbs] = useState(String(food.carbohydrates))
+  const [fats, setFats] = useState(String(food.fats))
+  const [fiber, setFiber] = useState(String(food.fiber ?? 0))
 
   function handleAdd() {
     haptic.impact('light')
     onAdd(food)
   }
 
+  function handleEdit() {
+    setName(food.name)
+    setCalories(String(food.calories))
+    setProtein(String(food.protein))
+    setCarbs(String(food.carbohydrates))
+    setFats(String(food.fats))
+    setFiber(String(food.fiber ?? 0))
+    setEditing(true)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await updateSavedFood(food.id, {
+        name,
+        calories: Number(calories),
+        protein: Number(protein),
+        carbohydrates: Number(carbs),
+        fats: Number(fats),
+        fiber: Number(fiber),
+      })
+      setEditing(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <div style={{
+        paddingBottom: isLast ? 0 : '14px',
+        marginBottom: isLast ? 0 : '14px',
+        borderBottom: isLast ? 'none' : '1px solid var(--surface-border)',
+      }}>
+        <div style={{ marginBottom: '8px' }}>
+          <input
+            className="input-field-bordered"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            style={{ fontSize: '14px' }}
+          />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: '10px' }}>
+          <div>
+            <label className="label-caps">Cal</label>
+            <input className="input-field-bordered" type="number" min="0" value={calories} onChange={e => setCalories(e.target.value)} style={{ fontSize: '13px', padding: '8px 10px' }} />
+          </div>
+          <div>
+            <label className="label-caps">Protein</label>
+            <input className="input-field-bordered" type="number" min="0" step="0.1" value={protein} onChange={e => setProtein(e.target.value)} style={{ fontSize: '13px', padding: '8px 10px' }} />
+          </div>
+          <div>
+            <label className="label-caps">Carbs</label>
+            <input className="input-field-bordered" type="number" min="0" step="0.1" value={carbs} onChange={e => setCarbs(e.target.value)} style={{ fontSize: '13px', padding: '8px 10px' }} />
+          </div>
+          <div>
+            <label className="label-caps">Fats</label>
+            <input className="input-field-bordered" type="number" min="0" step="0.1" value={fats} onChange={e => setFats(e.target.value)} style={{ fontSize: '13px', padding: '8px 10px' }} />
+          </div>
+          <div>
+            <label className="label-caps">Fiber</label>
+            <input className="input-field-bordered" type="number" min="0" step="0.1" value={fiber} onChange={e => setFiber(e.target.value)} style={{ fontSize: '13px', padding: '8px 10px' }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn-ghost" onClick={() => setEditing(false)} style={{ flex: 1, padding: '10px' }}>
+            Cancel
+          </button>
+          <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '10px' }}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
+      gap: '10px',
       paddingBottom: isLast ? 0 : '14px',
       marginBottom: isLast ? 0 : '14px',
       borderBottom: isLast ? 'none' : '1px solid var(--surface-border)',
@@ -50,6 +137,25 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
           {Math.round(food.calories)} kcal · {Math.round(food.protein)}g P · {Math.round(food.carbohydrates)}g C · {Math.round(food.fats)}g F · {Math.round(food.fiber ?? 0)}g Fi
         </p>
       </div>
+
+      {/* Edit */}
+      <button
+        onClick={handleEdit}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: '4px',
+          cursor: 'pointer',
+          opacity: 0.35,
+          flexShrink: 0,
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="var(--tg-theme-text-color)" strokeWidth="1.8"
+          strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" />
+        </svg>
+      </button>
 
       {/* Delete */}
       <button

@@ -171,7 +171,7 @@ export default function GoalsPage() {
             <input
               type="number"
               min="0"
-              step="50"
+              step="1"
               value={calories}
               onChange={e => setCalories(e.target.value)}
               required
@@ -188,7 +188,7 @@ export default function GoalsPage() {
             <input
               type="number"
               min="0"
-              step="5"
+              step="1"
               value={protein}
               onChange={e => setProtein(e.target.value)}
               required
@@ -205,7 +205,7 @@ export default function GoalsPage() {
             <input
               type="number"
               min="0"
-              step="5"
+              step="1"
               value={carbs}
               onChange={e => setCarbs(e.target.value)}
               required
@@ -222,7 +222,7 @@ export default function GoalsPage() {
             <input
               type="number"
               min="0"
-              step="5"
+              step="1"
               value={fats}
               onChange={e => setFats(e.target.value)}
               required
@@ -256,7 +256,7 @@ export default function GoalsPage() {
             <input
               type="number"
               min="0"
-              step="0.5"
+              step="any"
               value={water}
               onChange={e => setWater(e.target.value)}
               required
@@ -273,7 +273,7 @@ export default function GoalsPage() {
             <input
               type="number"
               min="0"
-              step="0.1"
+              step="any"
               value={bottleSize}
               onChange={e => setBottleSize(e.target.value)}
               required

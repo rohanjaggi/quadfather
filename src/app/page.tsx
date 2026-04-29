@@ -29,7 +29,7 @@ export default function DashboardPage() {
   const fats = summary?.macros.fats ?? { total: 0, goal: user?.goals.daily_fats_goal ?? 65 }
   const fiber = summary?.macros.fiber ?? { total: 0, goal: user?.goals.daily_fiber_goal ?? 30 }
 
-  const username = user?.username
+  const displayName = user?.first_name ?? user?.username
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -55,7 +55,7 @@ export default function DashboardPage() {
           color: 'var(--tg-theme-text-color)',
           letterSpacing: '-0.01em',
         }}>
-          {getGreeting()}{username ? `, ${username}` : ''}
+          {getGreeting()}{displayName ? `, ${displayName}` : ''}
         </h1>
       </div>
 

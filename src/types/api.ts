@@ -2,6 +2,7 @@ export interface User {
   id: number
   telegram_id: number
   username?: string
+  first_name?: string
   goals: {
     daily_calorie_goal: number
     daily_protein_goal: number

@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       id: user.id,
       telegram_id: Number(user.telegram_id),
       username: user.username,
+      first_name: telegramUser.first_name ?? null,
       goals: {
         daily_protein_goal: user.daily_protein_goal,
         daily_calorie_goal: user.daily_calorie_goal,

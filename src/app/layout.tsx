@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
+import { Analytics } from '@vercel/analytics/react'
 import './globals.css'
 import BottomNav from '@/components/BottomNav'
 import { UserProvider } from '@/context/UserContext'

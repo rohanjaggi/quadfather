@@ -35,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <BottomNav />
           </UserProvider>
         </TelegramProvider>
+        <Analytics />
       </body>
     </html>
   )

@@ -23,7 +23,7 @@ A personal nutrition, hydration, and fitness tracker built as a Telegram Mini Ap
 - **Frontend**: Next.js 14 (App Router), React 18, Tailwind CSS
 - **Backend**: Next.js API Route Handlers (no separate server)
 - **Database**: PostgreSQL on Supabase, Prisma ORM
-- **AI**: OpenAI GPT-4o-mini / Anthropic Claude Sonnet / Gemini 2.5 Flash (user's choice via BYOK)
+- **AI**: OpenAI GPT-5.4 Mini / Anthropic Claude 4.5 Haiku / Gemini 3.1 Flash Lite / OpenRouter (user's choice via BYOK)
 - **Bot**: grammY (Telegram Bot API)
 - **Integrations**: Strava API (activity sync)
 - **Deployment**: Vercel
@@ -50,6 +50,8 @@ MINI_APP_URL=            # Your deployment URL (for bot inline buttons)
 STRAVA_CLIENT_ID=        # Strava API application client ID
 STRAVA_CLIENT_SECRET=    # Strava API application client secret
 STRAVA_REDIRECT_URI=     # OAuth callback URL for Strava
+GEMINI_API_KEY=          # (Optional) Server-side Gemini key — fallback when user has no BYOK key
+OPENROUTER_API_KEY=      # (Optional) Server-side OpenRouter key — second fallback after Gemini
 SKIP_TELEGRAM_AUTH=      # Set to "true" for local dev
 DEV_USER_ID=             # Your Telegram user ID for local dev
 ```

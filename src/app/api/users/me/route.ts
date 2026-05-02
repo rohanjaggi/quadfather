@@ -7,9 +7,9 @@ export async function GET(request: NextRequest) {
     const user = await getAuthenticatedUser(request);
 
     const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
+    todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date(todayStart);
-    todayEnd.setUTCHours(23, 59, 59, 999);
+    todayEnd.setHours(23, 59, 59, 999);
 
     const [foodLogs, waterLogs, runLogs] = await Promise.all([
       prisma.foodLog.findMany({

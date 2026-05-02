@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { encrypt } from "@/lib/crypto";
 import type { AIProvider } from "@/lib/ai";
 
-const VALID_PROVIDERS: AIProvider[] = ["openai", "anthropic", "gemini"];
+const VALID_PROVIDERS: AIProvider[] = ["openai", "anthropic", "gemini", "openrouter"];
 
 export async function POST(request: NextRequest) {
   try {

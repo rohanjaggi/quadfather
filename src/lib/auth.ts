@@ -86,11 +86,22 @@ export function getUserAICredentials(user: {
   ai_provider: string | null;
   ai_api_key: string | null;
 }): { provider: AIProvider; apiKey: string } {
-  if (!user.ai_provider || !user.ai_api_key) {
-    throw new Error("No API key configured. Set one up in Settings.");
+  if (user.ai_provider && user.ai_api_key) {
+    return {
+      provider: user.ai_provider as AIProvider,
+      apiKey: decrypt(user.ai_api_key),
+    };
   }
-  return {
-    provider: user.ai_provider as AIProvider,
-    apiKey: decrypt(user.ai_api_key),
-  };
+
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey) {
+    return { provider: "gemini", apiKey: geminiKey };
+  }
+
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  if (openrouterKey) {
+    return { provider: "openrouter", apiKey: openrouterKey };
+  }
+
+  throw new Error("No API key configured. Set one up in Settings.");
 }

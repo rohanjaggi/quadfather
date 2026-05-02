@@ -57,7 +57,6 @@ export default function RunPhotoUpload({ onClose }: RunPhotoUploadProps) {
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleFile}
         style={{ display: 'none' }}
       />

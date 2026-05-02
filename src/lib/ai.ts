@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
 
-export type AIProvider = "openai" | "anthropic" | "gemini";
+export type AIProvider = "openai" | "anthropic" | "gemini" | "openrouter";
 
 const VISION_PROMPT = `You are a precise nutrition analyst. Analyze this meal photograph and estimate its nutritional content.
 
@@ -148,7 +148,7 @@ async function openaiVision(
   const client = new OpenAI({ apiKey });
   const base64Image = imageBytes.toString("base64");
   const response = await client.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5.4-mini",
     messages: [
       {
         role: "user",
@@ -171,7 +171,7 @@ async function openaiText(
 ): Promise<string> {
   const client = new OpenAI({ apiKey });
   const response = await client.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5.4-mini",
     messages: [{ role: "user", content: prompt }],
   });
   return response.choices[0]?.message?.content ?? "";
@@ -188,7 +188,7 @@ async function anthropicVision(
   const client = new Anthropic({ apiKey });
   const base64Image = imageBytes.toString("base64");
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     messages: [
       {
@@ -221,7 +221,7 @@ async function anthropicText(
 ): Promise<string> {
   const client = new Anthropic({ apiKey });
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     messages: [{ role: "user", content: prompt }],
   });
@@ -239,7 +239,7 @@ async function geminiVision(
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite-preview",
     contents: [
       {
         role: "user",
@@ -264,10 +264,50 @@ async function geminiText(
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite-preview",
     contents: prompt,
   });
   return response.text ?? "";
+}
+
+// --- OpenRouter ---
+
+async function openrouterVision(
+  apiKey: string,
+  imageBytes: Buffer,
+  mimeType: string,
+  prompt: string,
+): Promise<string> {
+  const client = new OpenAI({ apiKey, baseURL: "https://openrouter.ai/api/v1" });
+  const base64Image = imageBytes.toString("base64");
+  const response = await client.chat.completions.create({
+    model: "google/gemini-3.1-flash-lite-preview",
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: { url: `data:${mimeType};base64,${base64Image}` },
+          },
+          { type: "text", text: prompt },
+        ],
+      },
+    ],
+  });
+  return response.choices[0]?.message?.content ?? "";
+}
+
+async function openrouterText(
+  apiKey: string,
+  prompt: string,
+): Promise<string> {
+  const client = new OpenAI({ apiKey, baseURL: "https://openrouter.ai/api/v1" });
+  const response = await client.chat.completions.create({
+    model: "google/gemini-3.1-flash-lite-preview",
+    messages: [{ role: "user", content: prompt }],
+  });
+  return response.choices[0]?.message?.content ?? "";
 }
 
 // --- Routing ---
@@ -286,6 +326,8 @@ async function callVision(
       return anthropicVision(apiKey, imageBytes, mimeType, prompt);
     case "gemini":
       return geminiVision(apiKey, imageBytes, mimeType, prompt);
+    case "openrouter":
+      return openrouterVision(apiKey, imageBytes, mimeType, prompt);
   }
 }
 
@@ -301,6 +343,8 @@ async function callText(
       return anthropicText(apiKey, prompt);
     case "gemini":
       return geminiText(apiKey, prompt);
+    case "openrouter":
+      return openrouterText(apiKey, prompt);
   }
 }
 
@@ -394,6 +438,9 @@ Convert all units to metric (meters, seconds, min/km).`
       break
     case 'gemini':
       raw = await geminiVision(apiKey, imageBytes, mimeType, prompt)
+      break
+    case 'openrouter':
+      raw = await openrouterVision(apiKey, imageBytes, mimeType, prompt)
       break
   }
 

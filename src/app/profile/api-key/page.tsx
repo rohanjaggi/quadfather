@@ -6,9 +6,10 @@ import { useUser } from '@/context/UserContext'
 import { setApiKey, deleteApiKey } from '@/lib/api'
 
 const PROVIDERS = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'gemini', label: 'Gemini' },
+  { value: 'openai', label: 'OpenAI', model: 'GPT-5.4 Mini' },
+  { value: 'anthropic', label: 'Anthropic', model: 'Claude 4.5 Haiku' },
+  { value: 'gemini', label: 'Gemini', model: 'Gemini 3.1 Flash Lite' },
+  { value: 'openrouter', label: 'OpenRouter', model: 'Gemini 3.1 Flash Lite' },
 ] as const
 
 export default function ApiKeyPage() {
@@ -108,7 +109,9 @@ export default function ApiKeyPage() {
             color: 'var(--tg-theme-hint-color)',
           }}>
             {user?.has_api_key
-              ? `${PROVIDERS.find(p => p.value === user.ai_provider)?.label ?? user.ai_provider} key active`
+              ? user?.ai_provider
+                ? `${PROVIDERS.find(p => p.value === user.ai_provider)?.label ?? user.ai_provider} key active`
+                : 'Using server default key'
               : 'No API key set — AI features are disabled'}
           </span>
         </div>
@@ -138,6 +141,15 @@ export default function ApiKeyPage() {
               </button>
             ))}
           </div>
+          <p style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '11px',
+            color: 'var(--tg-theme-hint-color)',
+            marginTop: '8px',
+            opacity: 0.8,
+          }}>
+            Uses {PROVIDERS.find(p => p.value === keyProvider)?.model}
+          </p>
         </div>
 
         {/* API key input */}

@@ -80,11 +80,25 @@ async function getUserAI(telegramId: number) {
     where: { telegram_id: telegramId },
   });
   if (!user) return null;
-  if (!user.ai_provider || !user.ai_api_key) return null;
-  return {
-    provider: user.ai_provider as AIProvider,
-    apiKey: decrypt(user.ai_api_key),
-  };
+
+  if (user.ai_provider && user.ai_api_key) {
+    return {
+      provider: user.ai_provider as AIProvider,
+      apiKey: decrypt(user.ai_api_key),
+    };
+  }
+
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey) {
+    return { provider: "gemini" as AIProvider, apiKey: geminiKey };
+  }
+
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  if (openrouterKey) {
+    return { provider: "openrouter" as AIProvider, apiKey: openrouterKey };
+  }
+
+  return null;
 }
 
 function registerHandlers(bot: Bot) {

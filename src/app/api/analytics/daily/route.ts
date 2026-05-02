@@ -16,15 +16,15 @@ export async function GET(request: NextRequest) {
     }
 
     const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
 
     const result = [];
 
     for (let i = days - 1; i >= 0; i--) {
       const dayStart = new Date(today);
-      dayStart.setUTCDate(dayStart.getUTCDate() - i);
+      dayStart.setDate(dayStart.getDate() - i);
       const dayEnd = new Date(dayStart);
-      dayEnd.setUTCHours(23, 59, 59, 999);
+      dayEnd.setHours(23, 59, 59, 999);
 
       const [foodLogs, waterLogs] = await Promise.all([
         prisma.foodLog.findMany({

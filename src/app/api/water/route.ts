@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const user = await getAuthenticatedUser(request);
 
     const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
+    todayStart.setHours(0, 0, 0, 0);
 
     const logs = await prisma.waterLog.findMany({
       where: { user_id: user.id, logged_at: { gte: todayStart } },

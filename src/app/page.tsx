@@ -39,7 +39,7 @@ export default function DashboardPage() {
         <p style={{
           fontFamily: 'var(--font-body)',
           fontSize: '11px',
-          fontWeight: 400,
+          fontWeight: 500,
           letterSpacing: '0.1em',
           textTransform: 'uppercase',
           color: 'var(--tg-theme-hint-color)',
@@ -92,7 +92,7 @@ export default function DashboardPage() {
                     {m.label}
                   </span>
                   <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
-                    {Math.round(m.value)}<span style={{ opacity: 0.55 }}> / {m.goal}g</span>
+                    {Math.round(m.value)}<span style={{ fontWeight: 500, opacity: 0.65 }}> / {m.goal}g</span>
                   </span>
                 </div>
                 <div style={{ height: '3px', borderRadius: '99px', backgroundColor: 'var(--tg-theme-bg-color)', overflow: 'hidden' }}>

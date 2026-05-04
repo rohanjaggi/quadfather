@@ -60,6 +60,7 @@ export default function GoalRing({
           <span style={{
             fontFamily: 'var(--font-body)',
             fontSize: '9px',
+            fontWeight: 600,
             color: 'var(--tg-theme-hint-color)',
             textTransform: 'uppercase',
             letterSpacing: '0.04em',
@@ -72,7 +73,7 @@ export default function GoalRing({
       <span style={{
         fontFamily: 'var(--font-body)',
         fontSize: '10px',
-        fontWeight: 500,
+        fontWeight: 600,
         letterSpacing: '0.07em',
         textTransform: 'uppercase',
         color: 'var(--tg-theme-hint-color)',
@@ -82,9 +83,10 @@ export default function GoalRing({
 
       <span style={{
         fontFamily: 'var(--font-body)',
-        fontSize: '10px',
+        fontSize: '11px',
+        fontWeight: 600,
         color: 'var(--tg-theme-hint-color)',
-        opacity: 0.6,
+        opacity: 0.7,
       }}>
         / {goal}{unit}
       </span>

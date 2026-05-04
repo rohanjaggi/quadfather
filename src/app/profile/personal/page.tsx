@@ -190,15 +190,15 @@ export default function PersonalPage() {
         {/* Activity Level */}
         <div className="fade-up fade-up-3">
           <label style={labelStyle}>Activity Level</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {ACTIVITY_OPTIONS.map(([value, label]) => (
+          <div className="option-group">
+            {ACTIVITY_OPTIONS.map(([value, label], i) => (
               <button
                 key={value}
                 type="button"
-                className="btn-pill"
+                className="option-group-item"
                 data-active={activityLevel === value ? 'true' : undefined}
                 onClick={() => setActivityLevel(value)}
-                style={{ textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                style={i < ACTIVITY_OPTIONS.length - 1 ? { borderBottom: '1px solid var(--surface-border)' } : undefined}
               >
                 <span>{label}</span>
                 <span style={{ fontSize: '11px', opacity: 0.6, fontWeight: 400 }}>
@@ -212,15 +212,15 @@ export default function PersonalPage() {
         {/* Fitness Goal */}
         <div className="fade-up fade-up-4">
           <label style={labelStyle}>Fitness Goal</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {GOAL_OPTIONS.map(([value, label]) => (
+          <div className="option-group">
+            {GOAL_OPTIONS.map(([value, label], i) => (
               <button
                 key={value}
                 type="button"
-                className="btn-pill"
+                className="option-group-item"
                 data-active={fitnessGoal === value ? 'true' : undefined}
                 onClick={() => setFitnessGoal(value)}
-                style={{ textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                style={i < GOAL_OPTIONS.length - 1 ? { borderBottom: '1px solid var(--surface-border)' } : undefined}
               >
                 <span>{label}</span>
                 <span style={{ fontSize: '11px', opacity: 0.6, fontWeight: 400 }}>

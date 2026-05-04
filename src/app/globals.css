@@ -166,6 +166,35 @@ textarea::placeholder {
   border-color: var(--tg-theme-button-color);
 }
 
+.option-group {
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.option-group-item {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background-color: transparent;
+  color: var(--tg-theme-text-color);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.15s ease;
+}
+.option-group-item[data-active="true"] {
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+}
+.option-group-item[data-active="true"] span {
+  opacity: 1;
+}
+
 .input-field {
   width: 100%;
   border-radius: 12px;
@@ -173,11 +202,11 @@ textarea::placeholder {
   font-size: 15px;
   font-family: var(--font-display);
   font-weight: 400;
-  border: none;
+  border: 1px solid var(--surface-border);
   outline: none;
   background-color: var(--tg-theme-bg-color);
   color: var(--tg-theme-text-color);
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .input-field:focus {
   box-shadow: 0 0 0 2px rgba(139, 94, 60, 0.25);

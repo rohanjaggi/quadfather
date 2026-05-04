@@ -29,12 +29,17 @@ export async function GET(request: NextRequest) {
       .map((l) => l.food_name)
       .filter((n): n is string => !!n);
 
+    const dietaryRestrictions: string[] = user.dietary_restrictions
+      ? JSON.parse(user.dietary_restrictions)
+      : [];
+
     const suggestions = await suggestMeals(
       provider,
       apiKey,
       remainingCalories,
       remainingProtein,
       mealNames,
+      dietaryRestrictions,
     );
 
     return NextResponse.json(suggestions);

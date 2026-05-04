@@ -47,7 +47,7 @@ const SUGGEST_PROMPT = `You are a nutrition advisor. The user has the following 
 - Protein remaining: {protein}g
 
 They have already eaten today: {meals}
-
+{restrictions_block}
 Suggest exactly 3 meals that fit within their remaining budget. Each meal should be a realistic, common meal — not exotic or unusual. Prioritise hitting the protein target.
 
 Respond with ONLY a raw JSON array — no markdown, no code fences, no explanation:
@@ -381,7 +381,12 @@ export async function suggestMeals(
   remainingCalories: number,
   remainingProtein: number,
   mealsLogged: string[],
+  dietaryRestrictions: string[] = [],
 ): Promise<MealSuggestion[]> {
+  const restrictionsBlock = dietaryRestrictions.length > 0
+    ? `\nDietary restrictions (MUST respect — do not suggest meals that violate these): ${dietaryRestrictions.join(', ')}`
+    : '';
+
   const prompt = SUGGEST_PROMPT.replace(
     "{calories}",
     String(Math.round(remainingCalories)),
@@ -390,7 +395,8 @@ export async function suggestMeals(
     .replace(
       "{meals}",
       mealsLogged.length > 0 ? mealsLogged.join(", ") : "nothing yet",
-    );
+    )
+    .replace("{restrictions_block}", restrictionsBlock);
   const raw = await callText(provider, apiKey, prompt);
   return parseSuggestionsResponse(raw);
 }

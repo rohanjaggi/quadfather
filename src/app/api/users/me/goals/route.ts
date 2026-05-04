@@ -37,6 +37,9 @@ export async function PUT(request: NextRequest) {
         ...(body.age !== undefined && { age: body.age }),
         ...(body.activity_level !== undefined && { activity_level: body.activity_level }),
         ...(body.fitness_goal !== undefined && { fitness_goal: body.fitness_goal }),
+        ...(body.dietary_restrictions !== undefined && {
+          dietary_restrictions: JSON.stringify(body.dietary_restrictions),
+        }),
       },
     });
 
@@ -61,6 +64,7 @@ export async function PUT(request: NextRequest) {
         },
       }),
       water_bottle_size: updated.water_bottle_size,
+      dietary_restrictions: updated.dietary_restrictions ? JSON.parse(updated.dietary_restrictions) : [],
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";

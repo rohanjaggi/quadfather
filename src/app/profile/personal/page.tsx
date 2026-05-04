@@ -36,6 +36,19 @@ const GOAL_DESCRIPTIONS: Record<FitnessGoal, string> = {
   moderate_bulk: '+500 kcal/day',
 }
 
+const DIETARY_RESTRICTIONS: { value: string; label: string }[] = [
+  { value: 'vegetarian', label: 'Vegetarian' },
+  { value: 'vegan', label: 'Vegan' },
+  { value: 'pescatarian', label: 'Pescatarian' },
+  { value: 'gluten_free', label: 'Gluten-Free' },
+  { value: 'dairy_free', label: 'Dairy-Free' },
+  { value: 'nut_free', label: 'Nut-Free' },
+  { value: 'halal', label: 'Halal' },
+  { value: 'kosher', label: 'Kosher' },
+  { value: 'low_carb', label: 'Low Carb' },
+  { value: 'keto', label: 'Keto' },
+]
+
 export default function PersonalPage() {
   const { user, updatePersonal } = useUser()
   const [saving, setSaving] = useState(false)
@@ -47,6 +60,8 @@ export default function PersonalPage() {
   const [age, setAge] = useState('')
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('moderately_active')
   const [fitnessGoal, setFitnessGoal] = useState<FitnessGoal>('maintenance')
+  const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([])
+  const [restrictionsOpen, setRestrictionsOpen] = useState(false)
 
   useEffect(() => {
     if (user?.personal) {
@@ -57,7 +72,18 @@ export default function PersonalPage() {
       setActivityLevel(user.personal.activity_level as ActivityLevel)
       setFitnessGoal(user.personal.fitness_goal as FitnessGoal)
     }
+    if (user) {
+      setDietaryRestrictions(user.dietary_restrictions ?? [])
+    }
   }, [user])
+
+  function toggleRestriction(value: string) {
+    setDietaryRestrictions(prev =>
+      prev.includes(value)
+        ? prev.filter(r => r !== value)
+        : [...prev, value]
+    )
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -70,6 +96,7 @@ export default function PersonalPage() {
         age: parseInt(age, 10),
         activity_level: activityLevel,
         fitness_goal: fitnessGoal,
+        dietary_restrictions: dietaryRestrictions,
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -231,8 +258,77 @@ export default function PersonalPage() {
           </div>
         </div>
 
-        {/* Save */}
+        {/* Dietary Restrictions — collapsible */}
         <div className="fade-up fade-up-4">
+          <div className="option-group">
+            <button
+              type="button"
+              className="option-group-item"
+              onClick={() => setRestrictionsOpen(prev => !prev)}
+              style={{ borderBottom: restrictionsOpen ? '1px solid var(--surface-border)' : undefined }}
+            >
+              <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontWeight: 500 }}>Dietary Restrictions</span>
+                <span style={{ fontSize: '11px', opacity: 0.6, fontWeight: 400 }}>
+                  {dietaryRestrictions.length > 0
+                    ? DIETARY_RESTRICTIONS.filter(r => dietaryRestrictions.includes(r.value)).map(r => r.label).join(', ')
+                    : 'Select all that apply — used for meal suggestions'}
+                </span>
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {dietaryRestrictions.length > 0 && (
+                  <span style={{
+                    fontFamily: 'var(--font-body)', fontSize: '11px', fontWeight: 600,
+                    backgroundColor: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)',
+                    borderRadius: '99px', padding: '2px 7px',
+                  }}>
+                    {dietaryRestrictions.length}
+                  </span>
+                )}
+                <svg
+                  width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  style={{
+                    transform: restrictionsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s ease',
+                    opacity: 0.5,
+                  }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </span>
+            </button>
+            <div style={{
+              display: 'grid',
+              gridTemplateRows: restrictionsOpen ? '1fr' : '0fr',
+              transition: 'grid-template-rows 0.3s ease',
+            }}>
+              <div style={{ overflow: 'hidden' }}>
+                {DIETARY_RESTRICTIONS.map((r, i) => (
+                  <button
+                    key={r.value}
+                    type="button"
+                    className="option-group-item"
+                    data-active={dietaryRestrictions.includes(r.value) ? 'true' : undefined}
+                    onClick={() => toggleRestriction(r.value)}
+                    style={i < DIETARY_RESTRICTIONS.length - 1 ? { borderBottom: '1px solid var(--surface-border)' } : undefined}
+                  >
+                    <span>{r.label}</span>
+                    {dietaryRestrictions.includes(r.value) && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Save */}
+        <div className="fade-up fade-up-5">
           <button
             type="submit"
             disabled={saving}

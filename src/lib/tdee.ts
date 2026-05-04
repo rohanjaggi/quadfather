@@ -50,18 +50,18 @@ const GOAL_ADJUSTMENTS: Record<FitnessGoal, number> = {
 }
 
 const PROTEIN_PER_KG: Record<FitnessGoal, number> = {
-  aggressive_cut: 2.2,
-  moderate_cut: 2.2,
-  mild_cut: 2.0,
-  maintenance: 1.8,
-  lean_bulk: 2.0,
-  moderate_bulk: 2.0,
+  aggressive_cut: 2.0,
+  moderate_cut: 1.8,
+  mild_cut: 1.6,
+  maintenance: 1.4,
+  lean_bulk: 1.8,
+  moderate_bulk: 1.8,
 }
 
 const FAT_PCT: Record<FitnessGoal, number> = {
-  aggressive_cut: 0.25,
-  moderate_cut: 0.25,
-  mild_cut: 0.25,
+  aggressive_cut: 0.28,
+  moderate_cut: 0.27,
+  mild_cut: 0.27,
   maintenance: 0.30,
   lean_bulk: 0.25,
   moderate_bulk: 0.25,

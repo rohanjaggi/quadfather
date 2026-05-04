@@ -129,7 +129,7 @@ export default function GoalsPage() {
               fontFamily: 'var(--font-body)', fontSize: '13px',
               color: 'var(--tg-theme-hint-color)', marginBottom: '12px',
             }}>
-              Calculate targets from your personal info using TDEE.
+              Calculate targets from your personal info using TDEE. These are estimates based on the Mifflin-St Jeor equation and general guidelines — adjust to suit your needs.
             </p>
             <button
               type="button"
@@ -246,6 +246,18 @@ export default function GoalsPage() {
               className="input-field"
             />
           </div>
+
+        </div>
+
+        {/* Water section */}
+        <div className="fade-up fade-up-2" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '4px' }}>
+          <p style={{
+            fontFamily: 'var(--font-body)', fontSize: '11px',
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--tg-theme-hint-color)', marginBottom: '-4px',
+          }}>
+            Hydration
+          </p>
 
           {/* Water */}
           <div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import BottleCounter from '@/components/water/BottleCounter'
 import Link from 'next/link'
 import SummaryCard from '@/components/dashboard/SummaryCard'
@@ -11,6 +12,9 @@ function formatTime(isoString: string) {
 
 export default function WaterPage() {
   const { user, summary, waterLogs, logWater, deleteWater } = useUser()
+
+  const [customOpen, setCustomOpen] = useState(false)
+  const [customAmount, setCustomAmount] = useState('')
 
   const totalLiters = summary?.water.total ?? 0
   const goal = user?.goals.daily_water_goal ?? 3
@@ -88,8 +92,121 @@ export default function WaterPage() {
         </SummaryCard>
       </div>
 
+      {/* Custom amount */}
+      <div className="fade-up fade-up-2">
+        {!customOpen ? (
+          <button
+            type="button"
+            onClick={() => setCustomOpen(true)}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: '1px dashed var(--accent-water)',
+              background: 'transparent',
+              color: 'var(--accent-water)',
+              fontFamily: 'var(--font-body)',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v20M2 12h20" />
+            </svg>
+            Custom Amount
+          </button>
+        ) : (
+          <div className="card" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <span className="label-caps" style={{ letterSpacing: '0.1em', marginBottom: 0 }}>
+                Custom Amount
+              </span>
+              <button
+                type="button"
+                onClick={() => { setCustomOpen(false); setCustomAmount('') }}
+                style={{
+                  background: 'none', border: 'none', padding: '4px',
+                  cursor: 'pointer', opacity: 0.4,
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="var(--tg-theme-text-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                placeholder="250"
+                value={customAmount}
+                onChange={e => setCustomAmount(e.target.value)}
+                autoFocus
+                className="input-field"
+                style={{
+                  width: '100%',
+                  fontSize: '20px',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 400,
+                  padding: '14px 44px 14px 16px',
+                }}
+              />
+              <span style={{
+                position: 'absolute',
+                right: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontFamily: 'var(--font-body)',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--tg-theme-hint-color)',
+                pointerEvents: 'none',
+              }}>
+                ml
+              </span>
+            </div>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={!customAmount || parseFloat(customAmount) <= 0}
+              onClick={async () => {
+                const ml = parseFloat(customAmount)
+                if (ml > 0) {
+                  await logWater({ amount_liters: ml / 1000 })
+                  setCustomAmount('')
+                  setCustomOpen(false)
+                }
+              }}
+              style={{
+                backgroundColor: 'var(--accent-water)',
+                opacity: (!customAmount || parseFloat(customAmount) <= 0) ? 0.4 : 1,
+              }}
+            >
+              Add {customAmount ? `${customAmount}ml` : 'water'}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Bottle size link */}
-      <div className="fade-up fade-up-2" style={{ display: 'flex', justifyContent: 'center' }}>
+      <div className="fade-up fade-up-3" style={{ display: 'flex', justifyContent: 'center' }}>
         <Link
           href="/profile/goals"
           style={{
@@ -112,7 +229,7 @@ export default function WaterPage() {
 
       {/* Log timeline */}
       {waterLogs.length > 0 && (
-        <div className="fade-up fade-up-3">
+        <div className="fade-up fade-up-4">
           <SummaryCard title="Today's Log">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
               {logsAsc.map((log, i) => {

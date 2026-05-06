@@ -1,0 +1,38 @@
+name: AI Coaching Cron
+
+on:
+  schedule:
+    # Daily coach at 1pm UTC (9pm SGT)
+    - cron: '0 13 * * *'
+    # Weekly insights at 1am UTC Monday (9am SGT Monday)
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+    inputs:
+      endpoint:
+        description: 'Which endpoint to trigger'
+        required: true
+        type: choice
+        options:
+          - daily-coach
+          - weekly-insights
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine endpoint
+        id: endpoint
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "path=${{ inputs.endpoint }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "0 13 * * *" ]; then
+            echo "path=daily-coach" >> $GITHUB_OUTPUT
+          else
+            echo "path=weekly-insights" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Call cron endpoint
+        run: |
+          curl -s -f -X GET \
+            "${{ secrets.APP_URL }}/api/cron/${{ steps.endpoint.outputs.path }}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

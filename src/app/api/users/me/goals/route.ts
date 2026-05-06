@@ -40,6 +40,9 @@ export async function PUT(request: NextRequest) {
         ...(body.dietary_restrictions !== undefined && {
           dietary_restrictions: JSON.stringify(body.dietary_restrictions),
         }),
+        ...(body.ai_features_enabled !== undefined && {
+          ai_features_enabled: body.ai_features_enabled,
+        }),
       },
     });
 
@@ -65,6 +68,7 @@ export async function PUT(request: NextRequest) {
       }),
       water_bottle_size: updated.water_bottle_size,
       dietary_restrictions: updated.dietary_restrictions ? JSON.parse(updated.dietary_restrictions) : [],
+      ai_features_enabled: updated.ai_features_enabled,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";

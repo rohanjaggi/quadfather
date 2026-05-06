@@ -42,13 +42,21 @@ Respond with ONLY a raw JSON object — no markdown, no code fences, no explanat
 
 Base macros on a typical single serving unless the description clearly states otherwise. Be realistic — do not underestimate.`;
 
-const SUGGEST_PROMPT = `You are a nutrition advisor. The user has the following remaining daily budget:
+const SUGGEST_PROMPT = `You are a nutrition advisor for a user in Singapore. The user has the following remaining daily budget:
 - Calories remaining: {calories} kcal
 - Protein remaining: {protein}g
 
+Current time: {time_of_day}
 They have already eaten today: {meals}
 {restrictions_block}
-Suggest exactly 3 meals that fit within their remaining budget. Each meal should be a realistic, common meal — not exotic or unusual. Prioritise hitting the protein target.
+{saved_foods_block}
+{exercise_block}
+Suggest exactly 3 meals that:
+- Fit within their remaining budget
+- Are realistic and commonly available meals
+- Prioritise hitting the protein target
+- Are appropriate for the time of day (breakfast foods for morning, heavier meals for lunch/dinner, lighter for evening snacks)
+- Consider what they've already eaten for variety
 
 Respond with ONLY a raw JSON array — no markdown, no code fences, no explanation:
 
@@ -382,27 +390,131 @@ export async function suggestMeals(
   remainingProtein: number,
   mealsLogged: string[],
   dietaryRestrictions: string[] = [],
+  savedFoodNames: string[] = [],
+  exerciseToday: number = 0,
 ): Promise<MealSuggestion[]> {
   const restrictionsBlock = dietaryRestrictions.length > 0
     ? `\nDietary restrictions (MUST respect — do not suggest meals that violate these): ${dietaryRestrictions.join(', ')}`
     : '';
 
-  const prompt = SUGGEST_PROMPT.replace(
-    "{calories}",
-    String(Math.round(remainingCalories)),
-  )
+  const savedFoodsBlock = savedFoodNames.length > 0
+    ? `\nThe user's favourite/saved meals (prefer these when they fit the budget): ${savedFoodNames.slice(0, 10).join(', ')}`
+    : '';
+
+  const exerciseBlock = exerciseToday > 0
+    ? `\nThe user exercised today and burned ~${Math.round(exerciseToday)} extra kcal.`
+    : '';
+
+  const hour = new Date().getUTCHours() + 8;
+  const timeOfDay = hour < 11 ? 'morning (breakfast/brunch time)'
+    : hour < 14 ? 'midday (lunch time)'
+    : hour < 17 ? 'afternoon (snack time)'
+    : hour < 21 ? 'evening (dinner time)'
+    : 'late night (light snack time)';
+
+  const prompt = SUGGEST_PROMPT
+    .replace("{calories}", String(Math.round(remainingCalories)))
     .replace("{protein}", String(Math.round(remainingProtein)))
-    .replace(
-      "{meals}",
-      mealsLogged.length > 0 ? mealsLogged.join(", ") : "nothing yet",
-    )
-    .replace("{restrictions_block}", restrictionsBlock);
+    .replace("{meals}", mealsLogged.length > 0 ? mealsLogged.join(", ") : "nothing yet")
+    .replace("{time_of_day}", timeOfDay)
+    .replace("{restrictions_block}", restrictionsBlock)
+    .replace("{saved_foods_block}", savedFoodsBlock)
+    .replace("{exercise_block}", exerciseBlock);
+
   const raw = await callText(provider, apiKey, prompt);
   return parseSuggestionsResponse(raw);
 }
 
 function parseAnalysisResult(raw: string): MealAnalysisResult {
   return parseAnalysisResponse(raw);
+}
+
+const DAILY_COACH_PROMPT = `You are a friendly nutrition coach reviewing a user's day. Here's their data:
+
+Daily goals: {goals}
+What they ate today: {meals}
+Macros consumed: {macros_consumed}
+Water: {water_consumed}L / {water_goal}L
+Exercise: {exercise}
+{restrictions_block}
+
+Give a short, encouraging coaching message (2-3 sentences max). Be specific about what they did well and give ONE actionable tip for tomorrow. Keep it warm but direct — no bullet points, no headers, just natural conversational text.`;
+
+export async function generateDailyCoach(
+  provider: AIProvider,
+  apiKey: string,
+  context: {
+    goals: { calories: number; protein: number };
+    consumed: { calories: number; protein: number; carbs: number; fats: number };
+    meals: string[];
+    waterConsumed: number;
+    waterGoal: number;
+    exerciseCalories: number;
+    dietaryRestrictions: string[];
+  },
+): Promise<string> {
+  const restrictionsBlock = context.dietaryRestrictions.length > 0
+    ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
+    : '';
+
+  const prompt = DAILY_COACH_PROMPT
+    .replace("{goals}", `${context.goals.calories} kcal, ${context.goals.protein}g protein`)
+    .replace("{meals}", context.meals.length > 0 ? context.meals.join(', ') : 'nothing logged')
+    .replace("{macros_consumed}", `${context.consumed.calories} kcal, ${context.consumed.protein}g P, ${context.consumed.carbs}g C, ${context.consumed.fats}g F`)
+    .replace("{water_consumed}", String(context.waterConsumed.toFixed(1)))
+    .replace("{water_goal}", String(context.waterGoal))
+    .replace("{exercise}", context.exerciseCalories > 0 ? `Burned ~${Math.round(context.exerciseCalories)} kcal` : 'No exercise logged')
+    .replace("{restrictions_block}", restrictionsBlock);
+
+  const raw = await callText(provider, apiKey, prompt);
+  return raw.trim();
+}
+
+const WEEKLY_INSIGHTS_PROMPT = `You are a nutrition analyst reviewing a user's past 7 days. Here's their data:
+
+Goals: {goals}
+
+Day-by-day:
+{daily_breakdown}
+
+Weekly averages: {averages}
+Exercise: {exercise_total} kcal across {exercise_sessions} sessions
+{restrictions_block}
+
+Give exactly 3 short insights about patterns (1 sentence each). Be specific with numbers. Focus on: consistency, weak spots, and positive trends. Format as plain text with each insight on a new line starting with a bullet "•".`;
+
+export async function generateWeeklyInsights(
+  provider: AIProvider,
+  apiKey: string,
+  context: {
+    goals: { calories: number; protein: number; water: number };
+    days: { date: string; calories: number; protein: number; water: number }[];
+    exerciseTotal: number;
+    exerciseSessions: number;
+    dietaryRestrictions: string[];
+  },
+): Promise<string> {
+  const restrictionsBlock = context.dietaryRestrictions.length > 0
+    ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
+    : '';
+
+  const dailyBreakdown = context.days.map(d =>
+    `${d.date}: ${d.calories} kcal, ${d.protein}g P, ${d.water.toFixed(1)}L water`
+  ).join('\n');
+
+  const avgCal = Math.round(context.days.reduce((s, d) => s + d.calories, 0) / Math.max(context.days.length, 1));
+  const avgPro = Math.round(context.days.reduce((s, d) => s + d.protein, 0) / Math.max(context.days.length, 1));
+
+  const prompt = WEEKLY_INSIGHTS_PROMPT
+    .replace("{goals}", `${context.goals.calories} kcal, ${context.goals.protein}g protein, ${context.goals.water}L water`)
+    .replace("{daily_breakdown}", dailyBreakdown)
+    .replace("{averages}", `${avgCal} kcal/day, ${avgPro}g protein/day`)
+    .replace("{exercise_total}", String(Math.round(context.exerciseTotal)))
+    .replace("{exercise_sessions}", String(context.exerciseSessions))
+    .replace("{restrictions_block}", restrictionsBlock);
+
+  const raw = await callText(provider, apiKey, prompt);
+  return raw.trim();
 }
 
 export async function analyseRunScreenshot(

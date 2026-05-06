@@ -16,6 +16,7 @@ export interface User {
   has_api_key: boolean
   strava_connected: boolean
   dietary_restrictions?: string[]
+  ai_features_enabled: boolean
   personal?: {
     sex: string
     weight_kg: number

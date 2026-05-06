@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
 
@@ -56,6 +57,26 @@ const SECTIONS = [
 
 export default function SettingsPage() {
   const { user } = useUser()
+
+  const [aiEnabled, setAiEnabled] = useState(user?.ai_features_enabled ?? false)
+
+  useEffect(() => {
+    if (user) setAiEnabled(user.ai_features_enabled)
+  }, [user])
+
+  async function handleToggleAI() {
+    if (!user) return
+    const newVal = !aiEnabled
+    setAiEnabled(newVal)
+    await fetch('/api/users/me/goals', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-telegram-init-data': window.Telegram?.WebApp?.initData ?? '',
+      },
+      body: JSON.stringify({ ai_features_enabled: newVal }),
+    })
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -186,6 +207,60 @@ export default function SettingsPage() {
               </div>
             </Link>
           ))}
+        </div>
+      </div>
+
+      <div className="fade-up fade-up-4" style={{
+        borderTop: '1px solid var(--surface-border)',
+        paddingTop: '18px',
+      }}>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: '10px',
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--tg-theme-hint-color)', marginBottom: '14px',
+        }}>
+          AI Features
+        </p>
+        <div className="card" style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <p style={{
+              fontFamily: 'var(--font-display)', fontSize: '17px',
+              fontWeight: 500, color: 'var(--tg-theme-text-color)',
+              marginBottom: '2px',
+            }}>
+              Smart Coaching
+            </p>
+            <p style={{
+              fontFamily: 'var(--font-body)', fontSize: '12px',
+              color: 'var(--tg-theme-hint-color)',
+            }}>
+              Daily tips & weekly insights via Telegram
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleToggleAI}
+            style={{
+              width: '44px', height: '26px', borderRadius: '13px',
+              border: 'none', cursor: 'pointer',
+              backgroundColor: aiEnabled
+                ? 'var(--tg-theme-button-color)'
+                : 'var(--surface-border)',
+              position: 'relative',
+              transition: 'background-color 0.2s ease',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{
+              width: '20px', height: '20px', borderRadius: '50%',
+              backgroundColor: '#fff',
+              position: 'absolute', top: '3px',
+              left: aiEnabled ? '21px' : '3px',
+              transition: 'left 0.2s ease',
+            }} />
+          </button>
         </div>
       </div>
     </div>

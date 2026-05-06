@@ -363,6 +363,146 @@ function registerHandlers(bot: Bot) {
     );
   });
 
+  bot.command("coach", async (ctx) => {
+    const ai = await getUserAI(ctx.from!.id);
+    if (!ai) {
+      await ctx.reply("You need to set up an API key first.\n\nUse /key to get started.");
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { telegram_id: ctx.from!.id } });
+    if (!user) {
+      await ctx.reply("You need to open the app first.", { reply_markup: appButton("Open Quadfather", "") });
+      return;
+    }
+
+    const thinking = await ctx.reply("\u{1F9E0} Thinking...");
+
+    try {
+      const todayStart = new Date();
+      todayStart.setUTCHours(0, 0, 0, 0);
+
+      const [foodLogs, waterLogs, runLogs] = await Promise.all([
+        prisma.foodLog.findMany({ where: { user_id: user.id, logged_at: { gte: todayStart } } }),
+        prisma.waterLog.findMany({ where: { user_id: user.id, logged_at: { gte: todayStart } } }),
+        prisma.runLog.findMany({ where: { user_id: user.id, run_date: { gte: todayStart } } }),
+      ]);
+
+      if (foodLogs.length === 0) {
+        await ctx.api.editMessageText(ctx.chat!.id, thinking.message_id, "Log some meals first and I'll give you coaching tips!");
+        return;
+      }
+
+      const { generateDailyCoach } = await import("./ai");
+
+      const consumed = {
+        calories: Math.round(foodLogs.reduce((s, l) => s + (l.calories ?? 0), 0)),
+        protein: Math.round(foodLogs.reduce((s, l) => s + (l.protein ?? 0), 0)),
+        carbs: Math.round(foodLogs.reduce((s, l) => s + (l.carbohydrates ?? 0), 0)),
+        fats: Math.round(foodLogs.reduce((s, l) => s + (l.fats ?? 0), 0)),
+      };
+      const meals = foodLogs.map(l => l.food_name).filter((n): n is string => !!n);
+      const waterConsumed = waterLogs.reduce((s, l) => s + l.amount_liters, 0);
+      const exerciseCalories = runLogs.reduce((s, r) => s + r.calories_burned, 0);
+      const dietaryRestrictions: string[] = user.dietary_restrictions
+        ? JSON.parse(user.dietary_restrictions) : [];
+
+      const message = await generateDailyCoach(ai.provider, ai.apiKey, {
+        goals: { calories: user.daily_calorie_goal, protein: user.daily_protein_goal },
+        consumed,
+        meals,
+        waterConsumed,
+        waterGoal: user.daily_water_goal,
+        exerciseCalories,
+        dietaryRestrictions,
+      });
+
+      await ctx.api.editMessageText(
+        ctx.chat!.id,
+        thinking.message_id,
+        `\u{1F4AC} <b>Daily Coach</b>\n\n${message}`,
+        { parse_mode: "HTML" },
+      );
+    } catch {
+      await ctx.api.editMessageText(ctx.chat!.id, thinking.message_id, "Sorry, couldn't generate coaching right now. Try again later.");
+    }
+  });
+
+  bot.command("insights", async (ctx) => {
+    const ai = await getUserAI(ctx.from!.id);
+    if (!ai) {
+      await ctx.reply("You need to set up an API key first.\n\nUse /key to get started.");
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { telegram_id: ctx.from!.id } });
+    if (!user) {
+      await ctx.reply("You need to open the app first.", { reply_markup: appButton("Open Quadfather", "") });
+      return;
+    }
+
+    const thinking = await ctx.reply("\u{1F4CA} Analysing your week...");
+
+    try {
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - 7);
+      weekStart.setUTCHours(0, 0, 0, 0);
+
+      const [foodLogs, waterLogs, runLogs] = await Promise.all([
+        prisma.foodLog.findMany({ where: { user_id: user.id, logged_at: { gte: weekStart } } }),
+        prisma.waterLog.findMany({ where: { user_id: user.id, logged_at: { gte: weekStart } } }),
+        prisma.runLog.findMany({ where: { user_id: user.id, run_date: { gte: weekStart } } }),
+      ]);
+
+      if (foodLogs.length === 0) {
+        await ctx.api.editMessageText(ctx.chat!.id, thinking.message_id, "Not enough data yet \u{2014} log meals for a few days and try again!");
+        return;
+      }
+
+      const { generateWeeklyInsights } = await import("./ai");
+
+      const days: { date: string; calories: number; protein: number; water: number }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const dayStart = new Date(dateStr + 'T00:00:00.000Z');
+        const dayEnd = new Date(dateStr + 'T23:59:59.999Z');
+
+        const dayFood = foodLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
+        const dayWater = waterLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
+
+        days.push({
+          date: dateStr,
+          calories: Math.round(dayFood.reduce((s, l) => s + (l.calories ?? 0), 0)),
+          protein: Math.round(dayFood.reduce((s, l) => s + (l.protein ?? 0), 0)),
+          water: dayWater.reduce((s, l) => s + l.amount_liters, 0),
+        });
+      }
+
+      const exerciseTotal = runLogs.reduce((s, r) => s + r.calories_burned, 0);
+      const dietaryRestrictions: string[] = user.dietary_restrictions
+        ? JSON.parse(user.dietary_restrictions) : [];
+
+      const insights = await generateWeeklyInsights(ai.provider, ai.apiKey, {
+        goals: { calories: user.daily_calorie_goal, protein: user.daily_protein_goal, water: user.daily_water_goal },
+        days,
+        exerciseTotal,
+        exerciseSessions: runLogs.length,
+        dietaryRestrictions,
+      });
+
+      await ctx.api.editMessageText(
+        ctx.chat!.id,
+        thinking.message_id,
+        `\u{1F4CA} <b>Weekly Insights</b>\n\n${insights}`,
+        { parse_mode: "HTML" },
+      );
+    } catch {
+      await ctx.api.editMessageText(ctx.chat!.id, thinking.message_id, "Sorry, couldn't generate insights right now. Try again later.");
+    }
+  });
+
   bot.on("message:text", async (ctx) => {
     const text = ctx.message!.text!.trim();
     const match = text.match(
@@ -497,6 +637,8 @@ export async function setupBotCommands() {
     { command: "water", description: "Open the water tracker" },
     { command: "trends", description: "View your progress charts" },
     { command: "goals", description: "Update your daily goals" },
+    { command: "coach", description: "Get today's AI coaching tip" },
+    { command: "insights", description: "Get AI weekly pattern analysis" },
     { command: "key", description: "Set up your AI API key" },
     { command: "help", description: "Show all commands" },
   ]);

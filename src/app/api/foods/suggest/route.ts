@@ -33,6 +33,20 @@ export async function GET(request: NextRequest) {
       ? JSON.parse(user.dietary_restrictions)
       : [];
 
+    const savedFoods = await prisma.savedFood.findMany({
+      where: { user_id: user.id },
+      select: { name: true },
+      take: 10,
+      orderBy: { created_at: 'desc' },
+    });
+    const savedFoodNames = savedFoods.map(f => f.name);
+
+    const runLogs = await prisma.runLog.findMany({
+      where: { user_id: user.id, logged_at: { gte: todayStart } },
+      select: { calories_burned: true },
+    });
+    const exerciseToday = runLogs.reduce((sum, r) => sum + r.calories_burned, 0);
+
     const suggestions = await suggestMeals(
       provider,
       apiKey,
@@ -40,6 +54,8 @@ export async function GET(request: NextRequest) {
       remainingProtein,
       mealNames,
       dietaryRestrictions,
+      savedFoodNames,
+      exerciseToday,
     );
 
     return NextResponse.json(suggestions);

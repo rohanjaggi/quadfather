@@ -27,6 +27,7 @@ model User {
   activity_level     String?  @db.VarChar(20)
   fitness_goal       String?  @db.VarChar(20)
   dietary_restrictions String?
+  ai_features_enabled Boolean @default(false)
   strava_athlete_id    BigInt?
   strava_access_token  String?
   strava_refresh_token String?

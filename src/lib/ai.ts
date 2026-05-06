@@ -4,11 +4,35 @@ import { GoogleGenAI } from "@google/genai";
 
 export type AIProvider = "openai" | "anthropic" | "gemini" | "openrouter";
 
-const VISION_PROMPT = `You are a precise nutrition analyst. Analyze this meal photograph and estimate its nutritional content.
+const VISION_PROMPT = `You are a registered dietitian with 20 years of clinical experience in portion estimation. Analyze this meal photograph step by step.
 
 Additional context from user: {description}
 
-Respond with ONLY a raw JSON object — no markdown, no code fences, no explanation. Exactly this structure:
+Follow this reasoning process internally before producing your answer:
+
+1. IDENTIFY: List every distinct food item visible. Note cooking methods (fried, grilled, steamed) and any visible sauces, oils, or toppings.
+
+2. ESTIMATE PORTIONS: For each item, estimate grams using these visual anchors:
+   - Closed fist ≈ 1 cup ≈ 200ml cooked rice/pasta
+   - Palm (no fingers) ≈ 85g cooked meat/fish
+   - Thumb tip ≈ 1 tsp ≈ 5g butter/oil
+   - Cupped hand ≈ 40g nuts/snacks
+   - Standard dinner plate = 26cm diameter
+   - Standard bowl = ~300ml
+   Use any visible plates, utensils, hands, or packaging as scale reference.
+
+3. HIDDEN CALORIES: Account for cooking oils (1-2 tbsp per fried/stir-fried item = 120-240 kcal), sauces, dressings, coconut milk, and sugar in beverages. These are often invisible but calorically significant.
+
+4. CALCULATE: Sum macros for all items. Verify that calories ≈ (protein × 4) + (carbs × 4) + (fats × 9). If the math is off by more than 10%, revise.
+
+5. SANITY CHECK: Confirm your total is in a reasonable range:
+   - Snack/side: 100-300 kcal
+   - Light meal: 300-500 kcal
+   - Standard meal: 500-800 kcal
+   - Large/restaurant meal: 800-1200 kcal
+   - Hawker/fast food combo: 600-1000 kcal
+
+Respond with ONLY a raw JSON object — no markdown, no code fences, no explanation:
 
 {
   "food_name": "descriptive name for this meal",
@@ -18,16 +42,37 @@ Respond with ONLY a raw JSON object — no markdown, no code fences, no explanat
   "fats": <number in grams, one decimal>,
   "fiber": <number in grams, one decimal>,
   "confidence": "high" | "medium" | "low",
-  "notes": "brief note on portion assumptions"
+  "notes": "brief note on portion assumptions and any hidden calories accounted for"
 }
 
-Base macros on a typical single serving unless the image or description clearly shows otherwise. Be realistic — do not underestimate.`;
+Confidence guide:
+- "high": items clearly identifiable, portions unambiguous, standard dish
+- "medium": some items obscured or portion estimated from context
+- "low": image unclear, heavily mixed dish, or unusual preparation
 
-const TEXT_PROMPT = `You are a precise nutrition analyst. Estimate the nutritional content of the following food description.
+Be realistic. When uncertain about portion size, estimate toward the higher end rather than underestimating.`;
+
+const TEXT_PROMPT = `You are a registered dietitian estimating nutritional content from a food description. Think through this systematically.
 
 Food description: {text}
 
-Respond with ONLY a raw JSON object — no markdown, no code fences, no explanation. Exactly this structure:
+Follow this reasoning process internally:
+
+1. DECOMPOSE: Identify each distinct food component in this description (e.g., "chicken rice" → rice + poached chicken + chilli sauce + cucumber).
+
+2. PORTION: Estimate grams for each component. When the description is ambiguous, use these defaults:
+   - "a bowl" = 300ml medium bowl (~250g food)
+   - "a plate" / "a serving" = one standard hawker/restaurant portion
+   - "a cup" = 240ml
+   - "a piece" / "a slice" = one standard unit
+   - No quantity mentioned = one typical single serving
+   - "some" / "a bit" = approximately 50-75g
+
+3. CALCULATE: Estimate macros for each component, then sum totals. Verify calories ≈ (protein × 4) + (carbs × 4) + (fats × 9).
+
+4. ACCOUNT FOR PREPARATION: Factor in cooking method — fried adds 1-2 tbsp oil (~120-240 kcal), gravies/curries add coconut milk or oil, sauces add sugar and fat.
+
+Respond with ONLY a raw JSON object — no markdown, no code fences, no explanation:
 
 {
   "food_name": "descriptive name for this food",
@@ -37,33 +82,62 @@ Respond with ONLY a raw JSON object — no markdown, no code fences, no explanat
   "fats": <number in grams, one decimal>,
   "fiber": <number in grams, one decimal>,
   "confidence": "high" | "medium" | "low",
-  "notes": "brief note on portion assumptions"
+  "notes": "portion assumptions and components identified"
 }
 
-Base macros on a typical single serving unless the description clearly states otherwise. Be realistic — do not underestimate.`;
+Confidence guide:
+- "high": specific quantities given, well-known standardised food, branded item with known nutrition
+- "medium": common food but portion assumed, typical preparation assumed
+- "low": very generic description, many possible preparations, composite dish with high variability
 
-const SUGGEST_PROMPT = `You are a nutrition advisor for a user in Singapore. The user has the following remaining daily budget:
-- Calories remaining: {calories} kcal
-- Protein remaining: {protein}g
+Be realistic. When uncertain, estimate toward the higher end rather than underestimating.`;
+
+const SUGGEST_PROMPT = `You are a Singapore-based sports nutritionist who knows local hawker food, kopitiam fare, supermarket options, and home cooking. You combine nutrition science with practical meal accessibility.
+
+Remaining daily budget:
+- Calories: {calories} kcal
+- Protein: {protein}g
 
 Current time: {time_of_day}
-They have already eaten today: {meals}
+Already eaten today: {meals}
 {restrictions_block}
 {saved_foods_block}
 {exercise_block}
-Suggest exactly 3 meals that:
-- Fit within their remaining budget
-- Are realistic and commonly available meals
+
+Timing guidance:
+- Morning: prioritise protein (25-35g) to break overnight fast, include complex carbs for energy
+- Post-exercise: higher carb:protein ratio (3:1), moderate-GI carbs for glycogen replenishment
+- Midday: balanced macro meal, largest meal of the day is appropriate
+- Afternoon snack: protein-focused (15-25g), moderate calories, high satiety
+- Evening dinner: good protein serving (30-40g), moderate carbs
+- Late night: light, protein-rich, low-fat (Greek yogurt, eggs, cottage cheese)
+
+Suggest exactly 3 meals following these rules:
+- Each MUST fit within the remaining budget (total of all 3 should not exceed budget)
+- Each must use a DIFFERENT primary protein source (e.g., chicken, fish, tofu, eggs, beef, legumes)
+- Each should represent a different cuisine style or preparation method
+- At least one should be quick/convenient (under 10 min or readily available at hawker/convenience store)
+- Include specific portion sizes (e.g., "200g grilled chicken breast" not just "chicken")
 - Prioritise hitting the protein target
-- Are appropriate for the time of day (breakfast foods for morning, heavier meals for lunch/dinner, lighter for evening snacks)
-- Consider what they've already eaten for variety
+- Consider satiety: prefer high-fiber, high-protein, volume-rich foods when budget is tight
+- Do NOT repeat anything similar to what they already ate today
+
+Singapore food reference ranges (use for accuracy):
+- Chicken rice (1 plate): 600-700 kcal, 35-40g P
+- Nasi lemak (packet): 500-600 kcal, 15-20g P
+- Ban mian soup: 400-500 kcal, 20-25g P
+- Yong tau foo (6 items + soup): 350-450 kcal, 20-30g P
+- Economy rice (1 meat 2 veg): 500-700 kcal, 25-35g P
+- Protein shake (1 scoop + milk): 200-250 kcal, 30-35g P
+- Greek yogurt bowl (200g + granola): 250-350 kcal, 20-25g P
 
 Respond with ONLY a raw JSON array — no markdown, no code fences, no explanation:
 
 [
   {
-    "name": "meal name",
-    "description": "one sentence description",
+    "name": "specific meal name with portion",
+    "description": "one sentence on what it includes and where to get it",
+    "reason": "why this fits the remaining budget and goals",
     "calories": <integer>,
     "protein": <number, one decimal>,
     "carbohydrates": <number, one decimal>,
@@ -75,6 +149,7 @@ Respond with ONLY a raw JSON array — no markdown, no code fences, no explanati
 export interface MealSuggestion {
   name: string;
   description: string;
+  reason?: string;
   calories: number;
   protein: number;
   carbohydrates: number;
@@ -137,6 +212,7 @@ function parseSuggestionsResponse(raw: string): MealSuggestion[] {
   return suggestions.map((s) => ({
     name: String(s.name),
     description: String(s.description),
+    reason: s.reason ? String(s.reason) : undefined,
     calories: Math.round(Number(s.calories)),
     protein: Math.round(Number(s.protein) * 10) / 10,
     carbohydrates: Math.round(Number(s.carbohydrates) * 10) / 10,

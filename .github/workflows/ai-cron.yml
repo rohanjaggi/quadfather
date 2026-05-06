@@ -33,6 +33,6 @@ jobs:
 
       - name: Call cron endpoint
         run: |
-          curl -s -f -X GET \
+          curl -s -f -L -X GET \
             "${{ secrets.APP_URL }}/api/cron/${{ steps.endpoint.outputs.path }}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

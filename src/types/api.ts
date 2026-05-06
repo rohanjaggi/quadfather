@@ -139,6 +139,7 @@ export interface SavedFoodCreate {
 export interface MealSuggestion {
   name: string
   description: string
+  reason?: string
   calories: number
   protein: number
   carbohydrates: number

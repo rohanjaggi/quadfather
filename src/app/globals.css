@@ -173,8 +173,9 @@ textarea::placeholder {
 }
 .option-group-item {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border: none;
+  border-top: 1px solid var(--surface-border);
   background-color: transparent;
   color: var(--tg-theme-text-color);
   font-family: var(--font-body);
@@ -186,6 +187,9 @@ textarea::placeholder {
   justify-content: space-between;
   align-items: center;
   transition: background-color 0.15s ease;
+}
+.option-group-item:first-child {
+  border-top: none;
 }
 .option-group-item[data-active="true"] {
   background-color: var(--tg-theme-button-color);

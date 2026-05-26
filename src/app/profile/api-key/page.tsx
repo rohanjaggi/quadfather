@@ -6,11 +6,11 @@ import { useUser } from '@/context/UserContext'
 import { setApiKey, deleteApiKey } from '@/lib/api'
 import { PROVIDER_MODELS, DEFAULT_MODELS, type AIProvider } from '@/lib/models'
 
-const PROVIDERS: { value: AIProvider; label: string }[] = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'gemini', label: 'Gemini' },
-  { value: 'openrouter', label: 'OpenRouter' },
+const PROVIDERS: { value: AIProvider; label: string; shortLabel: string }[] = [
+  { value: 'gemini', label: 'Google Gemini', shortLabel: 'Gemini' },
+  { value: 'openai', label: 'OpenAI', shortLabel: 'OpenAI' },
+  { value: 'anthropic', label: 'Anthropic', shortLabel: 'Anthropic' },
+  { value: 'openrouter', label: 'OpenRouter', shortLabel: 'OpenRouter' },
 ]
 
 export default function ApiKeyPage() {
@@ -92,21 +92,13 @@ export default function ApiKeyPage() {
     }
   }
 
-  const labelStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-body)',
-    fontSize: '12px',
-    fontWeight: 500,
-    color: 'var(--tg-theme-text-color)',
-    display: 'block',
-    marginBottom: '7px',
-  }
-
   const models = PROVIDER_MODELS[keyProvider]
+  const activeProviderLabel = PROVIDERS.find(p => p.value === keyProvider)?.label
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-      {/* Back link */}
+      {/* Header */}
       <div className="fade-up">
         <Link href="/profile" style={{
           display: 'inline-flex', alignItems: 'center', gap: '4px',
@@ -128,47 +120,79 @@ export default function ApiKeyPage() {
         </h1>
       </div>
 
-      {/* Status indicator */}
-      <div className="card fade-up fade-up-1">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            backgroundColor: user?.has_api_key
-              ? 'var(--accent-protein)'
-              : 'var(--tg-theme-hint-color)',
-          }} />
-          <span style={{
-            fontFamily: 'var(--font-body)', fontSize: '13px',
-            color: 'var(--tg-theme-hint-color)',
-          }}>
-            {user?.has_api_key
-              ? `${PROVIDERS.find(p => p.value === user.ai_provider)?.label ?? user.ai_provider} key active`
-              : 'No API key set — AI features are disabled'}
-          </span>
-        </div>
+      {/* Status */}
+      <div className="fade-up fade-up-1" style={{
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '14px 16px',
+        borderRadius: '14px',
+        backgroundColor: user?.has_api_key
+          ? 'oklch(0.92 0.02 155)'
+          : 'var(--tg-theme-secondary-bg-color)',
+      }}>
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+          backgroundColor: user?.has_api_key
+            ? 'var(--accent-protein)'
+            : 'var(--tg-theme-hint-color)',
+        }} />
+        <span style={{
+          fontFamily: 'var(--font-body)', fontSize: '13px',
+          color: user?.has_api_key
+            ? 'oklch(0.35 0.04 155)'
+            : 'var(--tg-theme-hint-color)',
+          fontWeight: user?.has_api_key ? 500 : 400,
+        }}>
+          {user?.has_api_key
+            ? `${PROVIDERS.find(p => p.value === user.ai_provider)?.label ?? user.ai_provider} connected`
+            : 'No API key configured'}
+        </span>
       </div>
 
       {/* Form */}
       <form
         onSubmit={handleSaveKey}
         className="fade-up fade-up-2"
-        style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+        style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
       >
 
         {/* Provider selector */}
         <div>
-          <label style={labelStyle}>Provider</label>
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <label style={{
+            fontFamily: 'var(--font-body)', fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.08em', textTransform: 'uppercase' as const,
+            color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '10px',
+          }}>
+            Provider
+          </label>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px',
+          }}>
             {PROVIDERS.map(p => (
               <button
                 key={p.value}
                 type="button"
                 onClick={() => handleProviderChange(p.value)}
-                className="btn-pill"
-                data-active={keyProvider === p.value ? 'true' : undefined}
-                style={{ flex: 1 }}
+                style={{
+                  padding: '14px 12px',
+                  borderRadius: '14px',
+                  border: keyProvider === p.value
+                    ? '1.5px solid var(--tg-theme-button-color)'
+                    : '1px solid var(--surface-border)',
+                  backgroundColor: keyProvider === p.value
+                    ? 'oklch(0.95 0.01 170)'
+                    : 'transparent',
+                  color: keyProvider === p.value
+                    ? 'var(--tg-theme-button-color)'
+                    : 'var(--tg-theme-text-color)',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '13px',
+                  fontWeight: keyProvider === p.value ? 600 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'center' as const,
+                }}
               >
-                {p.label}
+                {p.shortLabel}
               </button>
             ))}
           </div>
@@ -176,76 +200,90 @@ export default function ApiKeyPage() {
 
         {/* Model selector */}
         <div>
-          <label style={labelStyle}>Model</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label style={{
+            fontFamily: 'var(--font-body)', fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.08em', textTransform: 'uppercase' as const,
+            color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '10px',
+          }}>
+            Model
+          </label>
+          <div className="option-group">
             {models.map(m => (
               <button
                 key={m.id}
                 type="button"
                 onClick={() => { setSelectedModel(m.id); setCustomModel('') }}
-                className="btn-pill"
+                className="option-group-item"
                 data-active={selectedModel === m.id ? 'true' : undefined}
-                style={{
-                  textAlign: 'left',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
               >
                 <span>{m.label}</span>
-                <span style={{ fontSize: '11px', opacity: 0.6 }}>{m.description}</span>
+                <span style={{ fontSize: '11px', opacity: 0.55, fontWeight: 400 }}>{m.description}</span>
               </button>
             ))}
             {keyProvider === 'openrouter' && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedModel('custom')}
-                  className="btn-pill"
-                  data-active={selectedModel === 'custom' ? 'true' : undefined}
-                  style={{ width: '100%', textAlign: 'left', padding: '10px 12px' }}
-                >
-                  Custom Model
-                </button>
-                {selectedModel === 'custom' && (
-                  <input
-                    type="text"
-                    value={customModel}
-                    onChange={e => setCustomModel(e.target.value)}
-                    placeholder="e.g. meta-llama/llama-4-scout"
-                    className="input-field"
-                    style={{ marginTop: '8px' }}
-                  />
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedModel('custom')}
+                className="option-group-item"
+                data-active={selectedModel === 'custom' ? 'true' : undefined}
+              >
+                <span>Custom Model</span>
+                <span style={{ fontSize: '11px', opacity: 0.55, fontWeight: 400 }}>Any model ID</span>
+              </button>
             )}
           </div>
+          {selectedModel === 'custom' && (
+            <input
+              type="text"
+              value={customModel}
+              onChange={e => setCustomModel(e.target.value)}
+              placeholder="e.g. meta-llama/llama-4-scout"
+              className="input-field-bordered"
+              style={{ marginTop: '10px' }}
+            />
+          )}
         </div>
 
         {/* API key input */}
         <div>
-          <label style={labelStyle}>API Key</label>
+          <label style={{
+            fontFamily: 'var(--font-body)', fontSize: '10px', fontWeight: 500,
+            letterSpacing: '0.08em', textTransform: 'uppercase' as const,
+            color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '10px',
+          }}>
+            API Key
+          </label>
           <input
             type="password"
             value={keyValue}
             onChange={e => setKeyValue(e.target.value)}
-            placeholder={user?.has_api_key ? '••••••••••••••••' : 'Paste your API key'}
-            className="input-field"
+            placeholder={user?.has_api_key ? '••••••••••••••••' : `Paste your ${activeProviderLabel} key`}
+            className="input-field-bordered"
           />
+          {user?.has_api_key && (
+            <p style={{
+              fontFamily: 'var(--font-body)', fontSize: '11px',
+              color: 'var(--tg-theme-hint-color)', marginTop: '6px',
+              paddingLeft: '2px',
+            }}>
+              Enter a new key to replace the existing one
+            </p>
+          )}
         </div>
 
         {keyError && (
           <p style={{
             fontFamily: 'var(--font-body)', fontSize: '12px',
-            color: 'var(--accent-calories)',
+            color: 'var(--accent-calories)', padding: '10px 14px',
+            backgroundColor: 'oklch(0.94 0.02 30)',
+            borderRadius: '10px',
           }}>
             {keyError}
           </p>
         )}
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
           {user?.has_api_key && (
             <button
               type="button"
@@ -254,7 +292,7 @@ export default function ApiKeyPage() {
               className="btn-secondary"
               style={{ flex: 1, color: 'var(--accent-calories)' }}
             >
-              {keyStatus === 'removed' ? 'Removed' : 'Remove Key'}
+              {keyStatus === 'removed' ? 'Removed' : 'Remove'}
             </button>
           )}
           <button
@@ -262,11 +300,11 @@ export default function ApiKeyPage() {
             disabled={keySaving || !keyValue.trim()}
             className="btn-primary"
             style={{
-              flex: 2,
+              flex: user?.has_api_key ? 2 : 1,
               backgroundColor: keyStatus === 'saved' ? 'var(--accent-protein)' : undefined,
             }}
           >
-            {keySaving ? 'Saving…' : keyStatus === 'saved' ? 'Saved ✓' : 'Save Key'}
+            {keySaving ? 'Saving…' : keyStatus === 'saved' ? 'Saved' : 'Save Key'}
           </button>
         </div>
 

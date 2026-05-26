@@ -26,7 +26,6 @@ interface UserContextType {
   logRun: (data: RunLogCreate) => Promise<void>
   deleteRun: (id: number) => Promise<void>
   toggleRunAllowance: (id: number, added: boolean) => Promise<void>
-  syncStrava: () => Promise<{ synced: number }>
   refresh: () => Promise<void>
 }
 
@@ -141,18 +140,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     await refresh()
   }, [refresh])
 
-  const syncStrava = useCallback(async () => {
-    const result = await api.syncStravaRuns()
-    await refresh()
-    return result
-  }, [refresh])
-
   return (
     <UserContext.Provider value={{
       user, summary, foodLogs, waterLogs, savedFoods, runLogs, loading, error,
       logFood, deleteFood, logWater, deleteWater, updateGoals, updatePersonal,
       saveFood, updateSavedFood, deleteSavedFood, logRun: logRunAction, deleteRun: deleteRunAction,
-      toggleRunAllowance: toggleRunAllowanceAction, syncStrava, refresh,
+      toggleRunAllowance: toggleRunAllowanceAction, refresh,
     }}>
       {children}
     </UserContext.Provider>

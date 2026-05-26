@@ -6,7 +6,7 @@ import { suggestMeals } from "@/lib/ai";
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser(request);
-    const { provider, apiKey } = getUserAICredentials(user);
+    const { provider, apiKey, model } = getUserAICredentials(user);
 
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
     const suggestions = await suggestMeals(
       provider,
       apiKey,
+      model,
       remainingCalories,
       remainingProtein,
       mealNames,

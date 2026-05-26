@@ -41,18 +41,6 @@ const SECTIONS = [
       </svg>
     ),
   },
-  {
-    href: '/profile/strava',
-    title: 'Strava',
-    description: 'Connect your running account',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="13 17 18 12 13 7" />
-        <polyline points="6 17 11 12 6 7" />
-      </svg>
-    ),
-  },
 ]
 
 export default function SettingsPage() {

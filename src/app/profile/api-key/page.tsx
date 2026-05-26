@@ -4,25 +4,52 @@ import { useState, useEffect, FormEvent } from 'react'
 import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
 import { setApiKey, deleteApiKey } from '@/lib/api'
+import { PROVIDER_MODELS, DEFAULT_MODELS, type AIProvider } from '@/lib/models'
 
-const PROVIDERS = [
-  { value: 'openai', label: 'OpenAI', model: 'GPT-5.4 Mini' },
-  { value: 'anthropic', label: 'Anthropic', model: 'Claude 4.5 Haiku' },
-  { value: 'gemini', label: 'Gemini', model: 'Gemini 3.1 Flash Lite' },
-  { value: 'openrouter', label: 'OpenRouter', model: 'Gemini 3.1 Flash Lite' },
-] as const
+const PROVIDERS: { value: AIProvider; label: string }[] = [
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'gemini', label: 'Gemini' },
+  { value: 'openrouter', label: 'OpenRouter' },
+]
 
 export default function ApiKeyPage() {
   const { user, refresh } = useUser()
-  const [keyProvider, setKeyProvider] = useState('openai')
+  const [keyProvider, setKeyProvider] = useState<AIProvider>('gemini')
+  const [selectedModel, setSelectedModel] = useState('')
+  const [customModel, setCustomModel] = useState('')
   const [keyValue, setKeyValue] = useState('')
   const [keySaving, setKeySaving] = useState(false)
   const [keyStatus, setKeyStatus] = useState<'idle' | 'saved' | 'removed' | 'error'>('idle')
   const [keyError, setKeyError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (user?.ai_provider) setKeyProvider(user.ai_provider)
+    if (user?.ai_provider) {
+      const provider = user.ai_provider as AIProvider
+      setKeyProvider(provider)
+      if (user.ai_model) {
+        const models = PROVIDER_MODELS[provider]
+        const isPreset = models.some(m => m.id === user.ai_model)
+        if (isPreset) {
+          setSelectedModel(user.ai_model)
+          setCustomModel('')
+        } else {
+          setSelectedModel('custom')
+          setCustomModel(user.ai_model)
+        }
+      } else {
+        setSelectedModel(DEFAULT_MODELS[provider])
+      }
+    }
   }, [user])
+
+  function handleProviderChange(provider: AIProvider) {
+    setKeyProvider(provider)
+    setSelectedModel(DEFAULT_MODELS[provider])
+    setCustomModel('')
+  }
+
+  const resolvedModel = selectedModel === 'custom' ? customModel.trim() : selectedModel
 
   async function handleSaveKey(e: FormEvent) {
     e.preventDefault()
@@ -31,7 +58,11 @@ export default function ApiKeyPage() {
     setKeyError(null)
     setKeyStatus('idle')
     try {
-      await setApiKey({ provider: keyProvider, api_key: keyValue.trim() })
+      await setApiKey({
+        provider: keyProvider,
+        api_key: keyValue.trim(),
+        model: resolvedModel || undefined,
+      })
       setKeyValue('')
       setKeyStatus('saved')
       await refresh()
@@ -69,6 +100,8 @@ export default function ApiKeyPage() {
     display: 'block',
     marginBottom: '7px',
   }
+
+  const models = PROVIDER_MODELS[keyProvider]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -109,9 +142,7 @@ export default function ApiKeyPage() {
             color: 'var(--tg-theme-hint-color)',
           }}>
             {user?.has_api_key
-              ? user?.ai_provider
-                ? `${PROVIDERS.find(p => p.value === user.ai_provider)?.label ?? user.ai_provider} key active`
-                : 'Using server default key'
+              ? `${PROVIDERS.find(p => p.value === user.ai_provider)?.label ?? user.ai_provider} key active`
               : 'No API key set — AI features are disabled'}
           </span>
         </div>
@@ -132,7 +163,7 @@ export default function ApiKeyPage() {
               <button
                 key={p.value}
                 type="button"
-                onClick={() => setKeyProvider(p.value)}
+                onClick={() => handleProviderChange(p.value)}
                 className="btn-pill"
                 data-active={keyProvider === p.value ? 'true' : undefined}
                 style={{ flex: 1 }}
@@ -141,15 +172,55 @@ export default function ApiKeyPage() {
               </button>
             ))}
           </div>
-          <p style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '11px',
-            color: 'var(--tg-theme-hint-color)',
-            marginTop: '8px',
-            opacity: 0.8,
-          }}>
-            Uses {PROVIDERS.find(p => p.value === keyProvider)?.model}
-          </p>
+        </div>
+
+        {/* Model selector */}
+        <div>
+          <label style={labelStyle}>Model</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {models.map(m => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => { setSelectedModel(m.id); setCustomModel('') }}
+                className="btn-pill"
+                data-active={selectedModel === m.id ? 'true' : undefined}
+                style={{
+                  textAlign: 'left',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span>{m.label}</span>
+                <span style={{ fontSize: '11px', opacity: 0.6 }}>{m.description}</span>
+              </button>
+            ))}
+            {keyProvider === 'openrouter' && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedModel('custom')}
+                  className="btn-pill"
+                  data-active={selectedModel === 'custom' ? 'true' : undefined}
+                  style={{ width: '100%', textAlign: 'left', padding: '10px 12px' }}
+                >
+                  Custom Model
+                </button>
+                {selectedModel === 'custom' && (
+                  <input
+                    type="text"
+                    value={customModel}
+                    onChange={e => setCustomModel(e.target.value)}
+                    placeholder="e.g. meta-llama/llama-4-scout"
+                    className="input-field"
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* API key input */}

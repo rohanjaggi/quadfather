@@ -5,7 +5,7 @@ import { parseFood } from "@/lib/ai";
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser(request);
-    const { provider, apiKey } = getUserAICredentials(user);
+    const { provider, apiKey, model } = getUserAICredentials(user);
 
     const { text } = await request.json();
     if (!text || typeof text !== "string") {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await parseFood(provider, apiKey, text);
+    const result = await parseFood(provider, apiKey, model, text);
     return NextResponse.json(result);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";

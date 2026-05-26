@@ -5,7 +5,7 @@ import { analyseMeal } from "@/lib/ai";
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser(request);
-    const { provider, apiKey } = getUserAICredentials(user);
+    const { provider, apiKey, model } = getUserAICredentials(user);
 
     const formData = await request.formData();
     const image = formData.get("image") as File | null;
@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     const result = await analyseMeal(
       provider,
       apiKey,
+      model,
       imageBytes,
       image.type,
       description,

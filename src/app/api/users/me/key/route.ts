@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { encrypt } from "@/lib/crypto";
-import type { AIProvider } from "@/lib/ai";
+import type { AIProvider } from "@/lib/models";
 
 const VALID_PROVIDERS: AIProvider[] = ["openai", "anthropic", "gemini", "openrouter"];
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser(request);
-    const { provider, api_key } = await request.json();
+    const { provider, api_key, model } = await request.json();
 
     if (!VALID_PROVIDERS.includes(provider)) {
       return NextResponse.json(
@@ -27,10 +27,10 @@ export async function POST(request: NextRequest) {
     const encrypted = encrypt(api_key);
     await prisma.user.update({
       where: { id: user.id },
-      data: { ai_provider: provider, ai_api_key: encrypted },
+      data: { ai_provider: provider, ai_api_key: encrypted, ai_model: model && typeof model === "string" ? model.trim() : null },
     });
 
-    return NextResponse.json({ provider, has_api_key: true });
+    return NextResponse.json({ provider, model: model && typeof model === "string" ? model.trim() : null, has_api_key: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";
     if (message === "User not found") {
@@ -49,7 +49,7 @@ export async function DELETE(request: NextRequest) {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { ai_provider: null, ai_api_key: null },
+      data: { ai_provider: null, ai_api_key: null, ai_model: null },
     });
 
     return NextResponse.json({ has_api_key: false });

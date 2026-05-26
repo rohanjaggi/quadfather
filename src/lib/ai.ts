@@ -1,8 +1,7 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
-
-export type AIProvider = "openai" | "anthropic" | "gemini" | "openrouter";
+import { getModelForProvider, type AIProvider } from "@/lib/models";
 
 const VISION_PROMPT = `You are a registered dietitian with 20 years of clinical experience in portion estimation. Analyze this meal photograph step by step.
 
@@ -225,6 +224,7 @@ function parseSuggestionsResponse(raw: string): MealSuggestion[] {
 
 async function openaiVision(
   apiKey: string,
+  model: string,
   imageBytes: Buffer,
   mimeType: string,
   prompt: string,
@@ -232,7 +232,7 @@ async function openaiVision(
   const client = new OpenAI({ apiKey });
   const base64Image = imageBytes.toString("base64");
   const response = await client.chat.completions.create({
-    model: "gpt-5.4-mini",
+    model,
     messages: [
       {
         role: "user",
@@ -251,11 +251,12 @@ async function openaiVision(
 
 async function openaiText(
   apiKey: string,
+  model: string,
   prompt: string,
 ): Promise<string> {
   const client = new OpenAI({ apiKey });
   const response = await client.chat.completions.create({
-    model: "gpt-5.4-mini",
+    model,
     messages: [{ role: "user", content: prompt }],
   });
   return response.choices[0]?.message?.content ?? "";
@@ -265,6 +266,7 @@ async function openaiText(
 
 async function anthropicVision(
   apiKey: string,
+  model: string,
   imageBytes: Buffer,
   mimeType: string,
   prompt: string,
@@ -272,7 +274,7 @@ async function anthropicVision(
   const client = new Anthropic({ apiKey });
   const base64Image = imageBytes.toString("base64");
   const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model,
     max_tokens: 1024,
     messages: [
       {
@@ -301,11 +303,12 @@ async function anthropicVision(
 
 async function anthropicText(
   apiKey: string,
+  model: string,
   prompt: string,
 ): Promise<string> {
   const client = new Anthropic({ apiKey });
   const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model,
     max_tokens: 1024,
     messages: [{ role: "user", content: prompt }],
   });
@@ -317,13 +320,14 @@ async function anthropicText(
 
 async function geminiVision(
   apiKey: string,
+  model: string,
   imageBytes: Buffer,
   mimeType: string,
   prompt: string,
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite-preview",
+    model,
     contents: [
       {
         role: "user",
@@ -344,11 +348,12 @@ async function geminiVision(
 
 async function geminiText(
   apiKey: string,
+  model: string,
   prompt: string,
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite-preview",
+    model,
     contents: prompt,
   });
   return response.text ?? "";
@@ -358,6 +363,7 @@ async function geminiText(
 
 async function openrouterVision(
   apiKey: string,
+  model: string,
   imageBytes: Buffer,
   mimeType: string,
   prompt: string,
@@ -365,7 +371,7 @@ async function openrouterVision(
   const client = new OpenAI({ apiKey, baseURL: "https://openrouter.ai/api/v1" });
   const base64Image = imageBytes.toString("base64");
   const response = await client.chat.completions.create({
-    model: "google/gemini-3.1-flash-lite-preview",
+    model,
     messages: [
       {
         role: "user",
@@ -384,11 +390,12 @@ async function openrouterVision(
 
 async function openrouterText(
   apiKey: string,
+  model: string,
   prompt: string,
 ): Promise<string> {
   const client = new OpenAI({ apiKey, baseURL: "https://openrouter.ai/api/v1" });
   const response = await client.chat.completions.create({
-    model: "google/gemini-3.1-flash-lite-preview",
+    model,
     messages: [{ role: "user", content: prompt }],
   });
   return response.choices[0]?.message?.content ?? "";
@@ -399,36 +406,38 @@ async function openrouterText(
 async function callVision(
   provider: AIProvider,
   apiKey: string,
+  model: string,
   imageBytes: Buffer,
   mimeType: string,
   prompt: string,
 ): Promise<string> {
   switch (provider) {
     case "openai":
-      return openaiVision(apiKey, imageBytes, mimeType, prompt);
+      return openaiVision(apiKey, model, imageBytes, mimeType, prompt);
     case "anthropic":
-      return anthropicVision(apiKey, imageBytes, mimeType, prompt);
+      return anthropicVision(apiKey, model, imageBytes, mimeType, prompt);
     case "gemini":
-      return geminiVision(apiKey, imageBytes, mimeType, prompt);
+      return geminiVision(apiKey, model, imageBytes, mimeType, prompt);
     case "openrouter":
-      return openrouterVision(apiKey, imageBytes, mimeType, prompt);
+      return openrouterVision(apiKey, model, imageBytes, mimeType, prompt);
   }
 }
 
 async function callText(
   provider: AIProvider,
   apiKey: string,
+  model: string,
   prompt: string,
 ): Promise<string> {
   switch (provider) {
     case "openai":
-      return openaiText(apiKey, prompt);
+      return openaiText(apiKey, model, prompt);
     case "anthropic":
-      return anthropicText(apiKey, prompt);
+      return anthropicText(apiKey, model, prompt);
     case "gemini":
-      return geminiText(apiKey, prompt);
+      return geminiText(apiKey, model, prompt);
     case "openrouter":
-      return openrouterText(apiKey, prompt);
+      return openrouterText(apiKey, model, prompt);
   }
 }
 
@@ -437,31 +446,36 @@ async function callText(
 export async function analyseMeal(
   provider: AIProvider,
   apiKey: string,
+  model: string | null,
   imageBytes: Buffer,
   mimeType: string,
   description: string = "",
 ): Promise<MealAnalysisResult> {
+  const resolvedModel = getModelForProvider(provider, model);
   const prompt = VISION_PROMPT.replace(
     "{description}",
     description || "No additional context provided.",
   );
-  const raw = await callVision(provider, apiKey, imageBytes, mimeType, prompt);
+  const raw = await callVision(provider, apiKey, resolvedModel, imageBytes, mimeType, prompt);
   return parseAnalysisResult(raw);
 }
 
 export async function parseFood(
   provider: AIProvider,
   apiKey: string,
+  model: string | null,
   text: string,
 ): Promise<MealAnalysisResult> {
+  const resolvedModel = getModelForProvider(provider, model);
   const prompt = TEXT_PROMPT.replace("{text}", text);
-  const raw = await callText(provider, apiKey, prompt);
+  const raw = await callText(provider, apiKey, resolvedModel, prompt);
   return parseAnalysisResult(raw);
 }
 
 export async function suggestMeals(
   provider: AIProvider,
   apiKey: string,
+  model: string | null,
   remainingCalories: number,
   remainingProtein: number,
   mealsLogged: string[],
@@ -469,6 +483,7 @@ export async function suggestMeals(
   savedFoodNames: string[] = [],
   exerciseToday: number = 0,
 ): Promise<MealSuggestion[]> {
+  const resolvedModel = getModelForProvider(provider, model);
   const restrictionsBlock = dietaryRestrictions.length > 0
     ? `\nDietary restrictions (MUST respect — do not suggest meals that violate these): ${dietaryRestrictions.join(', ')}`
     : '';
@@ -497,7 +512,7 @@ export async function suggestMeals(
     .replace("{saved_foods_block}", savedFoodsBlock)
     .replace("{exercise_block}", exerciseBlock);
 
-  const raw = await callText(provider, apiKey, prompt);
+  const raw = await callText(provider, apiKey, resolvedModel, prompt);
   return parseSuggestionsResponse(raw);
 }
 
@@ -519,6 +534,7 @@ Give a short, encouraging coaching message (2-3 sentences max). Be specific abou
 export async function generateDailyCoach(
   provider: AIProvider,
   apiKey: string,
+  model: string | null,
   context: {
     goals: { calories: number; protein: number };
     consumed: { calories: number; protein: number; carbs: number; fats: number };
@@ -529,6 +545,7 @@ export async function generateDailyCoach(
     dietaryRestrictions: string[];
   },
 ): Promise<string> {
+  const resolvedModel = getModelForProvider(provider, model);
   const restrictionsBlock = context.dietaryRestrictions.length > 0
     ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
     : '';
@@ -542,7 +559,7 @@ export async function generateDailyCoach(
     .replace("{exercise}", context.exerciseCalories > 0 ? `Burned ~${Math.round(context.exerciseCalories)} kcal` : 'No exercise logged')
     .replace("{restrictions_block}", restrictionsBlock);
 
-  const raw = await callText(provider, apiKey, prompt);
+  const raw = await callText(provider, apiKey, resolvedModel, prompt);
   return raw.trim();
 }
 
@@ -562,6 +579,7 @@ Give exactly 3 short insights about patterns (1 sentence each). Be specific with
 export async function generateWeeklyInsights(
   provider: AIProvider,
   apiKey: string,
+  model: string | null,
   context: {
     goals: { calories: number; protein: number; water: number };
     days: { date: string; calories: number; protein: number; water: number }[];
@@ -570,6 +588,7 @@ export async function generateWeeklyInsights(
     dietaryRestrictions: string[];
   },
 ): Promise<string> {
+  const resolvedModel = getModelForProvider(provider, model);
   const restrictionsBlock = context.dietaryRestrictions.length > 0
     ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
     : '';
@@ -589,13 +608,14 @@ export async function generateWeeklyInsights(
     .replace("{exercise_sessions}", String(context.exerciseSessions))
     .replace("{restrictions_block}", restrictionsBlock);
 
-  const raw = await callText(provider, apiKey, prompt);
+  const raw = await callText(provider, apiKey, resolvedModel, prompt);
   return raw.trim();
 }
 
 export async function analyseRunScreenshot(
   provider: AIProvider,
   apiKey: string,
+  model: string | null,
   imageBase64: string,
   mimeType: string,
 ): Promise<{
@@ -607,6 +627,7 @@ export async function analyseRunScreenshot(
   confidence: 'high' | 'medium' | 'low'
   notes: string
 }> {
+  const resolvedModel = getModelForProvider(provider, model);
   const prompt = `Analyze this running/exercise screenshot and extract the following data.
 Return ONLY valid JSON with these fields:
 - distance_meters: total distance in meters (convert from km/miles if needed)
@@ -625,16 +646,16 @@ Convert all units to metric (meters, seconds, min/km).`
   let raw: string
   switch (provider) {
     case 'openai':
-      raw = await openaiVision(apiKey, imageBytes, mimeType, prompt)
+      raw = await openaiVision(apiKey, resolvedModel, imageBytes, mimeType, prompt)
       break
     case 'anthropic':
-      raw = await anthropicVision(apiKey, imageBytes, mimeType, prompt)
+      raw = await anthropicVision(apiKey, resolvedModel, imageBytes, mimeType, prompt)
       break
     case 'gemini':
-      raw = await geminiVision(apiKey, imageBytes, mimeType, prompt)
+      raw = await geminiVision(apiKey, resolvedModel, imageBytes, mimeType, prompt)
       break
     case 'openrouter':
-      raw = await openrouterVision(apiKey, imageBytes, mimeType, prompt)
+      raw = await openrouterVision(apiKey, resolvedModel, imageBytes, mimeType, prompt)
       break
   }
 

@@ -38,8 +38,8 @@ export const getAnalytics = (days: number) => apiFetch<AnalyticsResponse>(`/anal
 export const parseFood = (text: string) => apiFetch<MealAnalysis>('/foods/parse', { method: 'POST', body: JSON.stringify({ text }) })
 export const getMealSuggestions = () => apiFetch<MealSuggestion[]>('/foods/suggest')
 
-export const setApiKey = (data: { provider: string; api_key: string }) =>
-  apiFetch<{ provider: string; has_api_key: boolean }>('/users/me/key', { method: 'POST', body: JSON.stringify(data) })
+export const setApiKey = (data: { provider: string; api_key: string; model?: string }) =>
+  apiFetch<{ provider: string; model: string | null; has_api_key: boolean }>('/users/me/key', { method: 'POST', body: JSON.stringify(data) })
 export const deleteApiKey = () =>
   apiFetch<{ has_api_key: boolean }>('/users/me/key', { method: 'DELETE' })
 
@@ -67,12 +67,6 @@ export const deleteRun = (id: number) =>
   apiFetch<void>(`/runs/${id}`, { method: 'DELETE' })
 export const toggleRunAllowance = (id: number, added: boolean) =>
   apiFetch<RunLog>(`/runs/${id}`, { method: 'PATCH', body: JSON.stringify({ added_to_allowance: added }) })
-export const syncStravaRuns = () =>
-  apiFetch<{ synced: number; total_fetched: number }>('/runs/sync', { method: 'POST' })
-export const getStravaConnectUrl = () =>
-  apiFetch<{ url: string }>('/strava/connect')
-export const disconnectStrava = () =>
-  apiFetch<{ disconnected: boolean }>('/strava/disconnect', { method: 'POST' })
 export const getRunningAnalytics = (days: number) =>
   apiFetch<RunningAnalyticsResponse>(`/analytics/running?days=${days}`)
 

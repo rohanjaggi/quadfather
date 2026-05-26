@@ -1,6 +1,5 @@
 export interface RunLog {
   id: number
-  strava_activity_id?: number
   distance_meters: number
   duration_seconds: number
   calories_burned: number
@@ -8,7 +7,7 @@ export interface RunLog {
   average_heartrate?: number
   elevation_gain?: number
   name?: string
-  source: 'strava' | 'manual' | 'ai_parsed'
+  source: 'manual' | 'ai_parsed'
   added_to_allowance: boolean
   run_date: string
   logged_at: string
@@ -34,12 +33,6 @@ export interface RunAnalysis {
   average_heartrate?: number
   confidence: 'high' | 'medium' | 'low'
   notes: string
-}
-
-export interface StravaConnection {
-  connected: boolean
-  athlete_id?: number
-  scope?: string
 }
 
 export interface RunningAnalyticsDayData {

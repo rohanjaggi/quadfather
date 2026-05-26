@@ -31,10 +31,7 @@ export async function PATCH(
       data: { added_to_allowance: body.added_to_allowance },
     })
 
-    return NextResponse.json({
-      ...updated,
-      strava_activity_id: updated.strava_activity_id ? Number(updated.strava_activity_id) : null,
-    })
+    return NextResponse.json(updated)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Internal error'
     if (message.includes('initData') || message.includes('hash')) {

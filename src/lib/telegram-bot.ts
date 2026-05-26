@@ -1,6 +1,7 @@
 import { Bot, InlineKeyboard } from "grammy";
 import { prisma } from "./prisma";
-import { analyseMeal, parseFood, type AIProvider } from "./ai";
+import { analyseMeal, parseFood } from "./ai";
+import type { AIProvider } from "./models";
 import { encrypt, decrypt } from "./crypto";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
@@ -85,17 +86,18 @@ async function getUserAI(telegramId: number) {
     return {
       provider: user.ai_provider as AIProvider,
       apiKey: decrypt(user.ai_api_key),
+      model: user.ai_model,
     };
   }
 
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
-    return { provider: "gemini" as AIProvider, apiKey: geminiKey };
+    return { provider: "gemini" as AIProvider, apiKey: geminiKey, model: null as string | null };
   }
 
   const openrouterKey = process.env.OPENROUTER_API_KEY;
   if (openrouterKey) {
-    return { provider: "openrouter" as AIProvider, apiKey: openrouterKey };
+    return { provider: "openrouter" as AIProvider, apiKey: openrouterKey, model: null as string | null };
   }
 
   return null;
@@ -134,7 +136,7 @@ function registerHandlers(bot: Bot) {
         "\u{1F4F1} <b>Open the app:</b>\n" +
         "/log — meal logger (photo scan, text, or manual)\n" +
         "/water — water tracker\n" +
-        "/trends — 7-day &amp; 30-day charts for food &amp; running\n" +
+        "/trends — 7-day &amp; 30-day charts for food &amp; exercise\n" +
         "/goals — update daily targets &amp; personal info\n\n" +
         "\u{1F916} <b>AI features (requires API key):</b>\n" +
         "\u{1F4F8} Send a <b>photo</b> — auto-analyses &amp; logs macros\n" +
@@ -144,7 +146,7 @@ function registerHandlers(bot: Bot) {
         "/key — set or update your AI API key\n" +
         "Format: <code>openai sk-...</code> or <code>anthropic sk-ant-...</code> or <code>gemini AIza...</code>\n\n" +
         "\u{1F3C3} <b>Running:</b>\n" +
-        "Connect Strava in Settings to auto-sync runs. Calories burned can be added to your daily allowance.",
+        "Log runs manually or via screenshot. Calories burned can be added to your daily allowance.",
       { parse_mode: "HTML" },
     );
   });
@@ -281,7 +283,7 @@ function registerHandlers(bot: Bot) {
     const thinking = await ctx.reply("\u{1F50D} Analysing...");
 
     try {
-      const result = await parseFood(ai.provider, ai.apiKey, description);
+      const result = await parseFood(ai.provider, ai.apiKey, ai.model, description);
 
       await prisma.foodLog.create({
         data: {
@@ -407,7 +409,7 @@ function registerHandlers(bot: Bot) {
       const dietaryRestrictions: string[] = user.dietary_restrictions
         ? JSON.parse(user.dietary_restrictions) : [];
 
-      const message = await generateDailyCoach(ai.provider, ai.apiKey, {
+      const message = await generateDailyCoach(ai.provider, ai.apiKey, ai.model, {
         goals: { calories: user.daily_calorie_goal, protein: user.daily_protein_goal },
         consumed,
         meals,
@@ -484,7 +486,7 @@ function registerHandlers(bot: Bot) {
       const dietaryRestrictions: string[] = user.dietary_restrictions
         ? JSON.parse(user.dietary_restrictions) : [];
 
-      const insights = await generateWeeklyInsights(ai.provider, ai.apiKey, {
+      const insights = await generateWeeklyInsights(ai.provider, ai.apiKey, ai.model, {
         goals: { calories: user.daily_calorie_goal, protein: user.daily_protein_goal, water: user.daily_water_goal },
         days,
         exerciseTotal,
@@ -577,6 +579,7 @@ function registerHandlers(bot: Bot) {
       const result = await analyseMeal(
         ai.provider,
         ai.apiKey,
+        ai.model,
         imageBytes,
         "image/jpeg",
         ctx.message!.caption ?? "",

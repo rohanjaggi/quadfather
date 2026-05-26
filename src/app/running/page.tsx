@@ -1,98 +1,45 @@
 'use client'
 
 import { useState } from 'react'
-import StravaStatus from '@/components/running/StravaStatus'
 import BurnSummary from '@/components/running/BurnSummary'
 import RunsList from '@/components/running/RunsList'
 import ManualRunForm from '@/components/running/ManualRunForm'
 import RunPhotoUpload from '@/components/running/RunPhotoUpload'
 import SummaryCard from '@/components/dashboard/SummaryCard'
-import { useUser } from '@/context/UserContext'
 
 type Mode = null | 'photo' | 'manual'
 
 export default function RunningPage() {
-  const { syncStrava, user } = useUser()
   const [mode, setMode] = useState<Mode>(null)
-  const [syncing, setSyncing] = useState(false)
-  const [syncMsg, setSyncMsg] = useState<string | null>(null)
 
   function toggle(next: Mode) {
     setMode(prev => prev === next ? null : next)
   }
 
-  async function handleSync() {
-    setSyncing(true)
-    setSyncMsg(null)
-    try {
-      const { synced } = await syncStrava()
-      setSyncMsg(synced > 0 ? `Synced ${synced} run${synced > 1 ? 's' : ''}` : 'No new runs to sync')
-    } catch {
-      setSyncMsg('Sync failed')
-    } finally {
-      setSyncing(false)
-    }
-  }
-
-  const stravaConnected = !!user?.strava_connected
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
-      <div className="fade-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <p style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '11px',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: 'var(--tg-theme-hint-color)',
-            marginBottom: '5px',
-          }}>
-            Exercise
-          </p>
-          <h1 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '36px',
-            fontWeight: 400,
-            lineHeight: 1.1,
-            color: 'var(--tg-theme-text-color)',
-          }}>
-            Running
-          </h1>
-        </div>
-        <StravaStatus />
+      <div className="fade-up">
+        <p style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: '11px',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: 'var(--tg-theme-hint-color)',
+          marginBottom: '5px',
+        }}>
+          Exercise
+        </p>
+        <h1 style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '36px',
+          fontWeight: 400,
+          lineHeight: 1.1,
+          color: 'var(--tg-theme-text-color)',
+        }}>
+          Running
+        </h1>
       </div>
-
-      {stravaConnected && (
-        <div className="fade-up fade-up-1">
-          <button
-            className="btn-secondary"
-            onClick={handleSync}
-            disabled={syncing}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-              style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }}>
-              <polyline points="23 4 23 10 17 10" />
-              <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
-            </svg>
-            {syncing ? 'Syncing…' : 'Sync from Strava'}
-          </button>
-          {syncMsg && (
-            <p style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: '12px',
-              color: syncMsg === 'Sync failed' ? 'var(--accent-calories)' : 'var(--tg-theme-hint-color)',
-              textAlign: 'center',
-              marginTop: '6px',
-            }}>
-              {syncMsg}
-            </p>
-          )}
-        </div>
-      )}
 
       <div className="fade-up fade-up-1">
         <BurnSummary />

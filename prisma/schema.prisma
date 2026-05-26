@@ -19,6 +19,7 @@ model User {
   daily_fats_goal    Float @default(65.0)
   daily_fiber_goal   Float @default(30.0)
   ai_provider        String?  @db.VarChar(20)
+  ai_model           String?  @db.VarChar(80)
   ai_api_key         String?
   sex                String?  @db.VarChar(10)
   weight_kg          Float?
@@ -28,11 +29,6 @@ model User {
   fitness_goal       String?  @db.VarChar(20)
   dietary_restrictions String?
   ai_features_enabled Boolean @default(false)
-  strava_athlete_id    BigInt?
-  strava_access_token  String?
-  strava_refresh_token String?
-  strava_token_expires Int?
-  strava_scope         String?  @db.VarChar(100)
   created_at      DateTime? @default(now())
 
   saved_foods SavedFood[]
@@ -109,7 +105,6 @@ model WaterLog {
 model RunLog {
   id                  Int      @id @default(autoincrement())
   user_id             Int
-  strava_activity_id  BigInt?  @unique
   distance_meters     Float
   duration_seconds    Int
   calories_burned     Float

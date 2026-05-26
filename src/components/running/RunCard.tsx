@@ -77,13 +77,13 @@ export default function RunCard({ run, onToggle, onDelete, isLast }: RunCardProp
             fontSize: '10px',
             padding: '2px 6px',
             borderRadius: '99px',
-            backgroundColor: run.source === 'strava' ? '#FC4C021A' : 'var(--tg-theme-secondary-bg-color)',
-            color: run.source === 'strava' ? '#FC4C02' : 'var(--tg-theme-hint-color)',
+            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            color: 'var(--tg-theme-hint-color)',
             fontWeight: 500,
             textTransform: 'uppercase',
             letterSpacing: '0.04em',
           }}>
-            {run.source === 'strava' ? 'Strava' : run.source === 'ai_parsed' ? 'AI' : 'Manual'}
+            {run.source === 'ai_parsed' ? 'AI' : 'Manual'}
           </span>
         </div>
         <div style={{

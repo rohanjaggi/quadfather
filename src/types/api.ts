@@ -13,8 +13,8 @@ export interface User {
   }
   water_bottle_size: number
   ai_provider?: string
+  ai_model?: string
   has_api_key: boolean
-  strava_connected: boolean
   dietary_restrictions?: string[]
   ai_features_enabled: boolean
   personal?: {

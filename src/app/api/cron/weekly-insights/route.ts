@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateWeeklyInsights, type AIProvider } from "@/lib/ai";
+import { generateWeeklyInsights } from "@/lib/ai";
+import type { AIProvider } from "@/lib/models";
 import { decrypt } from "@/lib/crypto";
 import { Bot } from "grammy";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
 const CRON_SECRET = process.env.CRON_SECRET ?? "";
 
-function getAICredentials(user: { ai_provider: string | null; ai_api_key: string | null }) {
+function getAICredentials(user: { ai_provider: string | null; ai_api_key: string | null; ai_model: string | null }) {
   if (user.ai_provider && user.ai_api_key) {
-    return { provider: user.ai_provider as AIProvider, apiKey: decrypt(user.ai_api_key) };
+    return { provider: user.ai_provider as AIProvider, apiKey: decrypt(user.ai_api_key), model: user.ai_model };
   }
   const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) return { provider: "gemini" as AIProvider, apiKey: geminiKey };
+  if (geminiKey) return { provider: "gemini" as AIProvider, apiKey: geminiKey, model: null as string | null };
   const openrouterKey = process.env.OPENROUTER_API_KEY;
-  if (openrouterKey) return { provider: "openrouter" as AIProvider, apiKey: openrouterKey };
+  if (openrouterKey) return { provider: "openrouter" as AIProvider, apiKey: openrouterKey, model: null as string | null };
   return null;
 }
 
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
       const dietaryRestrictions: string[] = user.dietary_restrictions
         ? JSON.parse(user.dietary_restrictions) : [];
 
-      const insights = await generateWeeklyInsights(creds.provider, creds.apiKey, {
+      const insights = await generateWeeklyInsights(creds.provider, creds.apiKey, creds.model, {
         goals: { calories: user.daily_calorie_goal, protein: user.daily_protein_goal, water: user.daily_water_goal },
         days,
         exerciseTotal,

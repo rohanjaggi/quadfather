@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
       }),
       water_bottle_size: user.water_bottle_size,
       ai_provider: user.ai_provider,
+      ai_model: user.ai_model,
       has_api_key: !!(user.ai_api_key || process.env.GEMINI_API_KEY || process.env.OPENROUTER_API_KEY),
-      strava_connected: !!user.strava_athlete_id,
       dietary_restrictions: user.dietary_restrictions ? JSON.parse(user.dietary_restrictions) : [],
       ai_features_enabled: user.ai_features_enabled,
     }, { status: 201 });

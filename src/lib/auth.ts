@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { NextRequest } from "next/server";
 import { prisma } from "./prisma";
 import { decrypt } from "./crypto";
-import type { AIProvider } from "./ai";
+import type { AIProvider } from "./models";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
 const SKIP_TELEGRAM_AUTH =
@@ -85,22 +85,24 @@ export async function getAuthenticatedUser(request: NextRequest) {
 export function getUserAICredentials(user: {
   ai_provider: string | null;
   ai_api_key: string | null;
-}): { provider: AIProvider; apiKey: string } {
+  ai_model: string | null;
+}): { provider: AIProvider; apiKey: string; model: string | null } {
   if (user.ai_provider && user.ai_api_key) {
     return {
       provider: user.ai_provider as AIProvider,
       apiKey: decrypt(user.ai_api_key),
+      model: user.ai_model,
     };
   }
 
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
-    return { provider: "gemini", apiKey: geminiKey };
+    return { provider: "gemini", apiKey: geminiKey, model: null };
   }
 
   const openrouterKey = process.env.OPENROUTER_API_KEY;
   if (openrouterKey) {
-    return { provider: "openrouter", apiKey: openrouterKey };
+    return { provider: "openrouter", apiKey: openrouterKey, model: null };
   }
 
   throw new Error("No API key configured. Set one up in Settings.");

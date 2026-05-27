@@ -12,10 +12,6 @@ import SummaryCard from '@/components/dashboard/SummaryCard'
 import { useUser } from '@/context/UserContext'
 import type { SavedFood } from '@/types/api'
 
-function formatTime(isoString: string) {
-  return new Date(isoString).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-}
-
 type Mode = null | 'scan' | 'manual' | 'text'
 
 export default function FoodPage() {
@@ -321,7 +317,6 @@ export default function FoodPage() {
                   carbs={Math.round(log.carbohydrates)}
                   fats={Math.round(log.fats)}
                   fiber={Math.round(log.fiber ?? 0)}
-                  time={formatTime(log.logged_at)}
                   savedFoodId={log.saved_food_id}
                   isLast={i === foodLogs.length - 1}
                   onDelete={() => deleteFood(log.id)}

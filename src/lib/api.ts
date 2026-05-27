@@ -21,7 +21,8 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 
 export const registerUser = () => apiFetch<User>('/users', { method: 'POST' })
 export const getDailySummary = () => apiFetch<DailySummary>('/users/me')
-export const getFoodLogs = () => apiFetch<FoodLog[]>('/foods')
+export const getFoodLogs = (date?: string) =>
+  apiFetch<FoodLog[]>(`/foods${date ? `?date=${date}` : ''}`)
 export const logFood = (data: FoodLogCreate) => apiFetch<FoodLog>('/foods', { method: 'POST', body: JSON.stringify(data) })
 export const deleteFood = (id: number) => apiFetch<void>(`/foods/${id}`, { method: 'DELETE' })
 export const getWaterLogs = () => apiFetch<WaterLog[]>('/water')

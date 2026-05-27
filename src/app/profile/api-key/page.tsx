@@ -7,7 +7,7 @@ import { setApiKey, deleteApiKey } from '@/lib/api'
 import { PROVIDER_MODELS, DEFAULT_MODELS, type AIProvider } from '@/lib/models'
 
 const PROVIDERS: { value: AIProvider; label: string; shortLabel: string }[] = [
-  { value: 'gemini', label: 'Google Gemini', shortLabel: 'Gemini' },
+  { value: 'gemini', label: 'Google Gemini', shortLabel: 'Google' },
   { value: 'openai', label: 'OpenAI', shortLabel: 'OpenAI' },
   { value: 'anthropic', label: 'Anthropic', shortLabel: 'Anthropic' },
   { value: 'openrouter', label: 'OpenRouter', shortLabel: 'OpenRouter' },
@@ -207,40 +207,47 @@ export default function ApiKeyPage() {
           }}>
             Model
           </label>
-          <div className="option-group">
-            {models.map(m => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => { setSelectedModel(m.id); setCustomModel('') }}
-                className="option-group-item"
-                data-active={selectedModel === m.id ? 'true' : undefined}
+          {keyProvider === 'openrouter' ? (
+            <>
+              <select
+                value={selectedModel}
+                onChange={e => { setSelectedModel(e.target.value); setCustomModel('') }}
+                className="input-field-bordered"
+                style={{ appearance: 'none', paddingRight: '36px', cursor: 'pointer' }}
               >
-                <span>{m.label}</span>
-                <span style={{ fontSize: '11px', opacity: 0.55, fontWeight: 400 }}>{m.description}</span>
-              </button>
-            ))}
-            {keyProvider === 'openrouter' && (
-              <button
-                type="button"
-                onClick={() => setSelectedModel('custom')}
-                className="option-group-item"
-                data-active={selectedModel === 'custom' ? 'true' : undefined}
-              >
-                <span>Custom Model</span>
-                <span style={{ fontSize: '11px', opacity: 0.55, fontWeight: 400 }}>Any model ID</span>
-              </button>
-            )}
-          </div>
-          {selectedModel === 'custom' && (
-            <input
-              type="text"
-              value={customModel}
-              onChange={e => setCustomModel(e.target.value)}
-              placeholder="e.g. meta-llama/llama-4-scout"
-              className="input-field-bordered"
-              style={{ marginTop: '10px' }}
-            />
+                {models.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.label} — {m.description}
+                  </option>
+                ))}
+                <option value="custom">Custom model ID</option>
+              </select>
+              {selectedModel === 'custom' && (
+                <input
+                  type="text"
+                  value={customModel}
+                  onChange={e => setCustomModel(e.target.value)}
+                  placeholder="e.g. meta-llama/llama-4-scout"
+                  className="input-field-bordered"
+                  style={{ marginTop: '10px' }}
+                />
+              )}
+            </>
+          ) : (
+            <div className="option-group">
+              {models.map(m => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => { setSelectedModel(m.id); setCustomModel('') }}
+                  className="option-group-item"
+                  data-active={selectedModel === m.id ? 'true' : undefined}
+                >
+                  <span>{m.label}</span>
+                  <span style={{ fontSize: '11px', opacity: 0.55, fontWeight: 400 }}>{m.description}</span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
 

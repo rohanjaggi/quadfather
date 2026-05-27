@@ -6,11 +6,14 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser(request);
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const dateParam = request.nextUrl.searchParams.get("date");
+    const dayStart = dateParam ? new Date(`${dateParam}T00:00:00`) : new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
 
     const logs = await prisma.foodLog.findMany({
-      where: { user_id: user.id, logged_at: { gte: todayStart } },
+      where: { user_id: user.id, logged_at: { gte: dayStart, lte: dayEnd } },
       orderBy: { logged_at: "desc" },
     });
 

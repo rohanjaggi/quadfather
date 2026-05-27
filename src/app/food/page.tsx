@@ -288,7 +288,18 @@ export default function FoodPage() {
 
       {/* Meals list */}
       <div className="fade-up fade-up-4" style={{ marginTop: '10px' }}>
-        <SummaryCard title="Today's Meals">
+        <SummaryCard title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Today&apos;s Meals</span>
+            <Link href="/food/history" style={{
+              fontFamily: 'var(--font-body)', fontSize: '11px',
+              fontWeight: 500, color: 'var(--tg-theme-hint-color)',
+              textDecoration: 'none',
+            }}>
+              History {'→'}
+            </Link>
+          </div>
+        }>
           <div>
             {foodLogs.length === 0 ? (
               <p style={{
@@ -309,7 +320,9 @@ export default function FoodPage() {
                   protein={Math.round(log.protein)}
                   carbs={Math.round(log.carbohydrates)}
                   fats={Math.round(log.fats)}
+                  fiber={Math.round(log.fiber ?? 0)}
                   time={formatTime(log.logged_at)}
+                  savedFoodId={log.saved_food_id}
                   isLast={i === foodLogs.length - 1}
                   onDelete={() => deleteFood(log.id)}
                 />

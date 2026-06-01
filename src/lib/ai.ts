@@ -3,35 +3,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
 import { getModelForProvider, type AIProvider } from "@/lib/models";
 
-const VISION_PROMPT = `You are a registered dietitian with 20 years of clinical experience in portion estimation. Analyze this meal photograph step by step.
+const VISION_PROMPT = `Estimate the nutritional content of the food shown.
 
 Additional context from user: {description}
 
-Follow this reasoning process internally before producing your answer:
-
-1. IDENTIFY: List every distinct food item visible. Note cooking methods (fried, grilled, steamed) and any visible sauces, oils, or toppings.
-
-2. ESTIMATE PORTIONS: For each item, estimate grams using these visual anchors:
-   - Closed fist ≈ 1 cup ≈ 200ml cooked rice/pasta
-   - Palm (no fingers) ≈ 85g cooked meat/fish
-   - Thumb tip ≈ 1 tsp ≈ 5g butter/oil
-   - Cupped hand ≈ 40g nuts/snacks
-   - Standard dinner plate = 26cm diameter
-   - Standard bowl = ~300ml
-   Use any visible plates, utensils, hands, or packaging as scale reference.
-
-3. HIDDEN CALORIES: Account for cooking oils (1-2 tbsp per fried/stir-fried item = 120-240 kcal), sauces, dressings, coconut milk, and sugar in beverages. These are often invisible but calorically significant.
-
-4. CALCULATE: Sum macros for all items. Verify that calories ≈ (protein × 4) + (carbs × 4) + (fats × 9). If the math is off by more than 10%, revise.
-
-5. SANITY CHECK: Confirm your total is in a reasonable range:
-   - Snack/side: 100-300 kcal
-   - Light meal: 300-500 kcal
-   - Standard meal: 500-800 kcal
-   - Large/restaurant meal: 800-1200 kcal
-   - Hawker/fast food combo: 600-1000 kcal
-
-Respond with ONLY a raw JSON object — no markdown, no code fences, no explanation:
+Return ONLY valid JSON:
 
 {
   "food_name": "descriptive name for this meal",
@@ -41,15 +17,8 @@ Respond with ONLY a raw JSON object — no markdown, no code fences, no explanat
   "fats": <number in grams, one decimal>,
   "fiber": <number in grams, one decimal>,
   "confidence": "high" | "medium" | "low",
-  "notes": "brief note on portion assumptions and any hidden calories accounted for"
-}
-
-Confidence guide:
-- "high": items clearly identifiable, portions unambiguous, standard dish
-- "medium": some items obscured or portion estimated from context
-- "low": image unclear, heavily mixed dish, or unusual preparation
-
-Be realistic. When uncertain about portion size, estimate toward the higher end rather than underestimating.`;
+  "notes": "brief note on portion assumptions"
+}`;
 
 const TEXT_PROMPT = `You are a registered dietitian estimating nutritional content from a food description. Think through this systematically.
 

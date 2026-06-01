@@ -65,7 +65,7 @@ export default function FoodPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
-      {/* Header */}
+      {/* Header + logging panel */}
       <div className="fade-up">
         <div>
           <p style={{
@@ -80,7 +80,7 @@ export default function FoodPage() {
           </p>
           <h1 style={{
             fontFamily: 'var(--font-display)',
-            fontSize: '36px',
+            fontSize: '34px',
             fontWeight: 400,
             lineHeight: 1.1,
             color: 'var(--tg-theme-text-color)',
@@ -89,45 +89,69 @@ export default function FoodPage() {
           </h1>
         </div>
 
-        {/* Action buttons with icons below title */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-          <button className="btn-pill" onClick={() => toggle('scan')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              backgroundColor: mode === 'scan' ? 'var(--tg-theme-button-color)' : 'rgba(58, 79, 62, 0.1)',
-              color: mode === 'scan' ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-button-color)',
-              borderColor: 'var(--tg-theme-button-color)',
-            }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
-            Scan
-          </button>
-          <button className="btn-pill" data-active={mode === 'text' ? 'true' : undefined} onClick={() => toggle('text')}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" />
-            </svg>
-            Text
-          </button>
-          <button className="btn-pill" data-active={mode === 'manual' ? 'true' : undefined} onClick={() => toggle('manual')}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add
-          </button>
-          <Link href="/water" className="btn-pill"
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none',
-              marginLeft: 'auto',
-              borderColor: 'var(--accent-water)',
-              color: 'var(--accent-water)',
-              borderStyle: 'dashed',
-            }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {/* Input method selector */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr 1fr',
+          gap: '8px',
+          marginTop: '20px',
+        }}>
+          {([
+            { key: 'scan' as const, label: 'Scan', icon: (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            )},
+            { key: 'text' as const, label: 'Describe', icon: (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" />
+              </svg>
+            )},
+            { key: 'manual' as const, label: 'Manual', icon: (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            )},
+          ]).map(({ key, label, icon }) => (
+            <button
+              key={key}
+              onClick={() => toggle(key)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                gap: '6px', padding: '14px 8px',
+                borderRadius: '14px',
+                border: mode === key ? '1.5px solid var(--tg-theme-button-color)' : '1.5px solid var(--surface-border)',
+                backgroundColor: mode === key ? 'var(--tg-theme-button-color)' : 'transparent',
+                color: mode === key ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+                fontFamily: 'var(--font-body)',
+                fontSize: '11px',
+                fontWeight: 500,
+                letterSpacing: '0.02em',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+              }}
+            >
+              {icon}
+              {label}
+            </button>
+          ))}
+          <Link href="/water" style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: '6px', padding: '14px 8px',
+            borderRadius: '14px',
+            border: '1.5px solid var(--accent-water)',
+            backgroundColor: 'transparent',
+            color: 'var(--accent-water)',
+            fontFamily: 'var(--font-body)',
+            fontSize: '11px',
+            fontWeight: 500,
+            letterSpacing: '0.02em',
+            textDecoration: 'none',
+            transition: 'background-color 0.2s ease',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
             </svg>
             Water
@@ -135,30 +159,16 @@ export default function FoodPage() {
         </div>
       </div>
 
-      {/* Scan mode */}
-      {mode === 'scan' && (
-        <div className="fade-up">
-          <SummaryCard>
-            <PhotoUpload onClose={() => setMode(null)} />
-          </SummaryCard>
-        </div>
-      )}
-
-      {/* Text mode */}
-      {mode === 'text' && (
-        <div className="fade-up">
-          <SummaryCard>
-            <TextFoodInput onClose={() => setMode(null)} />
-          </SummaryCard>
-        </div>
-      )}
-
-      {/* Manual mode */}
-      {mode === 'manual' && (
-        <div className="fade-up">
-          <SummaryCard>
-            <ManualFoodForm onClose={() => setMode(null)} />
-          </SummaryCard>
+      {/* Active input panel */}
+      {mode && (
+        <div className="fade-up" style={{
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          borderRadius: '20px',
+          padding: '20px',
+        }}>
+          {mode === 'scan' && <PhotoUpload onClose={() => setMode(null)} />}
+          {mode === 'text' && <TextFoodInput onClose={() => setMode(null)} />}
+          {mode === 'manual' && <ManualFoodForm onClose={() => setMode(null)} />}
         </div>
       )}
 

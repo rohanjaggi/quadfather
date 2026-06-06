@@ -121,6 +121,8 @@ export const getWorkoutSuggestion = () =>
   apiFetch<WorkoutSuggestion>('/coach/suggestion')
 
 // Access Token
+export const getAccessTokenStatus = () =>
+  apiFetch<{ has_token: boolean; hint: string | null }>('/users/me/token')
 export const generateAccessToken = () =>
   apiFetch<{ token: string }>('/users/me/token', { method: 'POST' })
 export const deleteAccessToken = () =>

@@ -1,23 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { generateAccessToken, deleteAccessToken } from '@/lib/api'
+import { generateAccessToken, deleteAccessToken, getAccessTokenStatus } from '@/lib/api'
 
 export default function StepsSyncPage() {
   const [token, setToken] = useState<string | null>(null)
+  const [tokenHint, setTokenHint] = useState<string | null>(null)
   const [tokenLoading, setTokenLoading] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
 
+  useEffect(() => {
+    getAccessTokenStatus().then(({ has_token, hint }) => {
+      if (has_token) setTokenHint(hint)
+    }).catch(() => {})
+  }, [])
+
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
   const stepsUrl = `${baseUrl}/api/steps`
-  const authHeader = token ? `Bearer ${token}` : 'Bearer <your-token>'
+  const authHeader = token ? `Bearer ${token}` : tokenHint ? `Bearer ${tokenHint}` : 'Bearer <generate-token-first>'
 
   async function handleGenerateToken() {
     setTokenLoading(true)
     try {
       const { token: newToken } = await generateAccessToken()
       setToken(newToken)
+      setTokenHint(null)
     } catch (err) {
       console.error(err)
     } finally {
@@ -30,6 +38,7 @@ export default function StepsSyncPage() {
     try {
       await deleteAccessToken()
       setToken(null)
+      setTokenHint(null)
     } catch (err) {
       console.error(err)
     } finally {
@@ -98,20 +107,33 @@ export default function StepsSyncPage() {
             This token lets your iOS Shortcut send steps to the app. Keep it secret.
           </p>
 
-          {token && (
+          {token ? (
             <CopyableField value={token} label="token" copied={copied} onCopy={copyText} />
-          )}
+          ) : tokenHint ? (
+            <div style={{
+              padding: '9px 11px', borderRadius: '8px',
+              backgroundColor: 'var(--tg-theme-bg-color)',
+              fontFamily: 'monospace', fontSize: '11px',
+              color: 'var(--tg-theme-hint-color)',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Token active: {tokenHint}
+            </div>
+          ) : null}
 
           <div style={{ display: 'flex', gap: '8px' }}>
-            {token && (
+            {(token || tokenHint) && (
               <button type="button" onClick={handleRevokeToken} disabled={tokenLoading}
                 className="btn-secondary" style={{ flex: 1, color: 'var(--accent-calories)' }}>
                 Revoke
               </button>
             )}
             <button type="button" onClick={handleGenerateToken} disabled={tokenLoading}
-              className="btn-primary" style={{ flex: token ? 2 : 1 }}>
-              {tokenLoading ? 'Generating…' : token ? 'Regenerate' : 'Generate Token'}
+              className="btn-primary" style={{ flex: (token || tokenHint) ? 2 : 1 }}>
+              {tokenLoading ? 'Generating…' : (token || tokenHint) ? 'Regenerate' : 'Generate Token'}
             </button>
           </div>
         </div>

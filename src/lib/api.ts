@@ -84,3 +84,44 @@ export async function analyseRunScreenshot(imageFile: File): Promise<RunAnalysis
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
+
+import type {
+  WorkoutTemplate, WorkoutTemplateCreate, WorkoutLog, WorkoutLogCreate,
+  WorkoutParseResult, StepLog, StepLogCreate, WorkoutSuggestion,
+} from '@/types/workouts'
+
+// Workouts
+export const getWorkouts = (days?: number) =>
+  apiFetch<WorkoutLog[]>(`/workouts${days ? `?days=${days}` : ''}`)
+export const logWorkout = (data: WorkoutLogCreate) =>
+  apiFetch<WorkoutLog>('/workouts', { method: 'POST', body: JSON.stringify(data) })
+export const deleteWorkout = (id: number) =>
+  apiFetch<void>(`/workouts/${id}`, { method: 'DELETE' })
+export const parseWorkout = (text: string) =>
+  apiFetch<WorkoutParseResult>('/workouts/parse', { method: 'POST', body: JSON.stringify({ text }) })
+
+// Templates
+export const getTemplates = () =>
+  apiFetch<WorkoutTemplate[]>('/workouts/templates')
+export const createTemplate = (data: WorkoutTemplateCreate) =>
+  apiFetch<WorkoutTemplate>('/workouts/templates', { method: 'POST', body: JSON.stringify(data) })
+export const updateTemplate = (id: number, data: Partial<WorkoutTemplateCreate>) =>
+  apiFetch<WorkoutTemplate>(`/workouts/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const deleteTemplate = (id: number) =>
+  apiFetch<void>(`/workouts/templates/${id}`, { method: 'DELETE' })
+
+// Steps
+export const logSteps = (data: StepLogCreate) =>
+  apiFetch<StepLog>('/steps', { method: 'POST', body: JSON.stringify(data) })
+export const getSteps = (days?: number) =>
+  apiFetch<StepLog[]>(`/steps${days ? `?days=${days}` : ''}`)
+
+// Coach
+export const getWorkoutSuggestion = () =>
+  apiFetch<WorkoutSuggestion>('/coach/suggestion')
+
+// Access Token
+export const generateAccessToken = () =>
+  apiFetch<{ token: string }>('/users/me/token', { method: 'POST' })
+export const deleteAccessToken = () =>
+  apiFetch<void>('/users/me/token', { method: 'DELETE' })

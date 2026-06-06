@@ -82,6 +82,33 @@ export async function getAuthenticatedUser(request: NextRequest) {
   return user;
 }
 
+export async function getAuthenticatedUserByToken(request: NextRequest) {
+  const authHeader = request.headers.get("authorization") ?? "";
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match || !match[1]) {
+    throw new Error("Missing or invalid Authorization header");
+  }
+  const token = match[1];
+
+  const user = await prisma.user.findUnique({
+    where: { access_token: token },
+  });
+
+  if (!user) {
+    throw new Error("Invalid access token");
+  }
+
+  return user;
+}
+
+export async function getAuthenticatedUserFlexible(request: NextRequest) {
+  const initData = request.headers.get("x-telegram-init-data");
+  if (initData) {
+    return getAuthenticatedUser(request);
+  }
+  return getAuthenticatedUserByToken(request);
+}
+
 export function getUserAICredentials(user: {
   ai_provider: string | null;
   ai_api_key: string | null;

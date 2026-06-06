@@ -29,12 +29,17 @@ model User {
   fitness_goal       String?  @db.VarChar(20)
   dietary_restrictions String?
   ai_features_enabled Boolean @default(false)
+  access_token       String?  @unique @db.VarChar(64)
   created_at      DateTime? @default(now())
 
   saved_foods SavedFood[]
   food_logs   FoodLog[]
   water_logs  WaterLog[]
   run_logs    RunLog[]
+  workout_templates WorkoutTemplate[]
+  workout_logs      WorkoutLog[]
+  step_logs         StepLog[]
+  coach_state       CoachState?
 
   @@map("users")
 }
@@ -122,4 +127,80 @@ model RunLog {
   @@index([user_id, run_date])
   @@index([user_id, logged_at])
   @@map("run_logs")
+}
+
+model WorkoutTemplate {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  name        String   @db.VarChar(100)
+  exercises   Json
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  workout_logs WorkoutLog[]
+
+  @@index([user_id])
+  @@map("workout_templates")
+}
+
+model WorkoutLog {
+  id               Int      @id @default(autoincrement())
+  user_id          Int
+  template_id      Int?
+  name             String   @db.VarChar(200)
+  duration_minutes Int?
+  calories_burned  Float?
+  notes            String?
+  source           String   @default("manual") @db.VarChar(20)
+  workout_date     DateTime
+  logged_at        DateTime @default(now())
+
+  user      User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  template  WorkoutTemplate?  @relation(fields: [template_id], references: [id], onDelete: SetNull)
+  exercises ExerciseLog[]
+
+  @@index([user_id, workout_date])
+  @@index([user_id, logged_at])
+  @@map("workout_logs")
+}
+
+model ExerciseLog {
+  id             Int    @id @default(autoincrement())
+  workout_log_id Int
+  exercise_name  String @db.VarChar(100)
+  sets           Json
+  order          Int
+
+  workout WorkoutLog @relation(fields: [workout_log_id], references: [id], onDelete: Cascade)
+
+  @@index([workout_log_id])
+  @@map("exercise_logs")
+}
+
+model StepLog {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  steps     Int
+  date      DateTime @db.Date
+  source    String   @default("shortcut") @db.VarChar(20)
+  logged_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, date])
+  @@index([user_id])
+  @@map("step_logs")
+}
+
+model CoachState {
+  id               Int       @id @default(autoincrement())
+  user_id          Int       @unique
+  last_nudge_topic String?   @db.VarChar(50)
+  last_nudge_at    DateTime?
+  nudge_history    Json?
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("coach_state")
 }

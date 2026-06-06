@@ -24,7 +24,7 @@ function getDateDisplay() {
 }
 
 export default function DashboardPage() {
-  const { user, summary, foodLogs, waterLogs } = useUser()
+  const { user, summary, foodLogs, waterLogs, todaySteps } = useUser()
 
   const calories = summary?.macros.calories ?? { total: 0, goal: user?.goals.daily_calorie_goal ?? 2000 }
   const protein = summary?.macros.protein ?? { total: 0, goal: user?.goals.daily_protein_goal ?? 120 }
@@ -94,6 +94,20 @@ export default function DashboardPage() {
           <GoalRing label="Protein" current={protein.total} goal={protein.goal} unit="g" color="var(--accent-protein)" />
           <GoalRing label="Water" current={water.total} goal={water.goal} unit="L" color="var(--accent-water)" />
         </div>
+
+        {todaySteps > 0 && (
+          <div style={{
+            display: 'flex', justifyContent: 'center', alignItems: 'baseline',
+            gap: '4px', marginBottom: '16px',
+          }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
+              {todaySteps.toLocaleString()}
+            </span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>
+              steps today
+            </span>
+          </div>
+        )}
 
         {/* Macro bars */}
         <div style={{

@@ -716,3 +716,123 @@ export async function generateTrendsCoach(
   const raw = await callText(provider, apiKey, resolvedModel, prompt);
   return raw.trim();
 }
+
+const WORKOUT_PARSE_PROMPT = `You are a fitness coach parsing a freeform workout description into structured data.
+
+Input: {text}
+
+Parse this into individual exercises with sets, reps, and weight. Common formats:
+- "bench 80kg 4x8" = bench press, 4 sets of 8 reps at 80kg
+- "push-ups 3x15" = push-ups, 3 sets of 15 reps, no weight
+- "deadlift 120 3x5" = deadlift, 3 sets of 5 reps at 120kg
+- "plank 3x60s" = plank, 3 sets of 60 reps (treat seconds as reps for time-based)
+
+Return ONLY valid JSON:
+
+{
+  "name": "short workout name (e.g. 'Upper Body', 'Push Day', 'Quick Arms')",
+  "exercises": [
+    {
+      "exercise_name": "full exercise name",
+      "sets": [{"reps": <number>, "weight_kg": <number or null>}],
+      "order": <1-based position>
+    }
+  ],
+  "confidence": "high" | "medium" | "low",
+  "notes": "brief note on any assumptions made"
+}
+
+If the same set scheme repeats (e.g. 4x8), expand into individual set objects all with the same reps/weight.
+If no weight mentioned, use null for weight_kg (bodyweight exercise).
+Confidence is "high" if all exercises clearly specified, "medium" if some interpretation needed, "low" if very ambiguous.`;
+
+export async function parseWorkoutText(
+  provider: AIProvider,
+  apiKey: string,
+  model: string | null,
+  text: string,
+): Promise<{
+  name: string
+  exercises: { exercise_name: string; sets: { reps: number; weight_kg: number | null }[]; order: number }[]
+  confidence: string
+  notes: string
+}> {
+  const resolvedModel = getModelForProvider(provider, model);
+  const prompt = WORKOUT_PARSE_PROMPT.replace("{text}", text);
+  const raw = await callText(provider, apiKey, resolvedModel, prompt);
+  const cleaned = cleanJson(raw);
+  if (!cleaned) throw new Error("AI returned an empty response");
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("Failed to parse AI response");
+  const data = JSON.parse(jsonMatch[0]);
+
+  if (!data.name || !Array.isArray(data.exercises) || data.exercises.length === 0) {
+    throw new Error("AI response missing name or exercises");
+  }
+
+  return {
+    name: String(data.name),
+    exercises: data.exercises.map((ex: { exercise_name: string; sets: { reps: number; weight_kg: number | null }[]; order: number }) => ({
+      exercise_name: String(ex.exercise_name),
+      sets: Array.isArray(ex.sets) ? ex.sets.map((s: { reps: number; weight_kg: number | null }) => ({
+        reps: Number(s.reps),
+        weight_kg: s.weight_kg != null ? Number(s.weight_kg) : null,
+      })) : [],
+      order: Number(ex.order),
+    })),
+    confidence: String(data.confidence ?? "medium"),
+    notes: String(data.notes ?? ""),
+  };
+}
+
+const WORKOUT_SUGGESTION_PROMPT = `You are a fitness coach. Based on the user's recent training history, suggest what they should train today in ONE short sentence (max 20 words).
+
+Recent workouts (last 7 days):
+{recent_workouts}
+
+Available templates: {templates}
+User's fitness goal: {fitness_goal}
+
+If they haven't trained in 5+ days, encourage them warmly.
+If they trained yesterday, consider recovery.
+Focus on muscle groups NOT recently hit.
+
+Respond with ONLY valid JSON:
+{"suggestion": "one sentence suggestion", "template_id": <number or null if no template fits>}`;
+
+export async function generateWorkoutSuggestion(
+  provider: AIProvider,
+  apiKey: string,
+  model: string | null,
+  context: {
+    recentWorkouts: { name: string; date: string; exercises: string[] }[];
+    templates: { id: number; name: string }[];
+    fitnessGoal: string;
+  },
+): Promise<{ suggestion: string; template_id: number | null }> {
+  const resolvedModel = getModelForProvider(provider, model);
+
+  const recentStr = context.recentWorkouts.length > 0
+    ? context.recentWorkouts.map(w => `${w.date}: ${w.name} (${w.exercises.join(', ')})`).join('\n')
+    : 'No workouts in the last 7 days';
+
+  const templatesStr = context.templates.length > 0
+    ? context.templates.map(t => `${t.id}: ${t.name}`).join(', ')
+    : 'No templates saved';
+
+  const prompt = WORKOUT_SUGGESTION_PROMPT
+    .replace('{recent_workouts}', recentStr)
+    .replace('{templates}', templatesStr)
+    .replace('{fitness_goal}', context.fitnessGoal || 'general fitness');
+
+  const raw = await callText(provider, apiKey, resolvedModel, prompt);
+  const cleaned = cleanJson(raw);
+  if (!cleaned) return { suggestion: "Time to train! Pick a workout and get moving.", template_id: null };
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return { suggestion: "Time to train! Pick a workout and get moving.", template_id: null };
+  const data = JSON.parse(jsonMatch[0]);
+  return {
+    suggestion: String(data.suggestion ?? "Time to train!"),
+    template_id: data.template_id ?? null,
+  };
+}

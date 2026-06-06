@@ -64,7 +64,7 @@ function ProfileIcon({ active }: { active: boolean }) {
 const tabs = [
   { href: '/',          label: 'Today',    Icon: HomeIcon    },
   { href: '/food',      label: 'Nutrition', Icon: FoodIcon    },
-  { href: '/running',   label: 'Exercise',  Icon: RunIcon     },
+  { href: '/workouts',  label: 'Exercise',  Icon: RunIcon     },
   { href: '/analytics', label: 'Trends',    Icon: TrendsIcon  },
   { href: '/profile',   label: 'Settings',  Icon: ProfileIcon },
 ]

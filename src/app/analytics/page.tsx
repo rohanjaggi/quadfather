@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import SummaryCard from '@/components/dashboard/SummaryCard'
-import { getAnalytics, getRunningAnalytics, getAnalyticsInsights } from '@/lib/api'
+import { getAnalytics, getRunningAnalytics, getAnalyticsInsights, getSteps } from '@/lib/api'
 import type { AnalyticsResponse, AnalyticsDayData } from '@/types/api'
 import type { RunningAnalyticsResponse } from '@/types/running'
+import type { StepLog } from '@/types/workouts'
 
 type Period = 7 | 30
 
@@ -163,7 +164,7 @@ function SectionHeader({ title }: { title: string }) {
   )
 }
 
-type Domain = 'food' | 'running'
+type Domain = 'food' | 'exercise' | 'steps'
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<Period>(7)
@@ -172,6 +173,8 @@ export default function AnalyticsPage() {
   const [domain, setDomain] = useState<Domain>('food')
   const [runningData, setRunningData] = useState<RunningAnalyticsResponse | null>(null)
   const [runningLoading, setRunningLoading] = useState(false)
+  const [stepsData, setStepsData] = useState<StepLog[]>([])
+  const [stepsLoading, setStepsLoading] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -182,12 +185,22 @@ export default function AnalyticsPage() {
   }, [period])
 
   useEffect(() => {
-    if (domain === 'running') {
+    if (domain === 'exercise') {
       setRunningLoading(true)
       getRunningAnalytics(period)
         .then(setRunningData)
         .catch(console.error)
         .finally(() => setRunningLoading(false))
+    }
+  }, [domain, period])
+
+  useEffect(() => {
+    if (domain === 'steps') {
+      setStepsLoading(true)
+      getSteps(period)
+        .then(setStepsData)
+        .catch(console.error)
+        .finally(() => setStepsLoading(false))
     }
   }, [domain, period])
 
@@ -301,7 +314,7 @@ export default function AnalyticsPage() {
         padding: '3px',
         gap: '2px',
       }}>
-        {(['food', 'running'] as Domain[]).map(d => (
+        {(['food', 'exercise', 'steps'] as Domain[]).map(d => (
           <button
             key={d}
             onClick={() => setDomain(d)}
@@ -320,7 +333,7 @@ export default function AnalyticsPage() {
               textTransform: 'capitalize',
             }}
           >
-            {d === 'food' ? 'Food' : 'Running'}
+            {d === 'food' ? 'Food' : d === 'exercise' ? 'Exercise' : 'Steps'}
           </button>
         ))}
       </div>
@@ -650,7 +663,7 @@ export default function AnalyticsPage() {
 
           </>)}
 
-          {domain === 'running' && runningLoading && (
+          {domain === 'exercise' && runningLoading && (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
                 Loading…
@@ -658,7 +671,7 @@ export default function AnalyticsPage() {
             </div>
           )}
 
-          {domain === 'running' && !runningLoading && runningData && (
+          {domain === 'exercise' && !runningLoading && runningData && (
             <>
               {/* Running summary */}
               <div className="fade-up fade-up-1">
@@ -743,6 +756,49 @@ export default function AnalyticsPage() {
                   ) : (
                     <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
                       No data yet
+                    </p>
+                  )}
+                </SummaryCard>
+              </div>
+            </>
+          )}
+
+          {domain === 'steps' && stepsLoading && (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>Loading…</p>
+            </div>
+          )}
+
+          {domain === 'steps' && !stepsLoading && (
+            <>
+              <div className="fade-up fade-up-1">
+                <SummaryCard title={`${period}-day steps`}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <StatRow label="Average" value={`${stepsData.length > 0 ? Math.round(stepsData.reduce((s, d) => s + d.steps, 0) / stepsData.length).toLocaleString() : '0'}`} sub="steps/day" />
+                    <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                    <StatRow label="Total" value={`${stepsData.reduce((s, d) => s + d.steps, 0).toLocaleString()}`} sub="steps" />
+                  </div>
+                </SummaryCard>
+              </div>
+              <div className="fade-up fade-up-2">
+                <SummaryCard title="Daily Steps">
+                  {stepsData.length > 0 ? (
+                    <BarChart
+                      key={`steps-${period}`}
+                      days={stepsData.map(d => ({
+                        date: d.date,
+                        calories: d.steps,
+                        protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
+                      }))}
+                      getValue={d => d.calories}
+                      goal={10000}
+                      color="var(--accent-protein)"
+                      unit=" steps"
+                      period={period}
+                    />
+                  ) : (
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                      No step data yet
                     </p>
                   )}
                 </SummaryCard>

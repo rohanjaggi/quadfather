@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { generateDailyCoach } from "@/lib/ai";
 import type { AIProvider } from "@/lib/models";
 import { decrypt } from "@/lib/crypto";
+import { determineNudgeTopic, recordNudge } from "@/lib/coach";
 import { Bot } from "grammy";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
@@ -40,13 +41,18 @@ export async function GET(request: NextRequest) {
     if (!creds) continue;
 
     try {
-      const [foodLogs, waterLogs, runLogs] = await Promise.all([
+      const [foodLogs, waterLogs, runLogs, workoutLogs, stepLogs] = await Promise.all([
         prisma.foodLog.findMany({ where: { user_id: user.id, logged_at: { gte: todayStart } } }),
         prisma.waterLog.findMany({ where: { user_id: user.id, logged_at: { gte: todayStart } } }),
         prisma.runLog.findMany({ where: { user_id: user.id, run_date: { gte: todayStart } } }),
+        prisma.workoutLog.findMany({
+          where: { user_id: user.id, workout_date: { gte: todayStart } },
+          include: { exercises: true },
+        }),
+        prisma.stepLog.findFirst({ where: { user_id: user.id, date: todayStart }, orderBy: { logged_at: 'desc' } }),
       ]);
 
-      if (foodLogs.length === 0) continue;
+      if (foodLogs.length === 0 && workoutLogs.length === 0) continue;
 
       const consumed = {
         calories: Math.round(foodLogs.reduce((s, l) => s + (l.calories ?? 0), 0)),
@@ -56,7 +62,8 @@ export async function GET(request: NextRequest) {
       };
       const meals = foodLogs.map(l => l.food_name).filter((n): n is string => !!n);
       const waterConsumed = waterLogs.reduce((s, l) => s + l.amount_liters, 0);
-      const exerciseCalories = runLogs.reduce((s, r) => s + r.calories_burned, 0);
+      const exerciseCalories = runLogs.reduce((s, r) => s + r.calories_burned, 0)
+        + workoutLogs.reduce((s, w) => s + (w.calories_burned ?? 0), 0);
       const dietaryRestrictions: string[] = user.dietary_restrictions
         ? JSON.parse(user.dietary_restrictions) : [];
 
@@ -70,9 +77,24 @@ export async function GET(request: NextRequest) {
         dietaryRestrictions,
       });
 
+      // Check for proactive nudge
+      const nudgeTopic = await determineNudgeTopic(user.id);
+      let nudgeText = "";
+      if (nudgeTopic) {
+        await recordNudge(user.id, nudgeTopic);
+        const nudgeLabels: Record<string, string> = {
+          inactivity: "You haven't worked out in a while — even a short session helps!",
+          recovery: "You've been training hard — consider a rest day for recovery.",
+          nutrition_gap: "Big burn today but intake is low — prioritise protein tonight.",
+          consistency: "Great consistency this week — keep the momentum going!",
+          steps: "Steps are below your average today — a short walk could help.",
+        };
+        nudgeText = `\n\n\u{1F4A1} ${nudgeLabels[nudgeTopic] ?? ""}`;
+      }
+
       await bot.api.sendMessage(
         Number(user.telegram_id),
-        `\u{1F4AC} <b>Daily Coach</b>\n\n${message}`,
+        `\u{1F4AC} <b>Daily Coach</b>\n\n${message}${nudgeText}`,
         { parse_mode: "HTML" },
       );
       sent++;

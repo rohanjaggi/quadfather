@@ -201,8 +201,60 @@ export default function SettingsPage() {
         </Link>
       </div>
 
-      {/* Smart Coaching */}
+      {/* Steps Sync */}
       <div className="fade-up fade-up-3">
+        <p style={{
+          fontFamily: 'var(--font-display)', fontSize: '12px',
+          fontWeight: 500, letterSpacing: '0.15em', textTransform: 'uppercase',
+          color: 'var(--tg-theme-hint-color)', marginBottom: '12px',
+        }}>
+          Integrations
+        </p>
+        <Link
+          href="/profile/steps-sync"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '14px',
+            padding: '16px 18px',
+            borderRadius: '16px',
+            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            textDecoration: 'none',
+          }}
+        >
+          <div style={{
+            width: 36, height: 36, borderRadius: '10px',
+            backgroundColor: 'var(--tg-theme-bg-color)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--tg-theme-hint-color)', flexShrink: 0,
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{
+              fontFamily: 'var(--font-display)', fontSize: '15px',
+              fontWeight: 500, color: 'var(--tg-theme-text-color)',
+            }}>
+              Steps Sync
+            </p>
+            <p style={{
+              fontFamily: 'var(--font-display)', fontSize: '12px',
+              color: 'var(--tg-theme-hint-color)', marginTop: '2px',
+            }}>
+              Auto-sync Apple Health steps via iOS Shortcut
+            </p>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="var(--tg-theme-hint-color)" strokeWidth="1.8"
+            strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.4 }}>
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
+      </div>
+
+      {/* Smart Coaching */}
+      <div className="fade-up fade-up-4">
         <p style={{
           fontFamily: 'var(--font-display)', fontSize: '12px',
           fontWeight: 500, letterSpacing: '0.15em', textTransform: 'uppercase',

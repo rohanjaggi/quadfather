@@ -54,24 +54,25 @@ export default function BottleCounter({
       <div style={{ textAlign: 'center' }}>
         <span style={{
           fontFamily: 'var(--font-display)',
-          fontSize: '60px',
-          fontWeight: 400,
+          fontSize: '48px',
+          fontWeight: 300,
           lineHeight: 1,
           color: 'var(--tg-theme-text-color)',
+          letterSpacing: '-0.02em',
         }}>
           {liters.toFixed(1)}
         </span>
         <span style={{
           fontFamily: 'var(--font-display)',
-          fontSize: '30px',
-          fontWeight: 400,
+          fontSize: '24px',
+          fontWeight: 300,
           color: 'var(--tg-theme-hint-color)',
-          marginLeft: '4px',
+          marginLeft: '3px',
         }}>
           L
         </span>
         <p style={{
-          fontFamily: 'var(--font-body)',
+          fontFamily: 'var(--font-display)',
           fontSize: '10px',
           letterSpacing: '0.09em',
           textTransform: 'uppercase',

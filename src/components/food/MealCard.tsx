@@ -97,7 +97,7 @@ export default function MealCard({
             { label: 'F', value: fats },
           ].map(({ label, value }) => (
             <span key={label} style={{
-              fontFamily: 'var(--font-body)',
+              fontFamily: 'var(--font-display)',
               fontSize: '10px',
               fontWeight: 500,
               letterSpacing: '0.03em',

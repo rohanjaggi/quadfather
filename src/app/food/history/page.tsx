@@ -85,7 +85,7 @@ export default function FoodHistoryPage() {
       <div className="fade-up">
         <Link href="/food" style={{
           display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-body)', fontSize: '13px',
+          fontFamily: 'var(--font-display)', fontSize: '13px',
           color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
           marginBottom: '12px',
         }}>
@@ -97,7 +97,7 @@ export default function FoodHistoryPage() {
         </Link>
         <h1 style={{
           fontFamily: 'var(--font-display)', fontSize: '32px',
-          fontWeight: 400, lineHeight: 1.1, color: 'var(--tg-theme-text-color)',
+          fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
         }}>
           History
         </h1>
@@ -136,7 +136,7 @@ export default function FoodHistoryPage() {
           </span>
           {displayDate(date) !== formatDate(date) && (
             <span style={{
-              fontFamily: 'var(--font-body)', fontSize: '11px',
+              fontFamily: 'var(--font-display)', fontSize: '11px',
               color: 'var(--tg-theme-hint-color)',
               letterSpacing: '0.02em',
             }}>
@@ -174,13 +174,13 @@ export default function FoodHistoryPage() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                   <span style={{
-                    fontFamily: 'var(--font-display)', fontSize: '28px',
+                    fontFamily: 'var(--font-display)', fontSize: '32px',
                     fontWeight: 600, color: 'var(--tg-theme-text-color)', lineHeight: 1,
                   }}>
                     {Math.round(totals.calories)}
                   </span>
                   <span style={{
-                    fontFamily: 'var(--font-body)', fontSize: '11px',
+                    fontFamily: 'var(--font-display)', fontSize: '11px',
                     color: 'var(--tg-theme-hint-color)',
                   }}>
                     kcal
@@ -208,13 +208,13 @@ export default function FoodHistoryPage() {
                 <div key={m.label}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
                     <span style={{
-                      fontFamily: 'var(--font-body)', fontSize: '12px',
+                      fontFamily: 'var(--font-display)', fontSize: '12px',
                       fontWeight: 500, color: 'var(--tg-theme-text-color)',
                     }}>
                       {m.label}
                     </span>
                     <span style={{
-                      fontFamily: 'var(--font-body)', fontSize: '12px',
+                      fontFamily: 'var(--font-display)', fontSize: '12px',
                       color: 'var(--tg-theme-hint-color)',
                     }}>
                       {m.value}g
@@ -245,7 +245,7 @@ export default function FoodHistoryPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Meals</span>
               <span style={{
-                fontFamily: 'var(--font-body)', fontSize: '11px',
+                fontFamily: 'var(--font-display)', fontSize: '11px',
                 fontWeight: 400, color: 'var(--tg-theme-hint-color)',
                 letterSpacing: '0',
                 textTransform: 'none',
@@ -265,7 +265,7 @@ export default function FoodHistoryPage() {
                 animation: 'spin 0.7s linear infinite',
               }} />
               <p style={{
-                fontFamily: 'var(--font-body)', fontSize: '12px',
+                fontFamily: 'var(--font-display)', fontSize: '12px',
                 color: 'var(--tg-theme-hint-color)',
               }}>
                 Loading meals
@@ -281,7 +281,7 @@ export default function FoodHistoryPage() {
                 Nothing here
               </p>
               <p style={{
-                fontFamily: 'var(--font-body)', fontSize: '12px',
+                fontFamily: 'var(--font-display)', fontSize: '12px',
                 color: 'var(--tg-theme-hint-color)',
               }}>
                 No meals were logged on this day

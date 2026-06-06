@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
 
-const SECTIONS = [
+const PROFILE_SECTIONS = [
   {
     href: '/profile/personal',
     title: 'Personal Info',
@@ -27,17 +27,6 @@ const SECTIONS = [
         <circle cx="12" cy="12" r="10" />
         <circle cx="12" cy="12" r="6" />
         <circle cx="12" cy="12" r="2" />
-      </svg>
-    ),
-  },
-  {
-    href: '/profile/api-key',
-    title: 'AI Provider',
-    description: 'Manage your API key for AI features',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
       </svg>
     ),
   },
@@ -67,25 +56,28 @@ export default function SettingsPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div className="fade-up" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <div style={{ flex: 1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+
+      {/* Header */}
+      <div className="fade-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
           <p style={{
-            fontFamily: 'var(--font-body)', fontSize: '11px',
-            letterSpacing: '0.1em', textTransform: 'uppercase',
-            color: 'var(--tg-theme-hint-color)', marginBottom: '5px',
+            fontFamily: 'var(--font-display)', fontSize: '12px',
+            fontWeight: 500, letterSpacing: '0.15em', textTransform: 'uppercase',
+            color: 'var(--tg-theme-hint-color)', marginBottom: '6px',
           }}>
             Profile
           </p>
           <h1 style={{
-            fontFamily: 'var(--font-display)', fontSize: '36px',
-            fontWeight: 400, lineHeight: 1.1, color: 'var(--tg-theme-text-color)',
+            fontFamily: 'var(--font-display)', fontSize: '32px',
+            fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em',
+            color: 'var(--tg-theme-text-color)',
           }}>
             Settings
           </h1>
           {user?.username && (
             <p style={{
-              fontFamily: 'var(--font-body)', fontSize: '13px',
+              fontFamily: 'var(--font-display)', fontSize: '14px',
               color: 'var(--tg-theme-hint-color)', marginTop: '6px',
             }}>
               @{user.username}
@@ -95,134 +87,145 @@ export default function SettingsPage() {
         <img
           src="/logo.png"
           alt="Quadfather"
-          style={{ width: '48px', height: '48px', flexShrink: 0 }}
+          style={{ width: '64px', height: '64px', flexShrink: 0 }}
         />
       </div>
 
-      {SECTIONS.slice(0, 2).map((s, i) => (
-        <Link
-          key={s.href}
-          href={s.href}
-          className={`fade-up fade-up-${i + 1}`}
-          style={{ textDecoration: 'none' }}
-        >
-          <div className="card" style={{
-            display: 'flex', alignItems: 'center', gap: '16px',
-            cursor: 'pointer',
-          }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: '12px',
-              backgroundColor: 'var(--tg-theme-bg-color)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--tg-theme-hint-color)', flexShrink: 0,
-            }}>
-              {s.icon}
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '17px',
-                fontWeight: 500, color: 'var(--tg-theme-text-color)',
-                marginBottom: '2px',
-              }}>
-                {s.title}
-              </p>
-              <p style={{
-                fontFamily: 'var(--font-body)', fontSize: '12px',
-                color: 'var(--tg-theme-hint-color)',
-              }}>
-                {s.description}
-              </p>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="var(--tg-theme-hint-color)" strokeWidth="1.6"
-              strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </div>
-        </Link>
-      ))}
-
-      <div className="fade-up fade-up-3" style={{
-        borderTop: '1px solid var(--surface-border)',
-        paddingTop: '18px',
-      }}>
+      {/* Profile & Goals */}
+      <div className="fade-up fade-up-1">
         <p style={{
-          fontFamily: 'var(--font-body)', fontSize: '10px',
-          letterSpacing: '0.08em', textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)', marginBottom: '14px',
+          fontFamily: 'var(--font-display)', fontSize: '12px',
+          fontWeight: 500, letterSpacing: '0.15em', textTransform: 'uppercase',
+          color: 'var(--tg-theme-hint-color)', marginBottom: '12px',
         }}>
-          Integrations
+          Profile & Goals
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {SECTIONS.slice(2).map((s, i) => (
+        <div style={{
+          display: 'flex', flexDirection: 'column',
+          borderRadius: '16px',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          overflow: 'hidden',
+        }}>
+          {PROFILE_SECTIONS.map((s, i) => (
             <Link
               key={s.href}
               href={s.href}
-              style={{ textDecoration: 'none' }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '16px 18px',
+                textDecoration: 'none',
+                borderTop: i === 0 ? 'none' : '1px solid var(--surface-border)',
+              }}
             >
-              <div className="card" style={{
-                display: 'flex', alignItems: 'center', gap: '16px',
-                cursor: 'pointer',
+              <div style={{
+                width: 36, height: 36, borderRadius: '10px',
+                backgroundColor: 'var(--tg-theme-bg-color)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--tg-theme-hint-color)', flexShrink: 0,
               }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: '12px',
-                  backgroundColor: 'var(--tg-theme-bg-color)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--tg-theme-hint-color)', flexShrink: 0,
-                }}>
-                  {s.icon}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '17px',
-                    fontWeight: 500, color: 'var(--tg-theme-text-color)',
-                    marginBottom: '2px',
-                  }}>
-                    {s.title}
-                  </p>
-                  <p style={{
-                    fontFamily: 'var(--font-body)', fontSize: '12px',
-                    color: 'var(--tg-theme-hint-color)',
-                  }}>
-                    {s.description}
-                  </p>
-                </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--tg-theme-hint-color)" strokeWidth="1.6"
-                  strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
+                {s.icon}
               </div>
+              <div style={{ flex: 1 }}>
+                <p style={{
+                  fontFamily: 'var(--font-display)', fontSize: '15px',
+                  fontWeight: 500, color: 'var(--tg-theme-text-color)',
+                }}>
+                  {s.title}
+                </p>
+                <p style={{
+                  fontFamily: 'var(--font-display)', fontSize: '12px',
+                  color: 'var(--tg-theme-hint-color)', marginTop: '2px',
+                }}>
+                  {s.description}
+                </p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="var(--tg-theme-hint-color)" strokeWidth="1.8"
+                strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.4 }}>
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </Link>
           ))}
         </div>
       </div>
 
-      <div className="fade-up fade-up-4" style={{
-        borderTop: '1px solid var(--surface-border)',
-        paddingTop: '18px',
-      }}>
+      {/* API Key */}
+      <div className="fade-up fade-up-2">
         <p style={{
-          fontFamily: 'var(--font-body)', fontSize: '10px',
-          letterSpacing: '0.08em', textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)', marginBottom: '14px',
+          fontFamily: 'var(--font-display)', fontSize: '12px',
+          fontWeight: 500, letterSpacing: '0.15em', textTransform: 'uppercase',
+          color: 'var(--tg-theme-hint-color)', marginBottom: '12px',
         }}>
-          AI Features
+          AI Provider
         </p>
-        <div className="card" style={{
+        <Link
+          href="/profile/api-key"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '14px',
+            padding: '16px 18px',
+            borderRadius: '16px',
+            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            textDecoration: 'none',
+          }}
+        >
+          <div style={{
+            width: 36, height: 36, borderRadius: '10px',
+            backgroundColor: 'var(--tg-theme-bg-color)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--tg-theme-hint-color)', flexShrink: 0,
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{
+              fontFamily: 'var(--font-display)', fontSize: '15px',
+              fontWeight: 500, color: 'var(--tg-theme-text-color)',
+            }}>
+              API Key
+            </p>
+            <p style={{
+              fontFamily: 'var(--font-display)', fontSize: '12px',
+              color: 'var(--tg-theme-hint-color)', marginTop: '2px',
+            }}>
+              Manage your key for AI features
+            </p>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="var(--tg-theme-hint-color)" strokeWidth="1.8"
+            strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.4 }}>
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
+      </div>
+
+      {/* Smart Coaching */}
+      <div className="fade-up fade-up-3">
+        <p style={{
+          fontFamily: 'var(--font-display)', fontSize: '12px',
+          fontWeight: 500, letterSpacing: '0.15em', textTransform: 'uppercase',
+          color: 'var(--tg-theme-hint-color)', marginBottom: '12px',
+        }}>
+          Smart Coaching
+        </p>
+        <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 18px',
+          borderRadius: '16px',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
         }}>
           <div>
             <p style={{
-              fontFamily: 'var(--font-display)', fontSize: '17px',
+              fontFamily: 'var(--font-display)', fontSize: '15px',
               fontWeight: 500, color: 'var(--tg-theme-text-color)',
-              marginBottom: '2px',
             }}>
-              Smart Coaching
+              AI Coaching
             </p>
             <p style={{
-              fontFamily: 'var(--font-body)', fontSize: '12px',
-              color: 'var(--tg-theme-hint-color)',
+              fontFamily: 'var(--font-display)', fontSize: '12px',
+              color: 'var(--tg-theme-hint-color)', marginTop: '2px',
             }}>
               Daily tips & weekly insights via Telegram
             </p>
@@ -243,14 +246,16 @@ export default function SettingsPage() {
           >
             <div style={{
               width: '20px', height: '20px', borderRadius: '50%',
-              backgroundColor: '#fff',
+              backgroundColor: 'var(--tg-theme-bg-color)',
               position: 'absolute', top: '3px',
               left: aiEnabled ? '21px' : '3px',
               transition: 'left 0.2s ease',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
             }} />
           </button>
         </div>
       </div>
+
     </div>
   )
 }

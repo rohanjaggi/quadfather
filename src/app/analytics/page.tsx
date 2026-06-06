@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import SummaryCard from '@/components/dashboard/SummaryCard'
-import { getAnalytics, getRunningAnalytics } from '@/lib/api'
+import { getAnalytics, getRunningAnalytics, getAnalyticsInsights } from '@/lib/api'
 import type { AnalyticsResponse, AnalyticsDayData } from '@/types/api'
 import type { RunningAnalyticsResponse } from '@/types/running'
 
@@ -35,14 +35,27 @@ interface BarChartProps {
 
 function BarChart({ days, getValue, goal, color, unit, period }: BarChartProps) {
   const [mounted, setMounted] = useState(false)
+  const [selected, setSelected] = useState<number | null>(null)
   useEffect(() => { setMounted(true) }, [])
 
   const max = Math.max(goal, ...days.map(getValue))
-  // For 30-day view, only show every ~5th label to avoid crowding
   const labelEvery = period === 30 ? 5 : 1
 
   return (
     <div>
+      {selected !== null && days[selected] && (
+        <div style={{
+          display: 'flex', justifyContent: 'center', marginBottom: '8px',
+        }}>
+          <span style={{
+            fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 500,
+            color, padding: '4px 10px',
+            borderRadius: '8px', backgroundColor: 'var(--tg-theme-bg-color)',
+          }}>
+            {period === 7 ? dayLabel(days[selected].date) : shortDate(days[selected].date)}: {Math.round(getValue(days[selected]) * 10) / 10}{unit}
+          </span>
+        </div>
+      )}
       <div style={{
         display: 'flex',
         alignItems: 'flex-end',
@@ -53,9 +66,11 @@ function BarChart({ days, getValue, goal, color, unit, period }: BarChartProps) 
           const val = getValue(d)
           const heightPct = max > 0 ? val / max : 0
           const atGoal = val >= goal * 0.9
+          const isSelected = selected === i
           return (
             <div
               key={d.date}
+              onClick={() => setSelected(prev => prev === i ? null : i)}
               style={{
                 flex: 1,
                 display: 'flex',
@@ -64,6 +79,7 @@ function BarChart({ days, getValue, goal, color, unit, period }: BarChartProps) 
                 gap: '3px',
                 height: '100%',
                 justifyContent: 'flex-end',
+                cursor: 'pointer',
               }}
             >
               <div
@@ -71,11 +87,12 @@ function BarChart({ days, getValue, goal, color, unit, period }: BarChartProps) 
                   width: '100%',
                   borderRadius: '4px 4px 2px 2px',
                   backgroundColor: color,
-                  opacity: atGoal ? 1 : 0.4,
+                  opacity: isSelected ? 1 : (atGoal ? 1 : 0.4),
                   height: mounted ? `${Math.max(heightPct * 100, val > 0 ? 4 : 0)}%` : '0%',
                   transition: 'height 0.5s var(--ease-smooth), opacity 0.3s ease',
                   transitionDelay: `${i * 40}ms`,
                   minHeight: val > 0 ? '3px' : '0',
+                  boxShadow: isSelected ? `0 0 0 2px ${color}` : 'none',
                 }}
               />
             </div>
@@ -93,9 +110,10 @@ function BarChart({ days, getValue, goal, color, unit, period }: BarChartProps) 
           <div key={d.date} style={{ flex: 1, textAlign: 'center' }}>
             {(period === 7 || i % labelEvery === 0) && (
               <span style={{
-                fontFamily: 'var(--font-body)',
+                fontFamily: 'var(--font-display)',
                 fontSize: period === 30 ? '8px' : '9px',
-                color: 'var(--tg-theme-hint-color)',
+                color: selected === i ? color : 'var(--tg-theme-hint-color)',
+                fontWeight: selected === i ? 600 : 400,
                 display: 'block',
               }}>
                 {period === 7 ? dayLabel(d.date) : shortDate(d.date)}
@@ -118,14 +136,30 @@ interface StatRowProps {
 function StatRow({ label, value, sub, color }: StatRowProps) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-      <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
         {label}
       </span>
       <span style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 500, color: color ?? 'var(--tg-theme-text-color)' }}>
         {value}
-        {sub && <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginLeft: '3px' }}>{sub}</span>}
+        {sub && <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginLeft: '3px' }}>{sub}</span>}
       </span>
     </div>
+  )
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <p style={{
+      fontFamily: 'var(--font-display)',
+      fontSize: '11px',
+      fontWeight: 500,
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+      color: 'var(--tg-theme-hint-color)',
+      marginBottom: '-10px',
+    }}>
+      {title}
+    </p>
   )
 }
 
@@ -181,6 +215,24 @@ export default function AnalyticsPage() {
     ? days.filter(d => d.meals_logged > 0 && d.protein >= goals.protein * 0.9).length
     : 0
 
+  const [insight, setInsight] = useState<string | null>(null)
+  const [insightLoading, setInsightLoading] = useState(false)
+  const [insightError, setInsightError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setInsight(null)
+    setInsightError(null)
+  }, [period])
+
+  function handleGetInsights() {
+    setInsightLoading(true)
+    setInsightError(null)
+    getAnalyticsInsights(period)
+      .then(data => setInsight(data.insight))
+      .catch(err => setInsightError(err instanceof Error ? err.message : 'Failed to generate insights'))
+      .finally(() => setInsightLoading(false))
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
@@ -188,9 +240,10 @@ export default function AnalyticsPage() {
       <div className="fade-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
           <p style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '11px',
-            letterSpacing: '0.1em',
+            fontFamily: 'var(--font-display)',
+            fontSize: '12px',
+            fontWeight: 500,
+            letterSpacing: '0.15em',
             textTransform: 'uppercase',
             color: 'var(--tg-theme-hint-color)',
             marginBottom: '5px',
@@ -199,9 +252,10 @@ export default function AnalyticsPage() {
           </p>
           <h1 style={{
             fontFamily: 'var(--font-display)',
-            fontSize: '36px',
-            fontWeight: 400,
-            lineHeight: 1.1,
+            fontSize: '32px',
+            fontWeight: 700,
+            lineHeight: 1.15,
+            letterSpacing: '-0.02em',
             color: 'var(--tg-theme-text-color)',
           }}>
             Trends
@@ -226,7 +280,7 @@ export default function AnalyticsPage() {
                 border: 'none',
                 backgroundColor: period === p ? 'var(--tg-theme-button-color)' : 'transparent',
                 color: period === p ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-hint-color)',
-                fontFamily: 'var(--font-body)',
+                fontFamily: 'var(--font-display)',
                 fontSize: '12px',
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -258,7 +312,7 @@ export default function AnalyticsPage() {
               border: 'none',
               backgroundColor: domain === d ? 'var(--tg-theme-button-color)' : 'transparent',
               color: domain === d ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-hint-color)',
-              fontFamily: 'var(--font-body)',
+              fontFamily: 'var(--font-display)',
               fontSize: '12px',
               fontWeight: 500,
               cursor: 'pointer',
@@ -273,13 +327,14 @@ export default function AnalyticsPage() {
 
       {domain === 'food' && loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
             Loading…
           </p>
         </div>
       ) : (
         <>
           {domain === 'food' && !loading && (<>
+          <SectionHeader title="Overview" />
           {/* Summary stats */}
           <div className="fade-up fade-up-1">
             <SummaryCard title={`${period}-day average`}>
@@ -302,9 +357,9 @@ export default function AnalyticsPage() {
                       }}>
                         <p style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 500, color: 'var(--accent-calories)', margin: 0 }}>
                           {calorieGoalDays}
-                          <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>d</span>
+                          <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>d</span>
                         </p>
-                        <p style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '2px' }}>
+                        <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '2px' }}>
                           Calorie goal
                         </p>
                       </div>
@@ -315,9 +370,9 @@ export default function AnalyticsPage() {
                       }}>
                         <p style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 500, color: 'var(--accent-protein)', margin: 0 }}>
                           {proteinGoalDays}
-                          <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>d</span>
+                          <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>d</span>
                         </p>
-                        <p style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '2px' }}>
+                        <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '2px' }}>
                           Protein goal
                         </p>
                       </div>
@@ -328,15 +383,163 @@ export default function AnalyticsPage() {
             </SummaryCard>
           </div>
 
-          {/* Calories chart */}
+          {/* Macro split */}
+          {days.length > 0 && activeDays.length > 0 && (
+            <div className="fade-up fade-up-2">
+              <SummaryCard title="Macro split (avg)">
+                {(() => {
+                  const avgCarbs = Math.round(activeDays.reduce((s, d) => s + d.carbohydrates, 0) / activeDays.length)
+                  const avgFatsVal = Math.round(activeDays.reduce((s, d) => s + d.fats, 0) / activeDays.length)
+                  const totalCals = avgCalories || 1
+                  const pP = Math.round((avgProtein * 4 / totalCals) * 100)
+                  const pC = Math.round((avgCarbs * 4 / totalCals) * 100)
+                  const pF = Math.round((avgFatsVal * 9 / totalCals) * 100)
+                  const segments = [
+                    { label: 'P', pct: pP, color: 'var(--accent-protein)' },
+                    { label: 'C', pct: pC, color: 'var(--accent-calories)' },
+                    { label: 'F', pct: pF, color: 'var(--accent-fats)' },
+                  ]
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ display: 'flex', height: '8px', borderRadius: '99px', overflow: 'hidden', gap: '2px' }}>
+                        {segments.map(s => (
+                          <div key={s.label} style={{
+                            flex: s.pct,
+                            backgroundColor: s.color,
+                            borderRadius: '99px',
+                            transition: 'flex 0.5s var(--ease-smooth)',
+                          }} />
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: '16px' }}>
+                        {[
+                          { label: 'Protein', val: `${avgProtein}g`, pct: pP, color: 'var(--accent-protein)' },
+                          { label: 'Carbs', val: `${avgCarbs}g`, pct: pC, color: 'var(--accent-calories)' },
+                          { label: 'Fats', val: `${avgFatsVal}g`, pct: pF, color: 'var(--accent-fats)' },
+                        ].map(m => (
+                          <div key={m.label} style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
+                              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: m.color }} />
+                              <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{m.label}</span>
+                            </div>
+                            <span style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>{m.val}</span>
+                            <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginLeft: '3px' }}>{m.pct}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+              </SummaryCard>
+            </div>
+          )}
+
+          <SectionHeader title="AI Coach" />
           <div className="fade-up fade-up-2">
+            <SummaryCard title="Nutrition Insights">
+              {insight ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <p style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '14px',
+                    lineHeight: '1.6',
+                    color: 'var(--tg-theme-text-color)',
+                  }}>
+                    {insight}
+                  </p>
+                  <button
+                    onClick={handleGetInsights}
+                    disabled={insightLoading}
+                    style={{
+                      alignSelf: 'center',
+                      background: 'none',
+                      border: '1px solid var(--surface-border)',
+                      padding: '8px 18px',
+                      borderRadius: '99px',
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '11px',
+                      color: 'var(--tg-theme-hint-color)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Regenerate
+                  </button>
+                </div>
+              ) : insightLoading ? (
+                <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                  <div style={{
+                    width: '20px', height: '20px', margin: '0 auto 10px',
+                    border: '2px solid var(--surface-border)',
+                    borderTopColor: 'var(--accent)',
+                    borderRadius: '50%',
+                    animation: 'spin 0.7s linear infinite',
+                  }} />
+                  <p style={{
+                    fontFamily: 'var(--font-display)', fontSize: '12px',
+                    color: 'var(--tg-theme-hint-color)',
+                  }}>
+                    Analyzing your {period}-day data...
+                  </p>
+                </div>
+              ) : insightError ? (
+                <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                  <p style={{
+                    fontFamily: 'var(--font-display)', fontSize: '12px',
+                    color: 'var(--accent-calories)', marginBottom: '10px',
+                  }}>
+                    {insightError}
+                  </p>
+                  <button
+                    onClick={handleGetInsights}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--surface-border)',
+                      padding: '8px 18px',
+                      borderRadius: '99px',
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '11px',
+                      color: 'var(--tg-theme-hint-color)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                  <p style={{
+                    fontFamily: 'var(--font-display)', fontSize: '12px',
+                    color: 'var(--tg-theme-hint-color)', marginBottom: '12px',
+                  }}>
+                    Get AI-powered feedback on your {period}-day nutrition patterns
+                  </p>
+                  <button
+                    onClick={handleGetInsights}
+                    className="btn-primary"
+                    style={{
+                      width: 'auto',
+                      padding: '10px 24px',
+                      borderRadius: '99px',
+                      fontSize: '12px',
+                    }}
+                  >
+                    Get Insights
+                  </button>
+                </div>
+              )}
+            </SummaryCard>
+          </div>
+
+          <SectionHeader title="Daily Trends" />
+          {/* Calories chart */}
+          <div className="fade-up fade-up-3">
             <SummaryCard title="Calories">
               {days.length > 0 && goals ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {/* Goal line label */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <span style={{
-                      fontFamily: 'var(--font-body)', fontSize: '10px',
+                      fontFamily: 'var(--font-display)', fontSize: '10px',
                       color: 'var(--tg-theme-hint-color)',
                       letterSpacing: '0.06em',
                     }}>
@@ -354,7 +557,7 @@ export default function AnalyticsPage() {
                   />
                 </div>
               ) : (
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
                   No data yet
                 </p>
               )}
@@ -362,12 +565,12 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Protein chart */}
-          <div className="fade-up fade-up-3">
+          <div className="fade-up fade-up-4">
             <SummaryCard title="Protein">
               {days.length > 0 && goals ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
                       Goal: {goals.protein}g
                     </span>
                   </div>
@@ -382,7 +585,7 @@ export default function AnalyticsPage() {
                   />
                 </div>
               ) : (
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
                   No data yet
                 </p>
               )}
@@ -395,7 +598,7 @@ export default function AnalyticsPage() {
               {days.length > 0 && goals ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
                       Goal: {goals.water}L
                     </span>
                   </div>
@@ -410,7 +613,7 @@ export default function AnalyticsPage() {
                   />
                 </div>
               ) : (
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
                   No data yet
                 </p>
               )}
@@ -423,7 +626,7 @@ export default function AnalyticsPage() {
               {days.length > 0 && goals ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
                       Goal: {goals.fiber}g
                     </span>
                   </div>
@@ -438,70 +641,18 @@ export default function AnalyticsPage() {
                   />
                 </div>
               ) : (
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
                   No data yet
                 </p>
               )}
             </SummaryCard>
           </div>
 
-          {/* Macro split — show only for 7-day */}
-          {period === 7 && days.length > 0 && activeDays.length > 0 && (
-            <div className="fade-up fade-up-4">
-              <SummaryCard title="Macro split (avg)">
-                {(() => {
-                  const avgCarbs = Math.round(activeDays.reduce((s, d) => s + d.carbohydrates, 0) / activeDays.length)
-                  const avgFats = Math.round(activeDays.reduce((s, d) => s + d.fats, 0) / activeDays.length)
-                  const totalCals = avgCalories || 1
-                  const pP = Math.round((avgProtein * 4 / totalCals) * 100)
-                  const pC = Math.round((avgCarbs * 4 / totalCals) * 100)
-                  const pF = Math.round((avgFats * 9 / totalCals) * 100)
-                  const segments = [
-                    { label: 'P', pct: pP, color: 'var(--accent-protein)' },
-                    { label: 'C', pct: pC, color: 'var(--accent-calories)' },
-                    { label: 'F', pct: pF, color: '#C4A55A' },
-                  ]
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      {/* Stacked bar */}
-                      <div style={{ display: 'flex', height: '8px', borderRadius: '99px', overflow: 'hidden', gap: '2px' }}>
-                        {segments.map(s => (
-                          <div key={s.label} style={{
-                            flex: s.pct,
-                            backgroundColor: s.color,
-                            borderRadius: '99px',
-                            transition: 'flex 0.5s var(--ease-smooth)',
-                          }} />
-                        ))}
-                      </div>
-                      {/* Labels */}
-                      <div style={{ display: 'flex', gap: '16px' }}>
-                        {[
-                          { label: 'Protein', val: `${avgProtein}g`, pct: pP, color: 'var(--accent-protein)' },
-                          { label: 'Carbs', val: `${avgCarbs}g`, pct: pC, color: 'var(--accent-calories)' },
-                          { label: 'Fats', val: `${avgFats}g`, pct: pF, color: '#C4A55A' },
-                        ].map(m => (
-                          <div key={m.label} style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
-                              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: m.color }} />
-                              <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{m.label}</span>
-                            </div>
-                            <span style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>{m.val}</span>
-                            <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginLeft: '3px' }}>{m.pct}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })()}
-              </SummaryCard>
-            </div>
-          )}
           </>)}
 
           {domain === 'running' && runningLoading && (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
                 Loading…
               </p>
             </div>
@@ -540,7 +691,7 @@ export default function AnalyticsPage() {
                       period={period}
                     />
                   ) : (
-                    <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
                       No data yet
                     </p>
                   )}
@@ -565,7 +716,7 @@ export default function AnalyticsPage() {
                       period={period}
                     />
                   ) : (
-                    <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
                       No data yet
                     </p>
                   )}
@@ -590,7 +741,7 @@ export default function AnalyticsPage() {
                       period={period}
                     />
                   ) : (
-                    <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
                       No data yet
                     </p>
                   )}

@@ -24,7 +24,7 @@ export default function ComingSoon() {
         Coming soon
       </p>
       <p style={{
-        fontFamily: 'var(--font-body)',
+        fontFamily: 'var(--font-display)',
         fontSize: '13px',
         color: 'var(--tg-theme-hint-color)',
         lineHeight: 1.7,

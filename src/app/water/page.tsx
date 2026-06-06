@@ -48,7 +48,7 @@ export default function WaterPage() {
       <div className="fade-up">
         <Link href="/food" style={{
           display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-body)', fontSize: '13px',
+          fontFamily: 'var(--font-display)', fontSize: '13px',
           color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
           marginBottom: '12px',
         }}>
@@ -59,9 +59,10 @@ export default function WaterPage() {
           Nutrition
         </Link>
         <p style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: '11px',
-          letterSpacing: '0.1em',
+          fontFamily: 'var(--font-display)',
+          fontSize: '12px',
+          fontWeight: 500,
+          letterSpacing: '0.15em',
           textTransform: 'uppercase',
           color: 'var(--tg-theme-hint-color)',
           marginBottom: '5px',
@@ -70,9 +71,10 @@ export default function WaterPage() {
         </p>
         <h1 style={{
           fontFamily: 'var(--font-display)',
-          fontSize: '36px',
-          fontWeight: 400,
-          lineHeight: 1.1,
+          fontSize: '32px',
+          fontWeight: 700,
+          lineHeight: 1.15,
+          letterSpacing: '-0.02em',
           color: 'var(--tg-theme-text-color)',
         }}>
           Water Intake
@@ -105,7 +107,7 @@ export default function WaterPage() {
               border: '1px dashed var(--accent-water)',
               background: 'transparent',
               color: 'var(--accent-water)',
-              fontFamily: 'var(--font-body)',
+              fontFamily: 'var(--font-display)',
               fontSize: '13px',
               fontWeight: 500,
               cursor: 'pointer',
@@ -132,7 +134,7 @@ export default function WaterPage() {
               alignItems: 'center',
               justifyContent: 'space-between',
             }}>
-              <span className="label-caps" style={{ letterSpacing: '0.1em', marginBottom: 0 }}>
+              <span className="label-caps" style={{ letterSpacing: '0.15em', marginBottom: 0 }}>
                 Custom Amount
               </span>
               <button
@@ -173,7 +175,7 @@ export default function WaterPage() {
                 right: '16px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                fontFamily: 'var(--font-body)',
+                fontFamily: 'var(--font-display)',
                 fontSize: '13px',
                 fontWeight: 500,
                 color: 'var(--tg-theme-hint-color)',
@@ -210,7 +212,7 @@ export default function WaterPage() {
         <Link
           href="/profile/goals"
           style={{
-            fontFamily: 'var(--font-body)',
+            fontFamily: 'var(--font-display)',
             fontSize: '12px',
             color: 'var(--tg-theme-hint-color)',
             textDecoration: 'none',
@@ -260,7 +262,7 @@ export default function WaterPage() {
 
                     {/* Time */}
                     <span style={{
-                      fontFamily: 'var(--font-body)',
+                      fontFamily: 'var(--font-display)',
                       fontSize: '11px',
                       color: 'var(--tg-theme-hint-color)',
                       flexShrink: 0,
@@ -293,7 +295,7 @@ export default function WaterPage() {
 
                     {/* Running total label */}
                     <span style={{
-                      fontFamily: 'var(--font-body)',
+                      fontFamily: 'var(--font-display)',
                       fontSize: '11px',
                       color: 'var(--tg-theme-hint-color)',
                       flexShrink: 0,

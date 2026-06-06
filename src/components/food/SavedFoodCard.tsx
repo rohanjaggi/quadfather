@@ -130,7 +130,7 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
           {food.name}
         </p>
         <p style={{
-          fontFamily: 'var(--font-body)',
+          fontFamily: 'var(--font-display)',
           fontSize: '11px',
           color: 'var(--tg-theme-hint-color)',
         }}>

@@ -83,7 +83,7 @@ export default function GoalsPage() {
   }
 
   const labelStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-body)',
+    fontFamily: 'var(--font-display)',
     fontSize: '12px',
     fontWeight: 500,
     color: 'var(--tg-theme-text-color)',
@@ -96,7 +96,7 @@ export default function GoalsPage() {
       <div className="fade-up">
         <Link href="/profile" style={{
           display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-body)', fontSize: '13px',
+          fontFamily: 'var(--font-display)', fontSize: '13px',
           color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
           marginBottom: '12px',
         }}>
@@ -108,7 +108,7 @@ export default function GoalsPage() {
         </Link>
         <h1 style={{
           fontFamily: 'var(--font-display)', fontSize: '32px',
-          fontWeight: 400, lineHeight: 1.1, color: 'var(--tg-theme-text-color)',
+          fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
         }}>
           Daily Goals
         </h1>
@@ -117,7 +117,7 @@ export default function GoalsPage() {
       {/* Generate Goals card */}
       <div className="card fade-up fade-up-1">
         <p style={{
-          fontFamily: 'var(--font-body)', fontSize: '11px',
+          fontFamily: 'var(--font-display)', fontSize: '11px',
           letterSpacing: '0.08em', textTransform: 'uppercase',
           color: 'var(--tg-theme-hint-color)', marginBottom: '8px',
         }}>
@@ -126,7 +126,7 @@ export default function GoalsPage() {
         {canGenerate ? (
           <>
             <p style={{
-              fontFamily: 'var(--font-body)', fontSize: '13px',
+              fontFamily: 'var(--font-display)', fontSize: '13px',
               color: 'var(--tg-theme-hint-color)', marginBottom: '12px',
             }}>
               Calculate targets from your personal info using TDEE. These are estimates based on the Mifflin-St Jeor equation and general guidelines — adjust to suit your needs.
@@ -143,7 +143,7 @@ export default function GoalsPage() {
         ) : (
           <>
             <p style={{
-              fontFamily: 'var(--font-body)', fontSize: '13px',
+              fontFamily: 'var(--font-display)', fontSize: '13px',
               color: 'var(--tg-theme-hint-color)', marginBottom: '12px',
             }}>
               Set your personal info first to auto-generate goals.
@@ -166,7 +166,7 @@ export default function GoalsPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
               <label style={labelStyle}>Calories</label>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>kcal</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>kcal</span>
             </div>
             <input
               type="number"
@@ -183,7 +183,7 @@ export default function GoalsPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
               <label style={labelStyle}>Protein</label>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
             </div>
             <input
               type="number"
@@ -200,7 +200,7 @@ export default function GoalsPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
               <label style={labelStyle}>Carbohydrates</label>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
             </div>
             <input
               type="number"
@@ -217,7 +217,7 @@ export default function GoalsPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
               <label style={labelStyle}>Fats</label>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
             </div>
             <input
               type="number"
@@ -234,7 +234,7 @@ export default function GoalsPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
               <label style={labelStyle}>Fiber</label>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
             </div>
             <input
               type="number"
@@ -252,7 +252,7 @@ export default function GoalsPage() {
         {/* Water section */}
         <div className="fade-up fade-up-2" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '4px' }}>
           <p style={{
-            fontFamily: 'var(--font-body)', fontSize: '11px',
+            fontFamily: 'var(--font-display)', fontSize: '11px',
             letterSpacing: '0.08em', textTransform: 'uppercase',
             color: 'var(--tg-theme-hint-color)', marginBottom: '-4px',
           }}>
@@ -263,7 +263,7 @@ export default function GoalsPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
               <label style={labelStyle}>Daily Water</label>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>L</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>L</span>
             </div>
             <input
               type="number"
@@ -280,7 +280,7 @@ export default function GoalsPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
               <label style={labelStyle}>Bottle Size</label>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>L</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>L</span>
             </div>
             <input
               type="number"

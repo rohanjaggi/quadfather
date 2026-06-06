@@ -17,7 +17,7 @@ export default function BurnSummary() {
     }}>
       <div>
         <p style={{
-          fontFamily: 'var(--font-body)',
+          fontFamily: 'var(--font-display)',
           fontSize: '11px',
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
@@ -35,7 +35,7 @@ export default function BurnSummary() {
         }}>
           +{Math.round(totalBurn)}
           <span style={{
-            fontFamily: 'var(--font-body)',
+            fontFamily: 'var(--font-display)',
             fontSize: '12px',
             color: 'var(--tg-theme-hint-color)',
             marginLeft: '4px',
@@ -45,7 +45,7 @@ export default function BurnSummary() {
         </p>
       </div>
       <div style={{
-        fontFamily: 'var(--font-body)',
+        fontFamily: 'var(--font-display)',
         fontSize: '11px',
         color: 'var(--tg-theme-hint-color)',
         textAlign: 'right',

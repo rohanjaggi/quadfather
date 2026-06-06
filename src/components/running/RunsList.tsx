@@ -11,7 +11,7 @@ export default function RunsList() {
     <SummaryCard title="Today's Runs">
       {runLogs.length === 0 ? (
         <p style={{
-          fontFamily: 'var(--font-body)',
+          fontFamily: 'var(--font-display)',
           fontSize: '13px',
           color: 'var(--tg-theme-hint-color)',
           textAlign: 'center',

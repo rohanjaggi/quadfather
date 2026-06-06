@@ -43,26 +43,6 @@ function mergeActivity(foodLogs: FoodLog[], waterLogs: WaterLog[]): ActivityItem
   return items.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5)
 }
 
-function FoodDot() {
-  return (
-    <div style={{
-      width: 8, height: 8, borderRadius: '50%',
-      backgroundColor: 'var(--accent-calories)',
-      flexShrink: 0,
-    }} />
-  )
-}
-
-function WaterDot() {
-  return (
-    <div style={{
-      width: 8, height: 8, borderRadius: '50%',
-      backgroundColor: 'var(--accent-water)',
-      flexShrink: 0,
-    }} />
-  )
-}
-
 export default function RecentActivity({
   foodLogs,
   waterLogs,
@@ -74,16 +54,22 @@ export default function RecentActivity({
 
   if (items.length === 0) {
     return (
-      <div className="card">
-        <p className="label-caps" style={{ letterSpacing: '0.1em', marginBottom: '14px' }}>
-          Recent Activity
+      <div style={{ fontFamily: 'var(--font-display)' }}>
+        <p style={{
+          fontSize: '11px',
+          fontWeight: 600,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: 'var(--tg-theme-hint-color)',
+          marginBottom: '14px',
+        }}>
+          Recent
         </p>
         <p style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: '13px',
+          fontSize: '14px',
           color: 'var(--tg-theme-hint-color)',
           textAlign: 'center',
-          padding: '12px 0',
+          padding: '24px 0',
         }}>
           Nothing logged yet today
         </p>
@@ -92,11 +78,24 @@ export default function RecentActivity({
   }
 
   return (
-    <div className="card">
-      <p className="label-caps" style={{ letterSpacing: '0.1em', marginBottom: '14px' }}>
-        Recent Activity
+    <div style={{ fontFamily: 'var(--font-display)' }}>
+      <p style={{
+        fontSize: '12px',
+        fontWeight: 500,
+        letterSpacing: '0.15em',
+        textTransform: 'uppercase',
+        color: 'var(--tg-theme-hint-color)',
+        marginBottom: '14px',
+      }}>
+        Recent
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: '16px',
+        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+        overflow: 'hidden',
+      }}>
         {items.map((item, i) => (
           <div
             key={item.id}
@@ -104,17 +103,19 @@ export default function RecentActivity({
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
-              paddingBottom: i === items.length - 1 ? 0 : '12px',
-              marginBottom: i === items.length - 1 ? 0 : '12px',
-              borderBottom: i === items.length - 1 ? 'none' : '1px solid var(--surface-border)',
+              padding: '14px 16px',
+              borderTop: i === 0 ? 'none' : '1px solid var(--surface-border)',
             }}
           >
-            {item.type === 'food' ? <FoodDot /> : <WaterDot />}
+            <div style={{
+              width: 6, height: 6, borderRadius: '50%',
+              backgroundColor: item.type === 'food' ? 'var(--accent-calories)' : 'var(--accent-water)',
+              flexShrink: 0,
+            }} />
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: '13px',
+                fontSize: '14px',
                 fontWeight: 500,
                 color: 'var(--tg-theme-text-color)',
                 overflow: 'hidden',
@@ -123,22 +124,21 @@ export default function RecentActivity({
               }}>
                 {item.label}
               </p>
-              {item.detail && (
-                <p style={{
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '11px',
-                  color: 'var(--tg-theme-hint-color)',
-                  marginTop: '2px',
-                }}>
-                  {item.detail}
-                </p>
-              )}
             </div>
 
             <span style={{
-              fontFamily: 'var(--font-body)',
+              fontSize: '12px',
+              fontWeight: 500,
+              color: 'var(--tg-theme-hint-color)',
+              flexShrink: 0,
+            }}>
+              {item.detail}
+            </span>
+
+            <span style={{
               fontSize: '11px',
               color: 'var(--tg-theme-hint-color)',
+              opacity: 0.6,
               flexShrink: 0,
             }}>
               {item.time}

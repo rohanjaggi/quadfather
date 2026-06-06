@@ -29,7 +29,7 @@ export default function CollapsibleSection({
           transition: 'margin-bottom 0.3s var(--ease-smooth)',
         }}
       >
-        <span className="label-caps" style={{ letterSpacing: '0.1em', marginBottom: 0 }}>
+        <span className="label-caps" style={{ letterSpacing: '0.09em', marginBottom: 0 }}>
           {title}
         </span>
         <svg

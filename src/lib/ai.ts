@@ -643,3 +643,76 @@ Convert all units to metric (meters, seconds, min/km).`
 
   return data
 }
+
+const TRENDS_COACH_PROMPT = `You are a friendly, knowledgeable nutrition coach reviewing a client's food tracking data. Speak naturally — like a nutritionist chatting with them over coffee. No bullet points, no headers, no formatting. Just 3-4 sentences of warm, specific feedback.
+
+Period: {period} days
+Goals: {goals}
+{restrictions_block}
+
+Day-by-day data:
+{daily_breakdown}
+
+Averages: {averages}
+Macro split: {macro_split}
+Exercise: {exercise_total} kcal burned across {exercise_sessions} sessions
+
+Guidelines for your response:
+- Reference specific numbers and patterns you see (e.g. "Your protein dropped to 80g on the last two days")
+- Acknowledge one thing they're doing well
+- Give one specific, actionable suggestion for the next few days
+- If they have dietary restrictions, factor those into suggestions (e.g. plant-based protein sources)
+- For 7-day data: focus on recent momentum and day-to-day consistency
+- For 30-day data: focus on longer-term trends and weekly patterns
+- Keep it conversational — like texting a friend who happens to be a nutritionist`;
+
+export async function generateTrendsCoach(
+  provider: AIProvider,
+  apiKey: string,
+  model: string | null,
+  context: {
+    period: number;
+    goals: { calories: number; protein: number; carbs: number; fats: number; fiber: number; water: number };
+    days: { date: string; calories: number; protein: number; carbs: number; fats: number; fiber: number; water: number; meals_logged: number }[];
+    exerciseTotal: number;
+    exerciseSessions: number;
+    dietaryRestrictions: string[];
+  },
+): Promise<string> {
+  const resolvedModel = getModelForProvider(provider, model);
+
+  const restrictionsBlock = context.dietaryRestrictions.length > 0
+    ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
+    : 'No dietary restrictions noted.';
+
+  const dailyBreakdown = context.days.map(d =>
+    `${d.date}: ${d.calories} kcal, ${d.protein}g P, ${d.carbs}g C, ${d.fats}g F, ${d.fiber}g fiber, ${d.water.toFixed(1)}L water (${d.meals_logged} meals)`
+  ).join('\n');
+
+  const activeDays = context.days.filter(d => d.meals_logged > 0);
+  const count = Math.max(activeDays.length, 1);
+  const avgCal = Math.round(activeDays.reduce((s, d) => s + d.calories, 0) / count);
+  const avgPro = Math.round(activeDays.reduce((s, d) => s + d.protein, 0) / count);
+  const avgCarbs = Math.round(activeDays.reduce((s, d) => s + d.carbs, 0) / count);
+  const avgFats = Math.round(activeDays.reduce((s, d) => s + d.fats, 0) / count);
+  const avgFiber = Math.round(activeDays.reduce((s, d) => s + d.fiber, 0) / count);
+  const avgWater = (activeDays.reduce((s, d) => s + d.water, 0) / count).toFixed(1);
+
+  const totalCals = avgCal || 1;
+  const pP = Math.round((avgPro * 4 / totalCals) * 100);
+  const pC = Math.round((avgCarbs * 4 / totalCals) * 100);
+  const pF = Math.round((avgFats * 9 / totalCals) * 100);
+
+  const prompt = TRENDS_COACH_PROMPT
+    .replace('{period}', String(context.period))
+    .replace('{goals}', `${context.goals.calories} kcal, ${context.goals.protein}g protein, ${context.goals.carbs}g carbs, ${context.goals.fats}g fats, ${context.goals.fiber}g fiber, ${context.goals.water}L water`)
+    .replace('{restrictions_block}', restrictionsBlock)
+    .replace('{daily_breakdown}', dailyBreakdown)
+    .replace('{averages}', `${avgCal} kcal, ${avgPro}g P, ${avgCarbs}g C, ${avgFats}g F, ${avgFiber}g fiber, ${avgWater}L water per day`)
+    .replace('{macro_split}', `Protein ${pP}%, Carbs ${pC}%, Fats ${pF}%`)
+    .replace('{exercise_total}', String(Math.round(context.exerciseTotal)))
+    .replace('{exercise_sessions}', String(context.exerciseSessions));
+
+  const raw = await callText(provider, apiKey, resolvedModel, prompt);
+  return raw.trim();
+}

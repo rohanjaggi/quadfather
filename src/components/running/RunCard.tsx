@@ -73,7 +73,7 @@ export default function RunCard({ run, onToggle, onDelete, isLast }: RunCardProp
             {formatDistance(run.distance_meters)}
           </span>
           <span style={{
-            fontFamily: 'var(--font-body)',
+            fontFamily: 'var(--font-display)',
             fontSize: '10px',
             padding: '2px 6px',
             borderRadius: '99px',
@@ -89,7 +89,7 @@ export default function RunCard({ run, onToggle, onDelete, isLast }: RunCardProp
         <div style={{
           display: 'flex',
           gap: '12px',
-          fontFamily: 'var(--font-body)',
+          fontFamily: 'var(--font-display)',
           fontSize: '12px',
           color: 'var(--tg-theme-hint-color)',
         }}>
@@ -108,7 +108,7 @@ export default function RunCard({ run, onToggle, onDelete, isLast }: RunCardProp
           marginBottom: '2px',
         }}>
           {Math.round(run.calories_burned)}
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--tg-theme-hint-color)' }}> kcal</span>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)' }}> kcal</span>
         </p>
         <button
           onClick={() => onDelete(run.id)}

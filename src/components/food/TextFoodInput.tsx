@@ -99,7 +99,7 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: confidenceColor }} />
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>
             {result.confidence} confidence — {result.notes}
           </span>
         </div>
@@ -142,14 +142,14 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
             backgroundColor: 'rgba(124, 168, 126, 0.12)',
           }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--accent-protein)', flexShrink: 0 }} />
-            <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--accent-protein)' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--accent-protein)' }}>
               Saved to favourites
             </span>
           </div>
         )}
 
         {error && (
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--accent-calories)', paddingLeft: '4px' }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--accent-calories)', paddingLeft: '4px' }}>
             {error}
           </p>
         )}
@@ -185,7 +185,7 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
   if (!user?.has_api_key) {
     return (
       <div style={{ textAlign: 'center', padding: '24px 0' }}>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', marginBottom: '4px' }}>
+        <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', marginBottom: '4px' }}>
           Set up your AI API key in Settings to use text analysis.
         </p>
       </div>
@@ -204,7 +204,7 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
       />
 
       {error && (
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--accent-calories)', paddingLeft: '4px' }}>
+        <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--accent-calories)', paddingLeft: '4px' }}>
           {error}
         </p>
       )}

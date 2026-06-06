@@ -7,9 +7,9 @@ export default function WorkoutsPage() {
       {/* Header */}
       <div className="fade-up">
         <p style={{
-          fontFamily: 'var(--font-body)',
+          fontFamily: 'var(--font-display)',
           fontSize: '11px',
-          letterSpacing: '0.1em',
+          letterSpacing: '0.15em',
           textTransform: 'uppercase',
           color: 'var(--tg-theme-hint-color)',
           marginBottom: '5px',

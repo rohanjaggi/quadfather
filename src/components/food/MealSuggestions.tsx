@@ -70,7 +70,7 @@ export default function MealSuggestions() {
           AI Suggestions
         </span>
         <span style={{
-          fontFamily: 'var(--font-body)',
+          fontFamily: 'var(--font-display)',
           fontSize: '14px',
           color: 'var(--tg-theme-hint-color)',
           transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -83,7 +83,7 @@ export default function MealSuggestions() {
 
       {!user?.has_api_key && (
         <p style={{
-          fontFamily: 'var(--font-body)', fontSize: '12px',
+          fontFamily: 'var(--font-display)', fontSize: '12px',
           color: 'var(--tg-theme-hint-color)', padding: '4px 0',
         }}>
           Set up your AI API key in Settings to get suggestions.
@@ -108,7 +108,7 @@ export default function MealSuggestions() {
 
           {error && (
             <p style={{
-              fontFamily: 'var(--font-body)', fontSize: '12px',
+              fontFamily: 'var(--font-display)', fontSize: '12px',
               color: 'var(--accent-calories)', textAlign: 'center', padding: '8px 0',
             }}>
               {error}
@@ -150,7 +150,7 @@ export default function MealSuggestions() {
                     </p>
                     {!isCardExpanded && (
                       <p style={{
-                        fontFamily: 'var(--font-body)',
+                        fontFamily: 'var(--font-display)',
                         fontSize: '11px',
                         color: 'var(--tg-theme-hint-color)',
                         whiteSpace: 'nowrap',
@@ -179,7 +179,7 @@ export default function MealSuggestions() {
                 {isCardExpanded && (
                   <div style={{ marginTop: '8px' }}>
                     <p style={{
-                      fontFamily: 'var(--font-body)',
+                      fontFamily: 'var(--font-display)',
                       fontSize: '12px',
                       color: 'var(--tg-theme-hint-color)',
                       marginBottom: '8px',
@@ -189,7 +189,7 @@ export default function MealSuggestions() {
                     </p>
                     {s.reason && (
                       <p style={{
-                        fontFamily: 'var(--font-body)',
+                        fontFamily: 'var(--font-display)',
                         fontSize: '11px',
                         color: 'var(--tg-theme-text-color)',
                         marginBottom: '8px',
@@ -213,7 +213,7 @@ export default function MealSuggestions() {
                         { label: 'Fiber', value: `${s.fiber}g` },
                       ].map(m => (
                         <span key={m.label} style={{
-                          fontFamily: 'var(--font-body)',
+                          fontFamily: 'var(--font-display)',
                           fontSize: '11px',
                           color: 'var(--tg-theme-text-color)',
                           backgroundColor: 'var(--tg-theme-secondary-bg-color)',

@@ -80,7 +80,7 @@ export default function BottomNav() {
         left: 0,
         right: 0,
         display: 'flex',
-        background: 'rgba(248, 244, 239, 0.85)',
+        background: 'rgba(245, 242, 239, 0.88)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         boxShadow: '0 -1px 12px rgba(28, 20, 16, 0.04)',
@@ -105,7 +105,7 @@ export default function BottomNav() {
           >
             <Icon active={isActive} />
             <span style={{
-              fontFamily: 'var(--font-body)',
+              fontFamily: 'var(--font-display)',
               fontSize: '10px',
               fontWeight: isActive ? 500 : 400,
               letterSpacing: '0.03em',
@@ -113,6 +113,15 @@ export default function BottomNav() {
             }}>
               {label}
             </span>
+            <div style={{
+              width: 4,
+              height: 4,
+              borderRadius: '50%',
+              backgroundColor: 'var(--accent)',
+              opacity: isActive ? 1 : 0,
+              transform: isActive ? 'scale(1)' : 'scale(0)',
+              transition: 'opacity 0.2s ease, transform 0.25s var(--ease-spring)',
+            }} />
           </Link>
         )
       })}

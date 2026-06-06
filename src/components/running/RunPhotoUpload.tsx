@@ -73,7 +73,7 @@ export default function RunPhotoUpload({ onClose }: RunPhotoUploadProps) {
 
       {analysing && (
         <p style={{
-          fontFamily: 'var(--font-body)',
+          fontFamily: 'var(--font-display)',
           fontSize: '13px',
           color: 'var(--tg-theme-hint-color)',
           textAlign: 'center',
@@ -85,7 +85,7 @@ export default function RunPhotoUpload({ onClose }: RunPhotoUploadProps) {
 
       {error && (
         <p style={{
-          fontFamily: 'var(--font-body)',
+          fontFamily: 'var(--font-display)',
           fontSize: '13px',
           color: '#D32F2F',
           textAlign: 'center',
@@ -131,7 +131,7 @@ export default function RunPhotoUpload({ onClose }: RunPhotoUploadProps) {
 
           {result.confidence !== 'high' && (
             <p style={{
-              fontFamily: 'var(--font-body)',
+              fontFamily: 'var(--font-display)',
               fontSize: '11px',
               color: result.confidence === 'low' ? '#D32F2F' : 'var(--tg-theme-hint-color)',
               fontStyle: 'italic',

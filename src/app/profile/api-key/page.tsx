@@ -102,7 +102,7 @@ export default function ApiKeyPage() {
       <div className="fade-up">
         <Link href="/profile" style={{
           display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-body)', fontSize: '13px',
+          fontFamily: 'var(--font-display)', fontSize: '13px',
           color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
           marginBottom: '12px',
         }}>
@@ -114,7 +114,7 @@ export default function ApiKeyPage() {
         </Link>
         <h1 style={{
           fontFamily: 'var(--font-display)', fontSize: '32px',
-          fontWeight: 400, lineHeight: 1.1, color: 'var(--tg-theme-text-color)',
+          fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
         }}>
           AI Provider
         </h1>
@@ -136,7 +136,7 @@ export default function ApiKeyPage() {
             : 'var(--tg-theme-hint-color)',
         }} />
         <span style={{
-          fontFamily: 'var(--font-body)', fontSize: '13px',
+          fontFamily: 'var(--font-display)', fontSize: '13px',
           color: user?.has_api_key
             ? 'oklch(0.35 0.04 155)'
             : 'var(--tg-theme-hint-color)',
@@ -158,7 +158,7 @@ export default function ApiKeyPage() {
         {/* Provider selector */}
         <div>
           <label style={{
-            fontFamily: 'var(--font-body)', fontSize: '10px', fontWeight: 500,
+            fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: 500,
             letterSpacing: '0.08em', textTransform: 'uppercase' as const,
             color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '10px',
           }}>
@@ -184,7 +184,7 @@ export default function ApiKeyPage() {
                   color: keyProvider === p.value
                     ? 'var(--tg-theme-button-color)'
                     : 'var(--tg-theme-text-color)',
-                  fontFamily: 'var(--font-body)',
+                  fontFamily: 'var(--font-display)',
                   fontSize: '13px',
                   fontWeight: keyProvider === p.value ? 600 : 500,
                   cursor: 'pointer',
@@ -201,7 +201,7 @@ export default function ApiKeyPage() {
         {/* Model selector */}
         <div>
           <label style={{
-            fontFamily: 'var(--font-body)', fontSize: '10px', fontWeight: 500,
+            fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: 500,
             letterSpacing: '0.08em', textTransform: 'uppercase' as const,
             color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '10px',
           }}>
@@ -254,7 +254,7 @@ export default function ApiKeyPage() {
         {/* API key input */}
         <div>
           <label style={{
-            fontFamily: 'var(--font-body)', fontSize: '10px', fontWeight: 500,
+            fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: 500,
             letterSpacing: '0.08em', textTransform: 'uppercase' as const,
             color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '10px',
           }}>
@@ -269,7 +269,7 @@ export default function ApiKeyPage() {
           />
           {user?.has_api_key && (
             <p style={{
-              fontFamily: 'var(--font-body)', fontSize: '11px',
+              fontFamily: 'var(--font-display)', fontSize: '11px',
               color: 'var(--tg-theme-hint-color)', marginTop: '6px',
               paddingLeft: '2px',
             }}>
@@ -280,7 +280,7 @@ export default function ApiKeyPage() {
 
         {keyError && (
           <p style={{
-            fontFamily: 'var(--font-body)', fontSize: '12px',
+            fontFamily: 'var(--font-display)', fontSize: '12px',
             color: 'var(--accent-calories)', padding: '10px 14px',
             backgroundColor: 'oklch(0.94 0.02 30)',
             borderRadius: '10px',

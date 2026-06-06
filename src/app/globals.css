@@ -1,31 +1,33 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Telegram theme variable fallbacks — warm lifestyle palette */
-  --tg-theme-bg-color: #F8F4EF;
-  --tg-theme-secondary-bg-color: #EDE7DE;
-  --tg-theme-text-color: #1C1410;
-  --tg-theme-hint-color: #9A8A7E;
-  --tg-theme-link-color: #8B5E3C;
-  --tg-theme-button-color: #2D4A3E;
-  --tg-theme-button-text-color: #F8F4EF;
+  /* Palette — warm plaster with burnt-rose accent, charcoal primaries */
+  --tg-theme-bg-color: #F5F2EF;
+  --tg-theme-secondary-bg-color: #EBE8E4;
+  --tg-theme-text-color: #1A1614;
+  --tg-theme-hint-color: #8C827A;
+  --tg-theme-link-color: #8C5B53;
+  --tg-theme-button-color: #3D4F44;
+  --tg-theme-button-text-color: #F5F2EF;
 
   /* Extended design tokens */
-  --accent: #8B5E3C;
-  --accent-calories: #C47B5A;
-  --accent-protein: #7CA87E;
-  --accent-water: #6B9EAD;
-  --surface-border: rgba(154, 132, 116, 0.2);
+  --accent: #8C5B53;
+  --accent-calories: #BE6D56;
+  --accent-protein: #648E72;
+  --accent-water: #567F8B;
+  --accent-fats: #A49055;
+  --surface-border: rgba(140, 130, 122, 0.14);
 
-  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-display: 'DM Sans', system-ui, sans-serif;
   --font-body: 'DM Sans', system-ui, sans-serif;
 
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * {
@@ -38,16 +40,16 @@ html {
 }
 
 body {
-  --tg-theme-bg-color: #F8F4EF !important;
-  --tg-theme-secondary-bg-color: #EDE7DE !important;
-  --tg-theme-text-color: #1C1410 !important;
-  --tg-theme-hint-color: #9A8A7E !important;
-  --tg-theme-link-color: #8B5E3C !important;
-  --tg-theme-button-color: #2D4A3E !important;
-  --tg-theme-button-text-color: #F8F4EF !important;
+  --tg-theme-bg-color: #F5F2EF !important;
+  --tg-theme-secondary-bg-color: #EBE8E4 !important;
+  --tg-theme-text-color: #1A1614 !important;
+  --tg-theme-hint-color: #8C827A !important;
+  --tg-theme-link-color: #8C5B53 !important;
+  --tg-theme-button-color: #3D4F44 !important;
+  --tg-theme-button-text-color: #F5F2EF !important;
 
-  background-color: #F8F4EF;
-  color: #1C1410;
+  background-color: #F5F2EF;
+  color: #1A1614;
   font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.5;
@@ -58,7 +60,7 @@ body {
 button {
   cursor: pointer;
   transition: opacity 0.2s ease, transform 0.15s var(--ease-spring);
-  font-family: var(--font-body);
+  font-family: var(--font-display);
 }
 
 button:active:not(:disabled) {
@@ -86,16 +88,14 @@ textarea::placeholder {
 
 .btn-primary {
   width: 100%;
-  padding: 14px;
-  border-radius: 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
   border: none;
   background-color: var(--tg-theme-button-color);
   color: var(--tg-theme-button-text-color);
-  font-family: var(--font-body);
-  font-size: 11px;
+  font-family: var(--font-display);
+  font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
   cursor: pointer;
   transition: opacity 0.2s ease, transform 0.15s var(--ease-spring);
 }
@@ -108,13 +108,13 @@ textarea::placeholder {
 }
 
 .btn-secondary {
-  padding: 13px;
-  border-radius: 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
   border: 1px solid var(--surface-border);
   background-color: transparent;
   color: var(--tg-theme-text-color);
-  font-family: var(--font-body);
-  font-size: 12px;
+  font-family: var(--font-display);
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.2s ease, transform 0.15s var(--ease-spring),
@@ -129,13 +129,13 @@ textarea::placeholder {
 }
 
 .btn-ghost {
-  padding: 13px;
-  border-radius: 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
   border: none;
   background-color: var(--tg-theme-bg-color);
   color: var(--tg-theme-hint-color);
-  font-family: var(--font-body);
-  font-size: 12px;
+  font-family: var(--font-display);
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.2s ease, transform 0.15s var(--ease-spring);
@@ -154,8 +154,8 @@ textarea::placeholder {
   border: 1px solid var(--surface-border);
   background-color: transparent;
   color: var(--tg-theme-text-color);
-  font-family: var(--font-body);
-  font-size: 13px;
+  font-family: var(--font-display);
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -178,7 +178,7 @@ textarea::placeholder {
   border-top: 1px solid var(--surface-border);
   background-color: transparent;
   color: var(--tg-theme-text-color);
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -213,7 +213,7 @@ textarea::placeholder {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .input-field:focus {
-  box-shadow: 0 0 0 2px rgba(139, 94, 60, 0.25);
+  box-shadow: 0 0 0 2px rgba(140, 91, 83, 0.22);
 }
 .input-field::placeholder {
   color: var(--tg-theme-hint-color);
@@ -227,20 +227,20 @@ textarea::placeholder {
   border: 1px solid var(--surface-border);
   background-color: var(--tg-theme-bg-color);
   color: var(--tg-theme-text-color);
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-size: 14px;
   outline: none;
   box-sizing: border-box;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 select.input-field-bordered {
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239A8A7E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C827A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
 }
 .input-field-bordered:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(139, 94, 60, 0.15);
+  box-shadow: 0 0 0 2px rgba(140, 91, 83, 0.14);
 }
 
 .textarea-field {
@@ -248,7 +248,7 @@ select.input-field-bordered {
   border-radius: 14px;
   padding: 13px 16px;
   font-size: 14px;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   resize: none;
   outline: none;
   border: none;
@@ -257,14 +257,14 @@ select.input-field-bordered {
   transition: box-shadow 0.2s ease;
 }
 .textarea-field:focus {
-  box-shadow: 0 0 0 2px rgba(139, 94, 60, 0.2);
+  box-shadow: 0 0 0 2px rgba(140, 91, 83, 0.18);
 }
 
 .label-caps {
-  font-family: var(--font-body);
-  font-size: 10px;
+  font-family: var(--font-display);
+  font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--tg-theme-hint-color);
   display: block;
@@ -273,8 +273,37 @@ select.input-field-bordered {
 
 .card {
   background-color: var(--tg-theme-secondary-bg-color);
-  border-radius: 20px;
+  border-radius: 18px;
   padding: 20px;
+}
+
+.section-open {
+  padding: 0;
+  border-bottom: 1px solid var(--surface-border);
+  padding-bottom: 20px;
+  margin-bottom: 4px;
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.text-gradient-animate {
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    var(--accent-calories) 25%,
+    var(--accent-protein) 50%,
+    var(--accent-water) 75%,
+    var(--accent) 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 8s ease infinite;
 }
 
 @keyframes pulse {

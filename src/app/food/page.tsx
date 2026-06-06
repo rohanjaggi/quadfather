@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import MealCard from '@/components/food/MealCard'
 import ManualFoodForm from '@/components/food/ManualFoodForm'
@@ -17,6 +17,13 @@ type Mode = null | 'scan' | 'manual' | 'text'
 export default function FoodPage() {
   const { summary, foodLogs, deleteFood, savedFoods, deleteSavedFood, logFood } = useUser()
   const [mode, setMode] = useState<Mode>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (mode && panelRef.current) {
+      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [mode])
 
   function toggle(next: Mode) {
     setMode(prev => prev === next ? null : next)
@@ -52,7 +59,7 @@ export default function FoodPage() {
       label: 'Fats',
       value: summary?.macros.fats.total ?? 0,
       goal: summary?.macros.fats.goal ?? 65,
-      color: '#C4A55A',
+      color: 'var(--accent-fats)',
     },
     {
       label: 'Fiber',
@@ -69,9 +76,10 @@ export default function FoodPage() {
       <div className="fade-up">
         <div>
           <p style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '11px',
-            letterSpacing: '0.1em',
+            fontFamily: 'var(--font-display)',
+            fontSize: '12px',
+            fontWeight: 500,
+            letterSpacing: '0.15em',
             textTransform: 'uppercase',
             color: 'var(--tg-theme-hint-color)',
             marginBottom: '5px',
@@ -80,9 +88,10 @@ export default function FoodPage() {
           </p>
           <h1 style={{
             fontFamily: 'var(--font-display)',
-            fontSize: '34px',
-            fontWeight: 400,
-            lineHeight: 1.1,
+            fontSize: '32px',
+            fontWeight: 700,
+            lineHeight: 1.15,
+            letterSpacing: '-0.02em',
             color: 'var(--tg-theme-text-color)',
           }}>
             Log a Meal
@@ -125,7 +134,7 @@ export default function FoodPage() {
                 border: mode === key ? '1.5px solid var(--tg-theme-button-color)' : '1.5px solid var(--surface-border)',
                 backgroundColor: mode === key ? 'var(--tg-theme-button-color)' : 'transparent',
                 color: mode === key ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-                fontFamily: 'var(--font-body)',
+                fontFamily: 'var(--font-display)',
                 fontSize: '11px',
                 fontWeight: 500,
                 letterSpacing: '0.02em',
@@ -144,7 +153,7 @@ export default function FoodPage() {
             border: '1.5px solid var(--accent-water)',
             backgroundColor: 'transparent',
             color: 'var(--accent-water)',
-            fontFamily: 'var(--font-body)',
+            fontFamily: 'var(--font-display)',
             fontSize: '11px',
             fontWeight: 500,
             letterSpacing: '0.02em',
@@ -161,7 +170,7 @@ export default function FoodPage() {
 
       {/* Active input panel */}
       {mode && (
-        <div className="fade-up" style={{
+        <div ref={panelRef} className="fade-up" style={{
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
           borderRadius: '20px',
           padding: '20px',
@@ -180,7 +189,7 @@ export default function FoodPage() {
             {caloriesData && (
               <div>
                 <span style={{
-                  fontFamily: 'var(--font-body)',
+                  fontFamily: 'var(--font-display)',
                   fontSize: '12px',
                   fontWeight: 500,
                   color: 'var(--tg-theme-text-color)',
@@ -192,17 +201,18 @@ export default function FoodPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
                   <span style={{
                     fontFamily: 'var(--font-display)',
-                    fontSize: '28px',
-                    fontWeight: 600,
+                    fontSize: '26px',
+                    fontWeight: 500,
                     color: 'var(--tg-theme-text-color)',
                     lineHeight: 1,
                   }}>
                     {Math.round(caloriesData.total)}
                   </span>
                   <span style={{
-                    fontFamily: 'var(--font-body)',
+                    fontFamily: 'var(--font-display)',
                     fontSize: '12px',
                     color: 'var(--tg-theme-hint-color)',
+                    opacity: 0.75,
                     alignSelf: 'flex-end',
                   }}>
                     / {caloriesData.goal} kcal
@@ -231,7 +241,7 @@ export default function FoodPage() {
               <div key={m.label}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
                   <span style={{
-                    fontFamily: 'var(--font-body)',
+                    fontFamily: 'var(--font-display)',
                     fontSize: '12px',
                     fontWeight: 500,
                     color: 'var(--tg-theme-text-color)',
@@ -239,11 +249,12 @@ export default function FoodPage() {
                     {m.label}
                   </span>
                   <span style={{
-                    fontFamily: 'var(--font-body)',
+                    fontFamily: 'var(--font-display)',
                     fontSize: '12px',
-                    color: 'var(--tg-theme-hint-color)',
+                    fontWeight: 500,
+                    color: 'var(--tg-theme-text-color)',
                   }}>
-                    {Math.round(m.value)}<span style={{ opacity: 0.55 }}> / {m.goal}g</span>
+                    {Math.round(m.value)}<span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--tg-theme-hint-color)', opacity: 0.75 }}> / {m.goal}g</span>
                   </span>
                 </div>
                 <div style={{
@@ -298,7 +309,7 @@ export default function FoodPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Today&apos;s Meals</span>
             <Link href="/food/history" style={{
-              fontFamily: 'var(--font-body)', fontSize: '11px',
+              fontFamily: 'var(--font-display)', fontSize: '11px',
               fontWeight: 500, color: 'var(--tg-theme-hint-color)',
               textDecoration: 'none',
             }}>
@@ -309,7 +320,7 @@ export default function FoodPage() {
           <div>
             {foodLogs.length === 0 ? (
               <p style={{
-                fontFamily: 'var(--font-body)',
+                fontFamily: 'var(--font-display)',
                 fontSize: '13px',
                 color: 'var(--tg-theme-hint-color)',
                 textAlign: 'center',

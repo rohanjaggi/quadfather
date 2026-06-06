@@ -36,6 +36,7 @@ export const saveFood = (data: SavedFoodCreate) => apiFetch<SavedFood>('/foods/s
 export const updateSavedFood = (id: number, data: Partial<SavedFoodCreate>) => apiFetch<SavedFood>(`/foods/saved/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 export const deleteSavedFood = (id: number) => apiFetch<void>(`/foods/saved/${id}`, { method: 'DELETE' })
 export const getAnalytics = (days: number) => apiFetch<AnalyticsResponse>(`/analytics/daily?days=${days}`)
+export const getAnalyticsInsights = (days: number) => apiFetch<{ insight: string }>(`/analytics/insights?days=${days}`)
 export const parseFood = (text: string) => apiFetch<MealAnalysis>('/foods/parse', { method: 'POST', body: JSON.stringify({ text }) })
 export const getMealSuggestions = () => apiFetch<MealSuggestion[]>('/foods/suggest')
 

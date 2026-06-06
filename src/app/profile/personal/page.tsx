@@ -106,7 +106,7 @@ export default function PersonalPage() {
   }
 
   const labelStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-body)',
+    fontFamily: 'var(--font-display)',
     fontSize: '12px',
     fontWeight: 500,
     color: 'var(--tg-theme-text-color)',
@@ -121,7 +121,7 @@ export default function PersonalPage() {
       <div className="fade-up">
         <Link href="/profile" style={{
           display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-body)', fontSize: '13px',
+          fontFamily: 'var(--font-display)', fontSize: '13px',
           color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
           marginBottom: '12px',
         }}>
@@ -133,7 +133,7 @@ export default function PersonalPage() {
         </Link>
         <h1 style={{
           fontFamily: 'var(--font-display)', fontSize: '32px',
-          fontWeight: 400, lineHeight: 1.1, color: 'var(--tg-theme-text-color)',
+          fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
         }}>
           Personal Info
         </h1>
@@ -166,7 +166,7 @@ export default function PersonalPage() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
                 <label style={{ ...labelStyle, marginBottom: 0 }}>Weight</label>
-                <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>kg</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>kg</span>
               </div>
               <input
                 type="number"
@@ -182,7 +182,7 @@ export default function PersonalPage() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
                 <label style={{ ...labelStyle, marginBottom: 0 }}>Height</label>
-                <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>cm</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>cm</span>
               </div>
               <input
                 type="number"
@@ -198,7 +198,7 @@ export default function PersonalPage() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
                 <label style={{ ...labelStyle, marginBottom: 0 }}>Age</label>
-                <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>yr</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>yr</span>
               </div>
               <input
                 type="number"
@@ -278,7 +278,7 @@ export default function PersonalPage() {
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {dietaryRestrictions.length > 0 && (
                   <span style={{
-                    fontFamily: 'var(--font-body)', fontSize: '11px', fontWeight: 600,
+                    fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 600,
                     backgroundColor: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)',
                     borderRadius: '99px', padding: '2px 7px',
                   }}>

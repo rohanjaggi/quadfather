@@ -69,7 +69,7 @@ export default function ManualRunForm({ onClose }: ManualRunFormProps) {
             style={{ flex: 1 }}
           />
           <span style={{
-            fontFamily: 'var(--font-body)',
+            fontFamily: 'var(--font-display)',
             fontSize: '16px',
             color: 'var(--tg-theme-hint-color)',
             alignSelf: 'center',

@@ -10,6 +10,7 @@ export interface User {
     daily_fats_goal: number
     daily_fiber_goal: number
     daily_water_goal: number
+    daily_step_goal: number
   }
   water_bottle_size: number
   ai_provider?: string
@@ -17,6 +18,15 @@ export interface User {
   has_api_key: boolean
   dietary_restrictions?: string[]
   ai_features_enabled: boolean
+  ai_coaching_prefs?: {
+    daily_coach: boolean
+    weekly_insights: boolean
+    nudge_inactivity: boolean
+    nudge_recovery: boolean
+    nudge_nutrition_gap: boolean
+    nudge_steps: boolean
+    nudge_consistency: boolean
+  }
   personal?: {
     sex: string
     weight_kg: number
@@ -37,6 +47,7 @@ export interface DailySummary {
     fiber: { total: number; goal: number; remaining: number }
   }
   water: { total: number; goal: number; remaining: number }
+  steps: { total: number; goal: number; extra_allowance: number }
   meals_logged: number
   exercise_burn: number
 }
@@ -97,6 +108,7 @@ export interface GoalsUpdate {
   daily_fats_goal?: number
   daily_fiber_goal?: number
   daily_water_goal?: number
+  daily_step_goal?: number
   water_bottle_size?: number
 }
 

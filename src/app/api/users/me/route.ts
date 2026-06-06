@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { calculateStepAllowance } from "@/lib/steps";
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser(request);
 
     const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    todayStart.setUTCHours(0, 0, 0, 0);
     const todayEnd = new Date(todayStart);
-    todayEnd.setHours(23, 59, 59, 999);
+    todayEnd.setUTCHours(23, 59, 59, 999);
 
-    const [foodLogs, waterLogs, runLogs] = await Promise.all([
+    const [foodLogs, waterLogs, runLogs, stepLog] = await Promise.all([
       prisma.foodLog.findMany({
         where: { user_id: user.id, logged_at: { gte: todayStart } },
       }),
@@ -25,6 +26,10 @@ export async function GET(request: NextRequest) {
           added_to_allowance: true,
         },
       }),
+      prisma.stepLog.findFirst({
+        where: { user_id: user.id, date: todayStart },
+        orderBy: { logged_at: 'desc' },
+      }),
     ]);
 
     const totalCalories = foodLogs.reduce((s, l) => s + (l.calories ?? 0), 0);
@@ -35,6 +40,15 @@ export async function GET(request: NextRequest) {
     const totalWater = waterLogs.reduce((s, l) => s + l.amount_liters, 0);
     const exerciseBurn = runLogs.reduce((s, r) => s + r.calories_burned, 0);
 
+    const todaySteps = stepLog?.steps ?? 0;
+    const stepAllowance = calculateStepAllowance(
+      todaySteps,
+      user.activity_level,
+      user.weight_kg,
+      exerciseBurn,
+    );
+
+    const totalGoal = user.daily_calorie_goal + exerciseBurn + stepAllowance;
     const r = (v: number) => Math.round(v * 10) / 10;
 
     return NextResponse.json({
@@ -42,8 +56,8 @@ export async function GET(request: NextRequest) {
       macros: {
         calories: {
           total: totalCalories,
-          goal: user.daily_calorie_goal + exerciseBurn,
-          remaining: Math.round((user.daily_calorie_goal + exerciseBurn - totalCalories) * 10) / 10,
+          goal: totalGoal,
+          remaining: Math.round((totalGoal - totalCalories) * 10) / 10,
         },
         protein: {
           total: totalProtein,
@@ -70,6 +84,11 @@ export async function GET(request: NextRequest) {
         total: totalWater,
         goal: user.daily_water_goal,
         remaining: Math.round((user.daily_water_goal - totalWater) * 10) / 10,
+      },
+      steps: {
+        total: todaySteps,
+        goal: user.daily_step_goal,
+        extra_allowance: stepAllowance,
       },
       meals_logged: foodLogs.length,
       exercise_burn: Math.round(exerciseBurn),

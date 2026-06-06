@@ -24,7 +24,7 @@ function getDateDisplay() {
 }
 
 export default function DashboardPage() {
-  const { user, summary, foodLogs, waterLogs } = useUser()
+  const { user, summary, foodLogs, waterLogs, todaySteps } = useUser()
 
   const calories = summary?.macros.calories ?? { total: 0, goal: user?.goals.daily_calorie_goal ?? 2000 }
   const protein = summary?.macros.protein ?? { total: 0, goal: user?.goals.daily_protein_goal ?? 120 }
@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const carbs = summary?.macros.carbohydrates ?? { total: 0, goal: user?.goals.daily_carbs_goal ?? 200 }
   const fats = summary?.macros.fats ?? { total: 0, goal: user?.goals.daily_fats_goal ?? 65 }
   const fiber = summary?.macros.fiber ?? { total: 0, goal: user?.goals.daily_fiber_goal ?? 30 }
+  const steps = summary?.steps ?? { total: todaySteps, goal: user?.goals.daily_step_goal ?? 10000, extra_allowance: 0 }
 
   const displayName = user?.first_name ?? user?.username
 
@@ -92,8 +93,20 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '28px' }}>
           <GoalRing label="Calories" current={calories.total} goal={calories.goal} unit="kcal" color="var(--accent-calories)" />
           <GoalRing label="Protein" current={protein.total} goal={protein.goal} unit="g" color="var(--accent-protein)" />
-          <GoalRing label="Water" current={water.total} goal={water.goal} unit="L" color="var(--accent-water)" />
+          <GoalRing label="Steps" current={steps.total} goal={steps.goal} unit="steps" color="var(--accent-steps)" />
         </div>
+        {steps.extra_allowance > 0 && (
+          <p style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '11px',
+            color: 'var(--accent-steps)',
+            textAlign: 'center',
+            marginTop: '-20px',
+            marginBottom: '20px',
+          }}>
+            +{steps.extra_allowance} kcal from steps
+          </p>
+        )}
 
         {/* Macro bars */}
         <div style={{
@@ -105,9 +118,10 @@ export default function DashboardPage() {
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
         }}>
           {[
-            { label: 'Carbs', value: carbs.total, goal: carbs.goal, color: 'var(--accent-calories)' },
-            { label: 'Fats', value: fats.total, goal: fats.goal, color: 'var(--accent-fats)' },
-            { label: 'Fiber', value: fiber.total, goal: fiber.goal, color: 'var(--accent-water)' },
+            { label: 'Carbs', value: carbs.total, goal: carbs.goal, color: 'var(--accent-calories)', unit: 'g' },
+            { label: 'Fats', value: fats.total, goal: fats.goal, color: 'var(--accent-fats)', unit: 'g' },
+            { label: 'Fiber', value: fiber.total, goal: fiber.goal, color: 'var(--accent-water)', unit: 'g' },
+            { label: 'Water', value: water.total, goal: water.goal, color: 'var(--accent-water)', unit: 'L' },
           ].map((m) => (
             <div key={m.label}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontFamily: 'var(--font-display)' }}>
@@ -115,7 +129,7 @@ export default function DashboardPage() {
                   {m.label}
                 </span>
                 <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-                  {Math.round(m.value)} <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--tg-theme-hint-color)', opacity: 0.75 }}>/ {m.goal}g</span>
+                  {m.unit === 'L' ? m.value.toFixed(1) : Math.round(m.value)} <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--tg-theme-hint-color)', opacity: 0.75 }}>/ {m.unit === 'L' ? m.goal.toFixed(1) : m.goal}{m.unit}</span>
                 </span>
               </div>
               <div style={{ height: '4px', borderRadius: '99px', backgroundColor: 'var(--tg-theme-bg-color)', overflow: 'hidden' }}>

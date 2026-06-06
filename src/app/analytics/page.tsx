@@ -3,9 +3,18 @@
 import { useEffect, useState } from 'react'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { getAnalytics, getRunningAnalytics, getAnalyticsInsights, getSteps } from '@/lib/api'
+import { useUser } from '@/context/UserContext'
 import type { AnalyticsResponse, AnalyticsDayData } from '@/types/api'
 import type { RunningAnalyticsResponse } from '@/types/running'
 import type { StepLog } from '@/types/workouts'
+
+const ACTIVITY_BASELINE_STEPS: Record<string, number> = {
+  sedentary: 4000,
+  lightly_active: 6000,
+  moderately_active: 8000,
+  very_active: 10000,
+  extra_active: 12000,
+}
 
 type Period = 7 | 30
 
@@ -167,6 +176,7 @@ function SectionHeader({ title }: { title: string }) {
 type Domain = 'food' | 'exercise' | 'steps'
 
 export default function AnalyticsPage() {
+  const { user } = useUser()
   const [period, setPeriod] = useState<Period>(7)
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -175,6 +185,7 @@ export default function AnalyticsPage() {
   const [runningLoading, setRunningLoading] = useState(false)
   const [stepsData, setStepsData] = useState<StepLog[]>([])
   const [stepsLoading, setStepsLoading] = useState(false)
+  const stepGoal = user?.goals.daily_step_goal ?? 10000
 
   useEffect(() => {
     setLoading(true)
@@ -771,16 +782,87 @@ export default function AnalyticsPage() {
 
           {domain === 'steps' && !stepsLoading && (
             <>
+              {/* Streaks & Consistency */}
               <div className="fade-up fade-up-1">
+                <SummaryCard title="Streaks & Consistency">
+                  {(() => {
+                    // Sort by date descending for streak calculation
+                    const sorted = [...stepsData].sort((a, b) => b.date.localeCompare(a.date))
+                    let currentStreak = 0
+                    for (const d of sorted) {
+                      if (d.steps >= stepGoal) currentStreak++
+                      else break
+                    }
+                    // Longest streak
+                    const chronological = [...stepsData].sort((a, b) => a.date.localeCompare(b.date))
+                    let longestStreak = 0
+                    let tempStreak = 0
+                    for (const d of chronological) {
+                      if (d.steps >= stepGoal) {
+                        tempStreak++
+                        if (tempStreak > longestStreak) longestStreak = tempStreak
+                      } else {
+                        tempStreak = 0
+                      }
+                    }
+                    const goalHitDays = stepsData.filter(d => d.steps >= stepGoal).length
+                    // Last 14 days dots
+                    const last14 = chronological.slice(-14)
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <StatRow label="Current Streak" value={`${currentStreak}`} sub="days" color="var(--accent-steps)" />
+                        <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                        <StatRow label="Longest Streak" value={`${longestStreak}`} sub="days" color="var(--accent-steps)" />
+                        <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                        <StatRow label="Goal Hit Rate" value={`${goalHitDays}/${stepsData.length}`} sub="days" />
+                        <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                        {/* Dot visualization — last 14 days */}
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                          {last14.map((d) => (
+                            <div
+                              key={d.date}
+                              style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: d.steps >= stepGoal ? 'var(--accent-steps)' : 'transparent',
+                                border: d.steps >= stepGoal ? 'none' : '1.5px solid var(--tg-theme-hint-color)',
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </SummaryCard>
+              </div>
+
+              {/* Stats card */}
+              <div className="fade-up fade-up-2">
                 <SummaryCard title={`${period}-day steps`}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     <StatRow label="Average" value={`${stepsData.length > 0 ? Math.round(stepsData.reduce((s, d) => s + d.steps, 0) / stepsData.length).toLocaleString() : '0'}`} sub="steps/day" />
                     <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
                     <StatRow label="Total" value={`${stepsData.reduce((s, d) => s + d.steps, 0).toLocaleString()}`} sub="steps" />
+                    <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
+                    <StatRow
+                      label="Extra Calories Earned"
+                      value={`${(() => {
+                        const activityLevel = user?.personal?.activity_level ?? 'moderately_active'
+                        const baseline = ACTIVITY_BASELINE_STEPS[activityLevel] ?? 8000
+                        const weight = user?.personal?.weight_kg ?? 70
+                        const total = stepsData.reduce((sum, d) => sum + Math.max(0, d.steps - baseline) * 0.04 * weight, 0)
+                        return Math.round(total).toLocaleString()
+                      })()}`}
+                      sub="kcal"
+                      color="var(--accent-steps)"
+                    />
                   </div>
                 </SummaryCard>
               </div>
-              <div className="fade-up fade-up-2">
+
+              {/* Daily Steps Bar Chart */}
+              <div className="fade-up fade-up-3">
                 <SummaryCard title="Daily Steps">
                   {stepsData.length > 0 ? (
                     <BarChart
@@ -791,14 +873,65 @@ export default function AnalyticsPage() {
                         protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
                       }))}
                       getValue={d => d.calories}
-                      goal={10000}
-                      color="var(--accent-protein)"
+                      goal={stepGoal}
+                      color="var(--accent-steps)"
                       unit=" steps"
                       period={period}
                     />
                   ) : (
                     <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
                       No step data yet
+                    </p>
+                  )}
+                </SummaryCard>
+              </div>
+
+              {/* Day-of-Week Pattern */}
+              <div className="fade-up fade-up-4">
+                <SummaryCard title="Day-of-Week Pattern">
+                  {stepsData.length >= 7 ? (
+                    (() => {
+                      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                      const daySums: number[] = [0, 0, 0, 0, 0, 0, 0]
+                      const dayCounts: number[] = [0, 0, 0, 0, 0, 0, 0]
+                      stepsData.forEach(d => {
+                        const dow = new Date(d.date + 'T00:00:00').getDay()
+                        daySums[dow] += d.steps
+                        dayCounts[dow]++
+                      })
+                      const dayAvgs = daySums.map((sum, i) => dayCounts[i] > 0 ? Math.round(sum / dayCounts[i]) : 0)
+                      const maxAvg = Math.max(...dayAvgs, 1)
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '80px' }}>
+                          {dayAvgs.map((avg, i) => (
+                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                              <div
+                                style={{
+                                  width: '100%',
+                                  borderRadius: '4px 4px 2px 2px',
+                                  backgroundColor: 'var(--accent-steps)',
+                                  opacity: avg >= stepGoal ? 1 : 0.5,
+                                  height: `${Math.max((avg / maxAvg) * 100, avg > 0 ? 4 : 0)}%`,
+                                  minHeight: avg > 0 ? '3px' : '0',
+                                  transition: 'height 0.5s var(--ease-out-expo)',
+                                }}
+                              />
+                              <span style={{
+                                fontFamily: 'var(--font-display)',
+                                fontSize: '10px',
+                                color: 'var(--tg-theme-hint-color)',
+                                marginTop: '4px',
+                              }}>
+                                {dayNames[i]}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()
+                  ) : (
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
+                      Need at least 7 days of data
                     </p>
                   )}
                 </SummaryCard>

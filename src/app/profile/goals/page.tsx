@@ -18,6 +18,7 @@ export default function GoalsPage() {
   const [fiber, setFiber] = useState('')
   const [water, setWater] = useState('')
   const [bottleSize, setBottleSize] = useState('')
+  const [stepGoal, setStepGoal] = useState('')
 
   const canGenerate = !!(
     user?.personal?.sex &&
@@ -37,6 +38,7 @@ export default function GoalsPage() {
       setFiber(String(user.goals.daily_fiber_goal))
       setWater(String(user.goals.daily_water_goal))
       setBottleSize(String(user.water_bottle_size))
+      setStepGoal(String(user.goals.daily_step_goal))
     }
   }, [user])
 
@@ -73,6 +75,7 @@ export default function GoalsPage() {
         daily_fats_goal: parseFloat(fats),
         daily_fiber_goal: parseFloat(fiber),
         daily_water_goal: parseFloat(water),
+        daily_step_goal: parseInt(stepGoal),
         water_bottle_size: parseFloat(bottleSize),
       })
       setSaved(true)
@@ -288,6 +291,33 @@ export default function GoalsPage() {
               step="any"
               value={bottleSize}
               onChange={e => setBottleSize(e.target.value)}
+              required
+              className="input-field"
+            />
+          </div>
+        </div>
+
+        {/* Steps section */}
+        <div className="fade-up fade-up-2" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '4px' }}>
+          <p style={{
+            fontFamily: 'var(--font-display)', fontSize: '11px',
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--tg-theme-hint-color)', marginBottom: '-4px',
+          }}>
+            Activity
+          </p>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
+              <label style={labelStyle}>Daily Step Goal</label>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>steps</span>
+            </div>
+            <input
+              type="number"
+              min="0"
+              step="500"
+              value={stepGoal}
+              onChange={e => setStepGoal(e.target.value)}
               required
               className="input-field"
             />

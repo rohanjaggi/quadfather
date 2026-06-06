@@ -6,14 +6,15 @@ import type { StepLog } from '@/types/workouts'
 interface Props {
   todaySteps: number
   weeklySteps: StepLog[]
+  stepGoal?: number
 }
 
-export default function ActivityHighlights({ todaySteps, weeklySteps }: Props) {
+export default function ActivityHighlights({ todaySteps, weeklySteps, stepGoal: stepGoalProp }: Props) {
   const avgSteps = weeklySteps.length > 0
     ? Math.round(weeklySteps.reduce((sum, s) => sum + s.steps, 0) / weeklySteps.length)
     : 0
 
-  const stepGoal = 10000
+  const stepGoal = stepGoalProp ?? 10000
   const stepProgress = Math.min(todaySteps / stepGoal, 1)
   const remaining = Math.max(stepGoal - todaySteps, 0)
 

@@ -10,6 +10,7 @@ import {
   type ActivityLevel,
   type FitnessGoal,
 } from '@/lib/tdee'
+import { ACTIVITY_BASELINE_LABELS } from '@/lib/steps'
 
 const SEX_OPTIONS: { value: Sex; label: string }[] = [
   { value: 'male', label: 'Male' },
@@ -234,6 +235,13 @@ export default function PersonalPage() {
               </button>
             ))}
           </div>
+          <p style={{
+            fontFamily: 'var(--font-display)', fontSize: '11px',
+            color: 'var(--accent-steps)',
+            marginTop: '8px',
+          }}>
+            Assumes {ACTIVITY_BASELINE_LABELS[activityLevel]}
+          </p>
         </div>
 
         {/* Fitness Goal */}

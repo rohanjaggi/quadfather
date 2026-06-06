@@ -18,6 +18,7 @@ model User {
   daily_carbs_goal   Float @default(200.0)
   daily_fats_goal    Float @default(65.0)
   daily_fiber_goal   Float @default(30.0)
+  daily_step_goal    Int      @default(10000)
   ai_provider        String?  @db.VarChar(20)
   ai_model           String?  @db.VarChar(80)
   ai_api_key         String?
@@ -29,6 +30,7 @@ model User {
   fitness_goal       String?  @db.VarChar(20)
   dietary_restrictions String?
   ai_features_enabled Boolean @default(false)
+  ai_coaching_prefs   Json?
   access_token       String?  @unique @db.VarChar(64)
   created_at      DateTime? @default(now())
 

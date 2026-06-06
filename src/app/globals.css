@@ -20,6 +20,7 @@
   --accent-protein: #648E72;
   --accent-water: #567F8B;
   --accent-fats: #A49055;
+  --accent-steps: oklch(0.62 0.14 245);
   --surface-border: rgba(140, 130, 122, 0.14);
 
   --font-display: 'DM Sans', system-ui, sans-serif;

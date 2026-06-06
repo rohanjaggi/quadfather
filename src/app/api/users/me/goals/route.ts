@@ -31,6 +31,9 @@ export async function PUT(request: NextRequest) {
         ...(body.daily_fiber_goal != null && {
           daily_fiber_goal: body.daily_fiber_goal,
         }),
+        ...(body.daily_step_goal != null && {
+          daily_step_goal: body.daily_step_goal,
+        }),
         ...(body.sex !== undefined && { sex: body.sex }),
         ...(body.weight_kg !== undefined && { weight_kg: body.weight_kg }),
         ...(body.height_cm !== undefined && { height_cm: body.height_cm }),
@@ -42,6 +45,9 @@ export async function PUT(request: NextRequest) {
         }),
         ...(body.ai_features_enabled !== undefined && {
           ai_features_enabled: body.ai_features_enabled,
+        }),
+        ...(body.ai_coaching_prefs !== undefined && {
+          ai_coaching_prefs: body.ai_coaching_prefs,
         }),
       },
     });
@@ -55,6 +61,7 @@ export async function PUT(request: NextRequest) {
         daily_carbs_goal: updated.daily_carbs_goal,
         daily_fats_goal: updated.daily_fats_goal,
         daily_fiber_goal: updated.daily_fiber_goal,
+        daily_step_goal: updated.daily_step_goal,
       },
       ...(updated.sex && {
         personal: {
@@ -69,6 +76,7 @@ export async function PUT(request: NextRequest) {
       water_bottle_size: updated.water_bottle_size,
       dietary_restrictions: updated.dietary_restrictions ? JSON.parse(updated.dietary_restrictions) : [],
       ai_features_enabled: updated.ai_features_enabled,
+      ai_coaching_prefs: updated.ai_coaching_prefs ?? undefined,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";

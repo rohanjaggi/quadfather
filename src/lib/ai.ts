@@ -496,6 +496,7 @@ What they ate today: {meals}
 Macros consumed: {macros_consumed}
 Water: {water_consumed}L / {water_goal}L
 Exercise: {exercise}
+{steps_block}
 {restrictions_block}
 
 Give a short, encouraging coaching message (2-3 sentences max). Be specific about what they did well and give ONE actionable tip for tomorrow. Keep it warm but direct — no bullet points, no headers, just natural conversational text.`;
@@ -512,12 +513,21 @@ export async function generateDailyCoach(
     waterGoal: number;
     exerciseCalories: number;
     dietaryRestrictions: string[];
+    steps?: { today: number; goal: number; streak: number; extraAllowance: number };
   },
 ): Promise<string> {
   const resolvedModel = getModelForProvider(provider, model);
   const restrictionsBlock = context.dietaryRestrictions.length > 0
     ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
     : '';
+
+  let stepsBlock = '';
+  if (context.steps) {
+    const { today, goal, streak, extraAllowance } = context.steps;
+    stepsBlock = `Steps: ${today.toLocaleString()} / ${goal.toLocaleString()} goal`;
+    if (streak > 0) stepsBlock += ` (${streak}-day streak)`;
+    if (extraAllowance > 0) stepsBlock += ` — earned +${extraAllowance} kcal`;
+  }
 
   const prompt = DAILY_COACH_PROMPT
     .replace("{goals}", `${context.goals.calories} kcal, ${context.goals.protein}g protein`)
@@ -526,6 +536,7 @@ export async function generateDailyCoach(
     .replace("{water_consumed}", String(context.waterConsumed.toFixed(1)))
     .replace("{water_goal}", String(context.waterGoal))
     .replace("{exercise}", context.exerciseCalories > 0 ? `Burned ~${Math.round(context.exerciseCalories)} kcal` : 'No exercise logged')
+    .replace("{steps_block}", stepsBlock)
     .replace("{restrictions_block}", restrictionsBlock);
 
   const raw = await callText(provider, apiKey, resolvedModel, prompt);

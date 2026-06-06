@@ -4,6 +4,7 @@ import { generateDailyCoach } from "@/lib/ai";
 import type { AIProvider } from "@/lib/models";
 import { decrypt } from "@/lib/crypto";
 import { determineNudgeTopic, recordNudge } from "@/lib/coach";
+import { calculateStepAllowance } from "@/lib/steps";
 import { Bot } from "grammy";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
@@ -41,7 +42,8 @@ export async function GET(request: NextRequest) {
     if (!creds) continue;
 
     try {
-      const [foodLogs, waterLogs, runLogs, workoutLogs, stepLogs] = await Promise.all([
+      const thirtyDaysAgo = new Date(todayStart.getTime() - 30 * 86400000);
+      const [foodLogs, waterLogs, runLogs, workoutLogs, stepLogs, recentSteps] = await Promise.all([
         prisma.foodLog.findMany({ where: { user_id: user.id, logged_at: { gte: todayStart } } }),
         prisma.waterLog.findMany({ where: { user_id: user.id, logged_at: { gte: todayStart } } }),
         prisma.runLog.findMany({ where: { user_id: user.id, run_date: { gte: todayStart } } }),
@@ -50,6 +52,7 @@ export async function GET(request: NextRequest) {
           include: { exercises: true },
         }),
         prisma.stepLog.findFirst({ where: { user_id: user.id, date: todayStart }, orderBy: { logged_at: 'desc' } }),
+        prisma.stepLog.findMany({ where: { user_id: user.id, date: { gte: thirtyDaysAgo } }, orderBy: { date: 'desc' } }),
       ]);
 
       if (foodLogs.length === 0 && workoutLogs.length === 0) continue;
@@ -67,6 +70,22 @@ export async function GET(request: NextRequest) {
       const dietaryRestrictions: string[] = user.dietary_restrictions
         ? JSON.parse(user.dietary_restrictions) : [];
 
+      const todayStepCount = stepLogs?.steps ?? 0;
+      let currentStreak = 0;
+      const sortedSteps = recentSteps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      for (const s of sortedSteps) {
+        if (s.steps >= user.daily_step_goal) currentStreak++;
+        else break;
+      }
+
+      const runAllowanceBurn = runLogs.filter(r => r.added_to_allowance).reduce((s, r) => s + r.calories_burned, 0);
+      const stepAllowance = calculateStepAllowance(
+        todayStepCount,
+        user.activity_level,
+        user.weight_kg,
+        runAllowanceBurn,
+      );
+
       const message = await generateDailyCoach(creds.provider, creds.apiKey, creds.model, {
         goals: { calories: user.daily_calorie_goal, protein: user.daily_protein_goal },
         consumed,
@@ -75,10 +94,16 @@ export async function GET(request: NextRequest) {
         waterGoal: user.daily_water_goal,
         exerciseCalories,
         dietaryRestrictions,
+        steps: {
+          today: todayStepCount,
+          goal: user.daily_step_goal,
+          streak: currentStreak,
+          extraAllowance: stepAllowance,
+        },
       });
 
       // Check for proactive nudge
-      const nudgeTopic = await determineNudgeTopic(user.id);
+      const nudgeTopic = await determineNudgeTopic(user.id, user.daily_step_goal);
       let nudgeText = "";
       if (nudgeTopic) {
         await recordNudge(user.id, nudgeTopic);
@@ -87,7 +112,7 @@ export async function GET(request: NextRequest) {
           recovery: "You've been training hard — consider a rest day for recovery.",
           nutrition_gap: "Big burn today but intake is low — prioritise protein tonight.",
           consistency: "Great consistency this week — keep the momentum going!",
-          steps: "Steps are below your average today — a short walk could help.",
+          steps: `You're at ${todayStepCount.toLocaleString()} steps — ${Math.max(0, user.daily_step_goal - todayStepCount).toLocaleString()} more to hit your goal.${currentStreak > 2 ? ` Don't break your ${currentStreak}-day streak!` : ''}`,
         };
         nudgeText = `\n\n\u{1F4A1} ${nudgeLabels[nudgeTopic] ?? ""}`;
       }

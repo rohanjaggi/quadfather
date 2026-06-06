@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
 
@@ -34,26 +33,6 @@ const PROFILE_SECTIONS = [
 
 export default function SettingsPage() {
   const { user } = useUser()
-
-  const [aiEnabled, setAiEnabled] = useState(user?.ai_features_enabled ?? false)
-
-  useEffect(() => {
-    if (user) setAiEnabled(user.ai_features_enabled)
-  }, [user])
-
-  async function handleToggleAI() {
-    if (!user) return
-    const newVal = !aiEnabled
-    setAiEnabled(newVal)
-    await fetch('/api/users/me/goals', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-telegram-init-data': window.Telegram?.WebApp?.initData ?? '',
-      },
-      body: JSON.stringify({ ai_features_enabled: newVal }),
-    })
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -262,13 +241,30 @@ export default function SettingsPage() {
         }}>
           Smart Coaching
         </p>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '16px 18px',
-          borderRadius: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        }}>
-          <div>
+        <Link
+          href="/profile/coaching"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '14px',
+            padding: '16px 18px',
+            borderRadius: '16px',
+            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            textDecoration: 'none',
+          }}
+        >
+          <div style={{
+            width: 36, height: 36, borderRadius: '10px',
+            backgroundColor: 'var(--tg-theme-bg-color)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--tg-theme-hint-color)', flexShrink: 0,
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="22" />
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
             <p style={{
               fontFamily: 'var(--font-display)', fontSize: '15px',
               fontWeight: 500, color: 'var(--tg-theme-text-color)',
@@ -279,33 +275,15 @@ export default function SettingsPage() {
               fontFamily: 'var(--font-display)', fontSize: '12px',
               color: 'var(--tg-theme-hint-color)', marginTop: '2px',
             }}>
-              Daily tips & weekly insights via Telegram
+              Daily tips, weekly insights & nudges
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleToggleAI}
-            style={{
-              width: '44px', height: '26px', borderRadius: '13px',
-              border: 'none', cursor: 'pointer',
-              backgroundColor: aiEnabled
-                ? 'var(--tg-theme-button-color)'
-                : 'var(--surface-border)',
-              position: 'relative',
-              transition: 'background-color 0.2s ease',
-              flexShrink: 0,
-            }}
-          >
-            <div style={{
-              width: '20px', height: '20px', borderRadius: '50%',
-              backgroundColor: 'var(--tg-theme-bg-color)',
-              position: 'absolute', top: '3px',
-              left: aiEnabled ? '21px' : '3px',
-              transition: 'left 0.2s ease',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-            }} />
-          </button>
-        </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="var(--tg-theme-hint-color)" strokeWidth="1.8"
+            strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.4 }}>
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
       </div>
 
     </div>

@@ -111,7 +111,7 @@ export default function BottleCounter({
         </button>
         <button
           onClick={handleAdd}
-          disabled={count >= totalBottles}
+          disabled={false}
           className="btn-primary"
           style={{
             flex: 1,

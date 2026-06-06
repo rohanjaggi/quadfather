@@ -12,7 +12,7 @@ function daysAgo(dateStr: string): string {
 }
 
 export default function ExercisePage() {
-  const { todaySteps, weeklySteps, weeklyWorkouts, runLogs } = useUser()
+  const { user, todaySteps, weeklySteps, weeklyWorkouts, runLogs } = useUser()
 
   const lastWorkout = weeklyWorkouts.length > 0 ? weeklyWorkouts[0] : null
   const workoutDesc = lastWorkout
@@ -43,6 +43,7 @@ export default function ExercisePage() {
         <ActivityHighlights
           todaySteps={todaySteps}
           weeklySteps={weeklySteps}
+          stepGoal={user?.goals.daily_step_goal}
         />
       </div>
 

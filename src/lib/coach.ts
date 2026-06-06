@@ -40,7 +40,7 @@ export function wasNudgedRecently(state: { nudge_history: unknown }, topic: Nudg
   return history.some(h => h.topic === topic && new Date(h.sent_at) > cutoff)
 }
 
-export async function determineNudgeTopic(userId: number): Promise<NudgeTopic | null> {
+export async function determineNudgeTopic(userId: number, stepGoal?: number): Promise<NudgeTopic | null> {
   const state = await getCoachState(userId)
 
   const now = new Date()
@@ -84,10 +84,14 @@ export async function determineNudgeTopic(userId: number): Promise<NudgeTopic | 
 
   // Priority 4: Step motivation
   if (stepLogs.length >= 3) {
-    const avg = stepLogs.reduce((s, l) => s + l.steps, 0) / stepLogs.length
     const today = stepLogs.find(l => l.date >= todayStart)
-    if (today && today.steps < avg * 0.5 && !wasNudgedRecently(state, 'steps')) {
+    if (stepGoal && today && today.steps < stepGoal * 0.5 && !wasNudgedRecently(state, 'steps')) {
       return 'steps'
+    } else if (!stepGoal) {
+      const avg = stepLogs.reduce((s, l) => s + l.steps, 0) / stepLogs.length
+      if (today && today.steps < avg * 0.5 && !wasNudgedRecently(state, 'steps')) {
+        return 'steps'
+      }
     }
   }
 

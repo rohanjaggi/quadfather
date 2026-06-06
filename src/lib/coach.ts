@@ -40,7 +40,7 @@ export function wasNudgedRecently(state: { nudge_history: unknown }, topic: Nudg
   return history.some(h => h.topic === topic && new Date(h.sent_at) > cutoff)
 }
 
-export async function determineNudgeTopic(userId: number, stepGoal?: number): Promise<NudgeTopic | null> {
+export async function determineNudgeTopic(userId: number, stepGoal?: number, coachPrefs?: Record<string, boolean> | null): Promise<NudgeTopic | null> {
   const state = await getCoachState(userId)
 
   const now = new Date()
@@ -61,7 +61,7 @@ export async function determineNudgeTopic(userId: number, stepGoal?: number): Pr
   ])
 
   // Priority 1: Inactivity (no workout in 5+ days)
-  if (recentWorkouts.length === 0 && !wasNudgedRecently(state, 'inactivity')) {
+  if (recentWorkouts.length === 0 && !wasNudgedRecently(state, 'inactivity') && coachPrefs?.nudge_inactivity !== false) {
     return 'inactivity'
   }
 
@@ -72,18 +72,18 @@ export async function determineNudgeTopic(userId: number, stepGoal?: number): Pr
     .filter(w => w.workout_date >= todayStart)
     .reduce((s, w) => s + (w.calories_burned ?? 0), 0)
   const totalBurn = todayBurn + todayWorkoutBurn
-  if (totalBurn > 300 && todayCalories < 1500 && !wasNudgedRecently(state, 'nutrition_gap')) {
+  if (totalBurn > 300 && todayCalories < 1500 && !wasNudgedRecently(state, 'nutrition_gap') && coachPrefs?.nudge_nutrition_gap !== false) {
     return 'nutrition_gap'
   }
 
   // Priority 3: Recovery warning (2+ workouts in last 2 days)
   const lastTwoDayWorkouts = recentWorkouts.filter(w => w.workout_date >= twoDaysAgo)
-  if (lastTwoDayWorkouts.length >= 3 && !wasNudgedRecently(state, 'recovery')) {
+  if (lastTwoDayWorkouts.length >= 3 && !wasNudgedRecently(state, 'recovery') && coachPrefs?.nudge_recovery !== false) {
     return 'recovery'
   }
 
   // Priority 4: Step motivation
-  if (stepLogs.length >= 3) {
+  if (stepLogs.length >= 3 && coachPrefs?.nudge_steps !== false) {
     const today = stepLogs.find(l => l.date >= todayStart)
     if (stepGoal && today && today.steps < stepGoal * 0.5 && !wasNudgedRecently(state, 'steps')) {
       return 'steps'
@@ -97,7 +97,7 @@ export async function determineNudgeTopic(userId: number, stepGoal?: number): Pr
 
   // Priority 5: Consistency praise (3+ workouts this week)
   const weekWorkouts = recentWorkouts.filter(w => w.workout_date >= sevenDaysAgo)
-  if (weekWorkouts.length >= 3 && !wasNudgedRecently(state, 'consistency')) {
+  if (weekWorkouts.length >= 3 && !wasNudgedRecently(state, 'consistency') && coachPrefs?.nudge_consistency !== false) {
     return 'consistency'
   }
 

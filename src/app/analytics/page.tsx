@@ -321,7 +321,7 @@ export default function AnalyticsPage() {
       <div style={{
         display: 'flex',
         backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        borderRadius: '99px',
+        borderRadius: '12px',
         padding: '3px',
         gap: '2px',
       }}>
@@ -331,17 +331,16 @@ export default function AnalyticsPage() {
             onClick={() => setDomain(d)}
             style={{
               flex: 1,
-              padding: '8px 16px',
-              borderRadius: '99px',
+              padding: '11px 16px',
+              borderRadius: '10px',
               border: 'none',
               backgroundColor: domain === d ? 'var(--tg-theme-button-color)' : 'transparent',
               color: domain === d ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-hint-color)',
               fontFamily: 'var(--font-display)',
-              fontSize: '12px',
+              fontSize: '13px',
               fontWeight: 500,
               cursor: 'pointer',
-              transition: 'background-color 0.2s ease',
-              textTransform: 'capitalize',
+              transition: 'background-color 0.2s ease, color 0.2s ease',
             }}
           >
             {d === 'food' ? 'Food' : d === 'exercise' ? 'Exercise' : 'Steps'}

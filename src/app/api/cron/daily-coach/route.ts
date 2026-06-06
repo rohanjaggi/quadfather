@@ -38,6 +38,9 @@ export async function GET(request: NextRequest) {
   let sent = 0;
 
   for (const user of users) {
+    const coachPrefs = user.ai_coaching_prefs as Record<string, boolean> | null;
+    if (coachPrefs?.daily_coach === false) continue;
+
     const creds = getAICredentials(user);
     if (!creds) continue;
 
@@ -103,7 +106,7 @@ export async function GET(request: NextRequest) {
       });
 
       // Check for proactive nudge
-      const nudgeTopic = await determineNudgeTopic(user.id, user.daily_step_goal);
+      const nudgeTopic = await determineNudgeTopic(user.id, user.daily_step_goal, coachPrefs);
       let nudgeText = "";
       if (nudgeTopic) {
         await recordNudge(user.id, nudgeTopic);

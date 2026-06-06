@@ -37,6 +37,9 @@ export async function GET(request: NextRequest) {
   let sent = 0;
 
   for (const user of users) {
+    const coachPrefs = user.ai_coaching_prefs as Record<string, boolean> | null;
+    if (coachPrefs?.weekly_insights === false) continue;
+
     const creds = getAICredentials(user);
     if (!creds) continue;
 

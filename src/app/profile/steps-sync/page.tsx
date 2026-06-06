@@ -117,7 +117,7 @@ export default function StepsSyncPage() {
         </div>
       </div>
 
-      {/* Step 2: Create Shortcut */}
+      {/* Step 2: Action 1 — Find Health Samples */}
       <div className="fade-up fade-up-2">
         <div style={{
           padding: '18px', borderRadius: '16px',
@@ -133,72 +133,131 @@ export default function StepsSyncPage() {
               fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
             }}>2</div>
             <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-              Create iOS Shortcut
+              Action 1: Find Health Samples
             </p>
           </div>
 
           <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-            Open the Shortcuts app and create a new shortcut with these 2 actions:
+            Open the <strong>Shortcuts</strong> app, tap <strong>+</strong> to create a new shortcut, then search for &ldquo;Find Health Samples&rdquo; and add it.
           </p>
 
-          {/* Action 1 */}
           <div style={{
             padding: '14px', borderRadius: '12px',
             backgroundColor: 'var(--tg-theme-bg-color)',
-            display: 'flex', flexDirection: 'column', gap: '6px',
+            display: 'flex', flexDirection: 'column', gap: '8px',
           }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
-              Action 1: Find Health Samples
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
+              Configure it exactly like this:
             </p>
-            <ul style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.6, paddingLeft: '16px', margin: 0 }}>
-              <li>Type: <strong>Steps</strong></li>
-              <li>Start Date: <strong>Start of Today</strong></li>
-              <li>Group By: <strong>Day</strong></li>
-            </ul>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Type</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>Steps</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Start Date</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>is today</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Unit</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>count</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Group by</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>Day</strong>
+              </div>
+            </div>
           </div>
 
-          {/* Action 2 */}
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
+            This grabs today&rsquo;s total step count from Apple Health.
+          </p>
+        </div>
+      </div>
+
+      {/* Step 3: Action 2 — Get Contents of URL */}
+      <div className="fade-up fade-up-3">
+        <div style={{
+          padding: '18px', borderRadius: '16px',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          display: 'flex', flexDirection: 'column', gap: '14px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%',
+              backgroundColor: 'var(--tg-theme-button-color)',
+              color: 'var(--tg-theme-button-text-color)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
+            }}>3</div>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
+              Action 2: Get Contents of URL
+            </p>
+          </div>
+
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
+            Search for &ldquo;Get Contents of URL&rdquo; and add it below the first action. Then configure:
+          </p>
+
           <div style={{
             padding: '14px', borderRadius: '12px',
             backgroundColor: 'var(--tg-theme-bg-color)',
-            display: 'flex', flexDirection: 'column', gap: '10px',
+            display: 'flex', flexDirection: 'column', gap: '12px',
           }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
-              Action 2: Get Contents of URL
-            </p>
+            {/* URL */}
+            <div>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '4px' }}>
+                Tap the blue &ldquo;URL&rdquo; text and paste:
+              </p>
+              <CopyableField value={stepsUrl} label="url" copied={copied} onCopy={copyText} />
+            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginBottom: '4px' }}>URL</p>
-                <CopyableField value={stepsUrl} label="url" copied={copied} onCopy={copyText} />
-              </div>
+            {/* Method */}
+            <div>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '4px' }}>
+                Tap Method, change to POST
+              </p>
+            </div>
 
-              <div>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginBottom: '4px' }}>Method</p>
-                <CopyableField value="POST" label="method" copied={copied} onCopy={copyText} />
+            {/* Headers */}
+            <div>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '6px' }}>
+                Expand &ldquo;Headers&rdquo; and add 2 headers:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginBottom: '3px' }}>Key: Authorization &nbsp;|&nbsp; Value:</p>
+                  <CopyableField value={authHeader} label="auth" copied={copied} onCopy={copyText} />
+                </div>
+                <div>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginBottom: '3px' }}>Key: Content-Type &nbsp;|&nbsp; Value:</p>
+                  <CopyableField value="application/json" label="content-type" copied={copied} onCopy={copyText} />
+                </div>
               </div>
+            </div>
 
-              <div>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginBottom: '4px' }}>Header: Authorization</p>
-                <CopyableField value={authHeader} label="auth" copied={copied} onCopy={copyText} />
+            {/* Request Body */}
+            <div>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '6px' }}>
+                Request Body &rarr; tap &ldquo;JSON&rdquo;, then &ldquo;Add new field&rdquo;:
+              </p>
+              <div style={{
+                padding: '10px 12px', borderRadius: '8px',
+                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                border: '1px solid var(--surface-border)',
+              }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8 }}>
+                  <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>1.</strong> Tap &ldquo;Add new field&rdquo; &rarr; choose <strong>Number</strong></div>
+                  <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>2.</strong> Key: type <strong>steps</strong></div>
+                  <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>3.</strong> Value: tap the field, then tap the <strong>Health Samples</strong> variable (magic variable from Action 1 above)</div>
+                </div>
               </div>
-
-              <div>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginBottom: '4px' }}>Header: Content-Type</p>
-                <CopyableField value="application/json" label="content-type" copied={copied} onCopy={copyText} />
-              </div>
-
-              <div>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginBottom: '4px' }}>Request Body (JSON)</p>
-                <CopyableField value={'{"steps": <Health Samples value>}'} label="body" copied={copied} onCopy={copyText} />
-              </div>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginTop: '6px', lineHeight: 1.5 }}>
+                The value should show as a purple/pink pill that says &ldquo;Health Samples&rdquo; — this passes the step count dynamically.
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Step 3: Automate */}
-      <div className="fade-up fade-up-3">
+      {/* Step 4: Automate */}
+      <div className="fade-up fade-up-4">
         <div style={{
           padding: '18px', borderRadius: '16px',
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
@@ -211,25 +270,59 @@ export default function StepsSyncPage() {
               color: 'var(--tg-theme-button-text-color)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
-            }}>3</div>
+            }}>4</div>
             <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-              Automate It
+              Run It Automatically
             </p>
           </div>
 
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-            In Shortcuts, go to the <strong>Automation</strong> tab and create a Personal Automation:
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.6 }}>
+            Steps sync automatically every time you open Telegram:
           </p>
 
-          <ul style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8, paddingLeft: '16px', margin: 0 }}>
-            <li>Trigger: <strong>Time of Day</strong> — 9:00 PM</li>
-            <li>Action: <strong>Run Shortcut</strong> — select your shortcut</li>
-            <li>Toggle off <strong>Ask Before Running</strong></li>
+          <div style={{
+            padding: '14px', borderRadius: '12px',
+            backgroundColor: 'var(--tg-theme-bg-color)',
+            display: 'flex', flexDirection: 'column', gap: '4px',
+            fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8,
+          }}>
+            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>1.</strong> Go to the <strong>Automation</strong> tab in Shortcuts</div>
+            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>2.</strong> Tap <strong>+</strong> &rarr; <strong>App</strong></div>
+            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>3.</strong> Choose <strong>Telegram</strong>, keep &ldquo;Is Opened&rdquo; selected</div>
+            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>4.</strong> Choose <strong>Run Immediately</strong></div>
+            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>5.</strong> Add action &rarr; <strong>Run Shortcut</strong> &rarr; select your shortcut</div>
+          </div>
+
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--accent-protein)', lineHeight: 1.5, fontWeight: 500 }}>
+            Done! Steps sync every time you open the app.
+          </p>
+
+          <div style={{
+            padding: '10px 12px', borderRadius: '8px',
+            backgroundColor: 'var(--tg-theme-bg-color)',
+            fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5,
+          }}>
+            <strong style={{ color: 'var(--tg-theme-text-color)' }}>Alternative:</strong> Use <strong>Time of Day</strong> trigger instead (e.g. 9 PM daily) if you prefer a nightly sync.
+          </div>
+        </div>
+      </div>
+
+      {/* Troubleshooting */}
+      <div className="fade-up fade-up-5">
+        <div style={{
+          padding: '18px', borderRadius: '16px',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          display: 'flex', flexDirection: 'column', gap: '10px',
+        }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
+            Not working?
+          </p>
+          <ul style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8, paddingLeft: '16px', margin: 0 }}>
+            <li>Make sure Health &rarr; Privacy &rarr; Shortcuts has <strong>Steps</strong> enabled</li>
+            <li>Tap the <strong>play button</strong> in Shortcuts to test manually first</li>
+            <li>The body field value must be the pink <strong>Health Samples</strong> variable, not typed text</li>
+            <li>If you regenerate your token here, update it in the Shortcut too</li>
           </ul>
-
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5, fontStyle: 'italic' }}>
-            Steps will sync to your dashboard automatically every night.
-          </p>
         </div>
       </div>
 

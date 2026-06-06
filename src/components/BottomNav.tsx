@@ -62,11 +62,11 @@ function ProfileIcon({ active }: { active: boolean }) {
 }
 
 const tabs = [
-  { href: '/',          label: 'Today',    Icon: HomeIcon    },
-  { href: '/food',      label: 'Nutrition', Icon: FoodIcon    },
-  { href: '/workouts',  label: 'Exercise',  Icon: RunIcon     },
-  { href: '/analytics', label: 'Trends',    Icon: TrendsIcon  },
-  { href: '/profile',   label: 'Settings',  Icon: ProfileIcon },
+  { href: '/',          label: 'Today',    Icon: HomeIcon,    match: ['/']           },
+  { href: '/food',      label: 'Nutrition', Icon: FoodIcon,   match: ['/food']       },
+  { href: '/workouts',  label: 'Exercise',  Icon: RunIcon,    match: ['/workouts', '/running'] },
+  { href: '/analytics', label: 'Trends',    Icon: TrendsIcon, match: ['/analytics']  },
+  { href: '/profile',   label: 'Settings',  Icon: ProfileIcon, match: ['/profile']   },
 ]
 
 export default function BottomNav() {
@@ -87,8 +87,8 @@ export default function BottomNav() {
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      {tabs.map(({ href, label, Icon }) => {
-        const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+      {tabs.map(({ href, label, Icon, match }) => {
+        const isActive = match.some(m => m === '/' ? pathname === '/' : pathname.startsWith(m))
         return (
           <Link
             key={href}

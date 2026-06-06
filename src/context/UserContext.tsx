@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, ReactNode 
 import * as api from '@/lib/api'
 import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, PersonalUpdate, SavedFood, SavedFoodCreate } from '@/types/api'
 import type { RunLog, RunLogCreate } from '@/types/running'
-import type { StepLog } from '@/types/workouts'
+import type { StepLog, WorkoutLog } from '@/types/workouts'
 
 interface UserContextType {
   user: User | null
@@ -25,6 +25,8 @@ interface UserContextType {
   deleteSavedFood: (id: number) => Promise<void>
   runLogs: RunLog[]
   todaySteps: number
+  weeklySteps: StepLog[]
+  weeklyWorkouts: WorkoutLog[]
   logRun: (data: RunLogCreate) => Promise<void>
   deleteRun: (id: number) => Promise<void>
   toggleRunAllowance: (id: number, added: boolean) => Promise<void>
@@ -41,18 +43,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [savedFoods, setSavedFoods] = useState<SavedFood[]>([])
   const [runLogs, setRunLogs] = useState<RunLog[]>([])
   const [todaySteps, setTodaySteps] = useState(0)
+  const [weeklySteps, setWeeklySteps] = useState<StepLog[]>([])
+  const [weeklyWorkouts, setWeeklyWorkouts] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     try {
-      const [summaryData, foodData, waterData, savedData, runData, stepData] = await Promise.all([
+      const [summaryData, foodData, waterData, savedData, runData, stepData, weekStepData, workoutData] = await Promise.all([
         api.getDailySummary(),
         api.getFoodLogs(),
         api.getWaterLogs(),
         api.getSavedFoods(),
         api.getRunLogs(new Date().toLocaleDateString('en-CA')),
         api.getSteps(1),
+        api.getSteps(7),
+        api.getWorkouts(7),
       ])
       setSummary(summaryData)
       setFoodLogs(foodData)
@@ -60,6 +66,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setSavedFoods(savedData)
       setRunLogs(runData)
       setTodaySteps(stepData.length > 0 ? stepData[0].steps : 0)
+      setWeeklySteps(weekStepData)
+      setWeeklyWorkouts(workoutData)
     } catch (err) {
       console.error('Failed to refresh data:', err)
     }
@@ -147,7 +155,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   return (
     <UserContext.Provider value={{
-      user, summary, foodLogs, waterLogs, savedFoods, runLogs, todaySteps, loading, error,
+      user, summary, foodLogs, waterLogs, savedFoods, runLogs, todaySteps, weeklySteps, weeklyWorkouts, loading, error,
       logFood, deleteFood, logWater, deleteWater, updateGoals, updatePersonal,
       saveFood, updateSavedFood, deleteSavedFood, logRun: logRunAction, deleteRun: deleteRunAction,
       toggleRunAllowance: toggleRunAllowanceAction, refresh,

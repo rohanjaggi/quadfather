@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import BurnSummary from '@/components/running/BurnSummary'
 import RunsList from '@/components/running/RunsList'
 import ManualRunForm from '@/components/running/ManualRunForm'
@@ -26,27 +27,22 @@ export default function RunningPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
       <div className="fade-up">
-        <p style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '12px',
-          fontWeight: 500,
-          letterSpacing: '0.15em',
-          textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)',
-          marginBottom: '5px',
+        <Link href="/workouts" style={{
+          display: 'inline-flex', alignItems: 'center', gap: '4px',
+          fontFamily: 'var(--font-display)', fontSize: '13px',
+          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
+          marginBottom: '8px',
         }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
           Exercise
-        </p>
+        </Link>
         <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '32px',
-          fontWeight: 700,
-          lineHeight: 1.15,
-          letterSpacing: '-0.02em',
-          color: 'var(--tg-theme-text-color)',
-        }}>
-          Running
-        </h1>
+          fontFamily: 'var(--font-display)', fontSize: '32px', fontWeight: 700,
+          lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
+        }}>Running</h1>
       </div>
 
       <div className="fade-up fade-up-1">
@@ -54,11 +50,7 @@ export default function RunningPage() {
       </div>
 
       <div className="fade-up fade-up-2">
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '8px',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           {([
             { key: 'photo' as const, label: 'Screenshot', icon: (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -72,22 +64,18 @@ export default function RunningPage() {
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             )},
-          ]).map(({ key, label, icon }) => (
+          ]).map(({ key: k, label, icon }) => (
             <button
-              key={key}
-              onClick={() => toggle(key)}
+              key={k}
+              onClick={() => toggle(k)}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
-                gap: '6px', padding: '14px 8px',
-                borderRadius: '14px',
-                border: mode === key ? '1.5px solid var(--tg-theme-button-color)' : '1.5px solid var(--surface-border)',
-                backgroundColor: mode === key ? 'var(--tg-theme-button-color)' : 'transparent',
-                color: mode === key ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-                fontFamily: 'var(--font-display)',
-                fontSize: '11px',
-                fontWeight: 500,
-                letterSpacing: '0.02em',
-                cursor: 'pointer',
+                gap: '6px', padding: '14px 8px', borderRadius: '14px',
+                border: mode === k ? '1.5px solid var(--tg-theme-button-color)' : '1.5px solid var(--surface-border)',
+                backgroundColor: mode === k ? 'var(--tg-theme-button-color)' : 'transparent',
+                color: mode === k ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+                fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 500,
+                letterSpacing: '0.02em', cursor: 'pointer',
                 transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
               }}
             >
@@ -101,8 +89,7 @@ export default function RunningPage() {
       {mode && (
         <div ref={panelRef} className="fade-up" style={{
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          borderRadius: '20px',
-          padding: '20px',
+          borderRadius: '20px', padding: '20px',
         }}>
           {mode === 'photo' && <RunPhotoUpload onClose={() => setMode(null)} />}
           {mode === 'manual' && <ManualRunForm onClose={() => setMode(null)} />}

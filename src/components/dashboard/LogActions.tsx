@@ -87,7 +87,7 @@ export default function LogActions() {
       </Link>
 
       <Link
-        href="/running"
+        href="/workouts"
         style={{
           flex: 1,
           display: 'flex',
@@ -107,7 +107,7 @@ export default function LogActions() {
           fontSize: '13px',
           fontWeight: 500,
         }}>
-          Run
+          Exercise
         </span>
       </Link>
     </div>

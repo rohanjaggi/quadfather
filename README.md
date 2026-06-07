@@ -13,15 +13,14 @@ A personal nutrition, hydration, and fitness tracker built as a Telegram Mini Ap
 - **Water tracking** — configurable bottle size with one-tap logging and custom amounts
 - **Step counting** — log daily steps via Apple Shortcuts integration with goal tracking and extra calorie allowance
 - **Workout logging** — create workout templates, log sessions with exercises, sets, reps, and weight
-- **Running & activity tracking** — log runs, cycling, and hikes manually or sync from Strava
-- **Strava integration** — connect your Strava account to auto-sync activities and add exercise calories to your daily allowance
+- **Running & activity tracking** — log runs with AI analysis of pace, splits, and performance
 - **Daily goals** — set targets for calories, protein, carbs, fats, fiber, water, and steps
 - **Analytics** — 7-day and 30-day trend charts for nutrition and hydration
 - **Food history** — view and browse previously logged meals
 - **Saved foods** — save frequently eaten meals for quick re-logging
 - **Dietary restrictions** — set restrictions that AI respects when suggesting meals
 - **Onboarding** — guided setup for personal stats (sex, weight, height, age, activity level, fitness goal) to calculate recommended macros
-- **Profile management** — update personal info, goals, API key, and Strava connection
+- **Profile management** — update personal info, goals, and API key
 - **Telegram bot** — check your daily summary, log meals, get AI coaching and insights directly in chat
 
 ## Tech Stack
@@ -31,7 +30,7 @@ A personal nutrition, hydration, and fitness tracker built as a Telegram Mini Ap
 - **Database**: PostgreSQL on Supabase, Prisma ORM
 - **AI**: OpenAI GPT-5.4 Mini / Anthropic Claude 4.5 Haiku / Gemini 3 Flash / OpenRouter (user's choice via BYOK)
 - **Bot**: grammY (Telegram Bot API)
-- **Integrations**: Strava API (activity sync), Apple Shortcuts (step counting)
+- **Integrations**: Apple Shortcuts (step counting)
 - **Deployment**: Vercel
 
 ## Setup
@@ -53,9 +52,6 @@ ENCRYPTION_KEY=          # 32-byte hex string for encrypting user API keys
 WEBHOOK_URL=             # Your deployment URL (for Telegram webhook)
 WEBHOOK_SECRET=          # Random secret string for webhook auth
 MINI_APP_URL=            # Your deployment URL (for bot inline buttons)
-STRAVA_CLIENT_ID=        # Strava API application client ID
-STRAVA_CLIENT_SECRET=    # Strava API application client secret
-STRAVA_REDIRECT_URI=     # OAuth callback URL for Strava
 GEMINI_API_KEY=          # (Optional) Server-side Gemini key — fallback when user has no BYOK key
 OPENROUTER_API_KEY=      # (Optional) Server-side OpenRouter key — second fallback after Gemini
 SKIP_TELEGRAM_AUTH=      # Set to "true" for local dev
@@ -80,3 +76,7 @@ DEV_USER_ID=             # Your Telegram user ID for local dev
 | `/help` | Show all commands |
 
 You can also send a photo of your meal directly in chat for AI macro analysis.
+
+## Related
+
+- [quadfather-experiments](https://github.com/rohanjaggi/quadfather-experiments) — prompt experiments for AI meal analysis and coaching

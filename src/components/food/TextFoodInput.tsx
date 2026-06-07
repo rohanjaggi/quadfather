@@ -97,11 +97,37 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: confidenceColor }} />
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>
-            {result.confidence} confidence — {result.notes}
-          </span>
+        <div style={{
+          padding: '10px 12px',
+          borderRadius: '10px',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          display: 'flex', flexDirection: 'column', gap: '8px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{
+              fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: '0.04em',
+              color: 'var(--tg-theme-hint-color)',
+            }}>
+              AI estimate
+            </span>
+            <span style={{
+              fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 500,
+              color: confidenceColor,
+              display: 'flex', alignItems: 'center', gap: '5px',
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: confidenceColor }} />
+              {result.confidence} confidence
+            </span>
+          </div>
+          {result.notes && (
+            <p style={{
+              fontFamily: 'var(--font-display)', fontSize: '12px', lineHeight: '1.4',
+              color: 'var(--tg-theme-hint-color)', margin: 0,
+            }}>
+              {result.notes}
+            </p>
+          )}
         </div>
 
         <div>

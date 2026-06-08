@@ -12,6 +12,9 @@ interface CoachingPrefs {
   nudge_nutrition_gap: boolean
   nudge_steps: boolean
   nudge_consistency: boolean
+  pre_workout_suggestions: boolean
+  workout_analysis: boolean
+  weekly_exercise_digest: boolean
 }
 
 const DEFAULT_PREFS: CoachingPrefs = {
@@ -22,6 +25,9 @@ const DEFAULT_PREFS: CoachingPrefs = {
   nudge_nutrition_gap: true,
   nudge_steps: true,
   nudge_consistency: true,
+  pre_workout_suggestions: true,
+  workout_analysis: true,
+  weekly_exercise_digest: true,
 }
 
 const FEATURE_GROUPS = [
@@ -40,6 +46,14 @@ const FEATURE_GROUPS = [
       { key: 'nudge_nutrition_gap' as const, title: 'Nutrition Gap', desc: 'Alert when exercise is high but intake is low' },
       { key: 'nudge_steps' as const, title: 'Steps', desc: 'Nudge when steps are below goal' },
       { key: 'nudge_consistency' as const, title: 'Consistency', desc: 'Celebrate workout consistency streaks' },
+    ],
+  },
+  {
+    label: 'Exercise Coaching',
+    features: [
+      { key: 'pre_workout_suggestions' as const, title: 'Pre-Workout Tips', desc: 'Show weight/rep suggestions when logging' },
+      { key: 'workout_analysis' as const, title: 'Post-Workout Analysis', desc: 'AI analysis after each workout' },
+      { key: 'weekly_exercise_digest' as const, title: 'Weekly Digest', desc: 'Training summary & stall alerts every week' },
     ],
   },
 ]
@@ -76,12 +90,12 @@ export default function CoachingPage() {
   const { user } = useUser()
 
   const [masterEnabled, setMasterEnabled] = useState(user?.ai_features_enabled ?? false)
-  const [prefs, setPrefs] = useState<CoachingPrefs>(user?.ai_coaching_prefs ?? DEFAULT_PREFS)
+  const [prefs, setPrefs] = useState<CoachingPrefs>((user?.ai_coaching_prefs as CoachingPrefs | undefined) ?? DEFAULT_PREFS)
 
   useEffect(() => {
     if (user) {
       setMasterEnabled(user.ai_features_enabled)
-      setPrefs(user.ai_coaching_prefs ?? DEFAULT_PREFS)
+      setPrefs((user.ai_coaching_prefs as CoachingPrefs | undefined) ?? DEFAULT_PREFS)
     }
   }, [user])
 

@@ -796,6 +796,115 @@ export async function parseWorkoutText(
   };
 }
 
+const WORKOUT_ANALYSIS_PROMPT = `You are a concise fitness coach analyzing a workout just completed.
+
+Workout: {workout_name}
+Exercises performed:
+{exercises}
+
+Progress context:
+{progress_context}
+
+Training focus: {training_focus}
+
+Respond with ONLY valid JSON:
+{
+  "muscle_groups_hit": ["list of muscle groups worked"],
+  "prs": [{"exercise": "name", "type": "weight"|"reps", "value": "description"}],
+  "volume_comparison": "brief comparison vs previous session (e.g. '+12% volume' or 'first session')",
+  "takeaway": "one actionable sentence for next session (max 25 words)"
+}
+
+PRs to include: {prs}
+Keep the takeaway specific and actionable. No fluff.`;
+
+export async function generateWorkoutAnalysis(
+  provider: AIProvider,
+  apiKey: string,
+  model: string | null,
+  context: {
+    workoutName: string
+    exercises: { name: string; sets: { reps: number; weight_kg: number | null }[] }[]
+    progressContext: string
+    trainingFocus: string
+    prs: { exercise_name: string; type: string; value: string }[]
+  },
+): Promise<{
+  muscle_groups_hit: string[]
+  prs: { exercise: string; type: 'weight' | 'reps'; value: string }[]
+  volume_comparison: string
+  takeaway: string
+}> {
+  const resolvedModel = getModelForProvider(provider, model);
+
+  const exercisesStr = context.exercises.map(ex =>
+    `${ex.name}: ${ex.sets.map(s => `${s.reps}${s.weight_kg ? ` @ ${s.weight_kg}kg` : ''}`).join(', ')}`
+  ).join('\n');
+
+  const prsStr = context.prs.length > 0
+    ? context.prs.map(p => `${p.exercise_name}: ${p.type} PR — ${p.value}`).join(', ')
+    : 'None this session';
+
+  const prompt = WORKOUT_ANALYSIS_PROMPT
+    .replace('{workout_name}', context.workoutName)
+    .replace('{exercises}', exercisesStr)
+    .replace('{progress_context}', context.progressContext)
+    .replace('{training_focus}', context.trainingFocus)
+    .replace('{prs}', prsStr);
+
+  const raw = await callText(provider, apiKey, resolvedModel, prompt);
+  const cleaned = cleanJson(raw);
+  if (!cleaned) throw new Error('AI returned an empty response');
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Failed to parse AI response');
+  return JSON.parse(jsonMatch[0]);
+}
+
+const WEEKLY_EXERCISE_PROMPT = `You are a concise fitness coach delivering a weekly training digest.
+
+Training focus: {training_focus}
+Sessions this week: {session_count}
+Current streak: {streak} consecutive days with a workout
+
+Volume by muscle group (sets this week vs last week):
+{volume_breakdown}
+
+Stalled exercises (3+ sessions without 1RM improvement):
+{stall_alerts}
+
+Respond in plain text (no markdown, no bullet points beyond "•"). Format:
+
+Line 1: One-sentence volume summary (mention total sessions + any imbalances)
+Line 2-3: If stalls exist, "• [exercise]: [specific suggestion]" for each (max 3)
+Line 4: One forward-looking sentence — what to prioritize next week based on training focus and current data
+
+Keep it under 100 words total. Be specific with numbers. Warm but direct.`;
+
+export async function generateWeeklyExerciseDigest(
+  provider: AIProvider,
+  apiKey: string,
+  model: string | null,
+  context: {
+    trainingFocus: string
+    sessionCount: number
+    streak: number
+    volumeBreakdown: string
+    stallAlerts: string
+  },
+): Promise<string> {
+  const resolvedModel = getModelForProvider(provider, model);
+
+  const prompt = WEEKLY_EXERCISE_PROMPT
+    .replace('{training_focus}', context.trainingFocus)
+    .replace('{session_count}', String(context.sessionCount))
+    .replace('{streak}', String(context.streak))
+    .replace('{volume_breakdown}', context.volumeBreakdown || 'No data')
+    .replace('{stall_alerts}', context.stallAlerts || 'None');
+
+  const raw = await callText(provider, apiKey, resolvedModel, prompt);
+  return raw.trim();
+}
+
 const WORKOUT_SUGGESTION_PROMPT = `You are a fitness coach. Based on the user's recent training history, suggest what they should train today in ONE short sentence (max 20 words).
 
 Recent workouts (last 7 days):

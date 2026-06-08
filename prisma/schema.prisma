@@ -31,6 +31,7 @@ model User {
   dietary_restrictions String?
   ai_features_enabled Boolean @default(false)
   ai_coaching_prefs   Json?
+  training_focus     String?  @db.VarChar(20)
   access_token       String?  @unique @db.VarChar(64)
   created_at      DateTime? @default(now())
 
@@ -42,6 +43,7 @@ model User {
   workout_logs      WorkoutLog[]
   step_logs         StepLog[]
   coach_state       CoachState?
+  progress_snapshots ProgressSnapshot[]
 
   @@map("users")
 }
@@ -155,6 +157,7 @@ model WorkoutLog {
   calories_burned  Float?
   notes            String?
   source           String   @default("manual") @db.VarChar(20)
+  analysis         Json?
   workout_date     DateTime
   logged_at        DateTime @default(now())
 
@@ -173,6 +176,8 @@ model ExerciseLog {
   exercise_name  String @db.VarChar(100)
   sets           Json
   order          Int
+  exercise_id    Int?
+  exercise       Exercise? @relation(fields: [exercise_id], references: [id], onDelete: SetNull)
 
   workout WorkoutLog @relation(fields: [workout_log_id], references: [id], onDelete: Cascade)
 
@@ -205,4 +210,41 @@ model CoachState {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("coach_state")
+}
+
+model Exercise {
+  id                Int      @id @default(autoincrement())
+  name              String   @db.VarChar(200)
+  category          String   @db.VarChar(50)
+  primary_muscles   Json
+  secondary_muscles Json
+  equipment         String?  @db.VarChar(50)
+
+  exercise_logs ExerciseLog[]
+  progress_snapshots ProgressSnapshot[]
+
+  @@index([name])
+  @@index([category])
+  @@map("exercises")
+}
+
+model ProgressSnapshot {
+  id                        Int       @id @default(autoincrement())
+  user_id                   Int
+  exercise_id               Int?
+  exercise_name             String    @db.VarChar(100)
+  estimated_1rm             Float
+  best_set_weight           Float
+  best_set_reps             Int
+  total_volume_7d           Float     @default(0)
+  last_improved_at          DateTime?
+  sessions_since_improvement Int      @default(0)
+  updated_at                DateTime  @default(now()) @updatedAt
+
+  user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  exercise Exercise? @relation(fields: [exercise_id], references: [id], onDelete: SetNull)
+
+  @@unique([user_id, exercise_name])
+  @@index([user_id])
+  @@map("progress_snapshots")
 }

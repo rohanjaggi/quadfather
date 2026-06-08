@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/auth'
+import { updateProgressAfterWorkout } from '@/lib/progress'
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,8 +56,9 @@ export async function POST(request: NextRequest) {
         source: source ?? 'manual',
         workout_date: workout_date ? new Date(workout_date) : new Date(),
         exercises: {
-          create: exercises.map((ex: { exercise_name: string; sets: { reps: number; weight_kg: number | null }[]; order: number }) => ({
+          create: exercises.map((ex: { exercise_name: string; exercise_id?: number | null; sets: { reps: number; weight_kg: number | null }[]; order: number }) => ({
             exercise_name: ex.exercise_name,
+            exercise_id: ex.exercise_id ?? null,
             sets: ex.sets as unknown as import('@prisma/client').Prisma.InputJsonValue,
             order: ex.order,
           })),
@@ -64,6 +66,10 @@ export async function POST(request: NextRequest) {
       },
       include: { exercises: { orderBy: { order: 'asc' } } },
     })
+
+    updateProgressAfterWorkout(user.id, workout.id).catch(err =>
+      console.error('Progress update failed:', err)
+    )
 
     return NextResponse.json(workout, { status: 201 })
   } catch (e) {

@@ -3,8 +3,13 @@
 import { useState, useEffect } from 'react'
 import { getWorkouts, deleteWorkout } from '@/lib/api'
 import type { WorkoutLog } from '@/types/workouts'
+import WorkoutAnalysis from './WorkoutAnalysis'
+import { useUser } from '@/context/UserContext'
 
 export default function RecentWorkouts() {
+  const { user } = useUser()
+  const showAnalysis = (user?.ai_coaching_prefs as Record<string, boolean> | undefined)?.workout_analysis !== false
+
   const [workouts, setWorkouts] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -39,23 +44,25 @@ export default function RecentWorkouts() {
         const date = new Date(w.workout_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
         return (
           <div key={w.id} style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             padding: '14px 16px', borderRadius: '14px',
             backgroundColor: 'var(--tg-theme-secondary-bg-color)',
           }}>
-            <div>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 500, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
-                {w.name}
-              </p>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>
-                {date} · {w.exercises.length} exercises · {totalSets} sets
-                {w.calories_burned ? ` · ${Math.round(w.calories_burned)} kcal` : ''}
-              </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 500, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
+                  {w.name}
+                </p>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>
+                  {date} · {w.exercises.length} exercises · {totalSets} sets
+                  {w.calories_burned ? ` · ${Math.round(w.calories_burned)} kcal` : ''}
+                </p>
+              </div>
+              <button onClick={() => handleDelete(w.id)} style={{
+                background: 'none', border: 'none', color: 'var(--tg-theme-hint-color)',
+                fontSize: '16px', cursor: 'pointer', padding: '4px',
+              }}>×</button>
             </div>
-            <button onClick={() => handleDelete(w.id)} style={{
-              background: 'none', border: 'none', color: 'var(--tg-theme-hint-color)',
-              fontSize: '16px', cursor: 'pointer', padding: '4px',
-            }}>×</button>
+            {showAnalysis && <WorkoutAnalysis workoutId={w.id} existingAnalysis={w.analysis} />}
           </div>
         )
       })}

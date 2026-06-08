@@ -1,0 +1,9185 @@
+[
+  {
+    "name": "Barbell Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Incline Barbell Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Decline Barbell Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Incline Dumbbell Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Decline Dumbbell Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Dumbbell Flye",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Incline Dumbbell Flye",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Flye",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "High Cable Flye",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Low Cable Flye",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Push-Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Wide-Grip Push-Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Diamond Push-Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "anterior deltoid"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Chest Press Machine",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Pec Deck Machine",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Chest Dip",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Landmine Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dead Bug",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "abdominals",
+      "lower back"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Deadlift",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "latissimus dorsi",
+      "quadriceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Romanian Deadlift",
+    "category": "Back",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "erector spinae",
+      "latissimus dorsi"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Sumo Deadlift",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings",
+      "erector spinae"
+    ],
+    "secondary_muscles": [
+      "quadriceps",
+      "adductors",
+      "trapezius"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Trap Bar Deadlift",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings",
+      "erector spinae"
+    ],
+    "secondary_muscles": [
+      "quadriceps",
+      "trapezius"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Romanian Deadlift",
+    "category": "Back",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "erector spinae",
+      "latissimus dorsi"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Barbell Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "biceps",
+      "posterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Pendlay Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "biceps",
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "T-Bar Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "biceps",
+      "posterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "biceps",
+      "posterior deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "biceps",
+      "posterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Wide-Grip Cable Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "posterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Pull-Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rhomboids",
+      "posterior deltoid"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Chin-Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "rhomboids",
+      "posterior deltoid"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Wide-Grip Pull-Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "rhomboids",
+      "posterior deltoid",
+      "biceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Neutral-Grip Pull-Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rhomboids"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Lat Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rhomboids",
+      "posterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Wide-Grip Lat Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "rhomboids",
+      "posterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Reverse-Grip Lat Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rhomboids"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Straight-Arm Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Machine Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "biceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Chest-Supported Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids",
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "biceps",
+      "posterior deltoid"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Back Extension",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Good Morning",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Face Pull",
+    "category": "Back",
+    "primary_muscles": [
+      "posterior deltoid",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Shrug",
+    "category": "Back",
+    "primary_muscles": [
+      "trapezius"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Shrug",
+    "category": "Back",
+    "primary_muscles": [
+      "trapezius"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Inverted Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "posterior deltoid"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Overhead Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "trapezius"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Seated Barbell Overhead Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "trapezius"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Shoulder Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Seated Dumbbell Shoulder Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Arnold Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "posterior deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Machine Shoulder Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "trapezius"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Machine Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Front Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "lateral deltoid",
+      "pectoralis major"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Front Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "lateral deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Rear Delt Flye",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "posterior deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids",
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Rear Delt Flye",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "posterior deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids",
+      "trapezius"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Machine Rear Delt Flye",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "posterior deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids",
+      "trapezius"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Upright Row",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "biceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Upright Row",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "biceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Pike Push-Up",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "pectoralis major"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Handstand Push-Up",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "trapezius"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Barbell Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis",
+      "forearms"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "EZ Bar Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis",
+      "forearms"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis",
+      "forearms"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Alternating Dumbbell Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis",
+      "forearms"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Hammer Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "brachialis",
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis",
+      "forearms"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Preacher Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Preacher Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Machine Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Concentration Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Incline Dumbbell Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Hammer Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "brachialis",
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Reverse Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "brachialis",
+      "forearms"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Triceps Pushdown",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Rope Triceps Pushdown",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Overhead Triceps Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Dumbbell Overhead Triceps Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "EZ Bar Overhead Triceps Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Skull Crusher",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Skull Crusher",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Close-Grip Bench Press",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "pectoralis major",
+      "anterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Triceps Dip",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "pectoralis major"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Machine Triceps Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Dumbbell Kickback",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Wrist Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "forearms"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Reverse Wrist Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "forearms"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Farmer's Carry",
+    "category": "Arms",
+    "primary_muscles": [
+      "forearms"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "glutes",
+      "abdominals"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Back Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "erector spinae",
+      "adductors"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Front Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Goblet Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Dumbbell Goblet Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Bulgarian Split Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Barbell Bulgarian Split Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Leg Press",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Hack Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Barbell Hack Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Dumbbell Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Barbell Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Walking Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Reverse Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Step-Up",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Leg Extension",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Leg Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Seated Leg Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Nordic Hamstring Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Glute Bridge",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Single-Leg Glute Bridge",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Cable Kickback",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Machine Hip Abduction",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Machine Hip Adduction",
+    "category": "Legs",
+    "primary_muscles": [
+      "adductors"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Standing Calf Raise",
+    "category": "Legs",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Seated Calf Raise",
+    "category": "Legs",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Dumbbell Calf Raise",
+    "category": "Legs",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Bodyweight Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Pistol Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Wall Sit",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Box Jump",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Jump Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Sumo Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "adductors"
+    ],
+    "secondary_muscles": [
+      "quadriceps",
+      "hamstrings"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis",
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "obliques",
+      "lower back",
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Side Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "transverse abdominis",
+      "abdominals"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "obliques"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Cable Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "obliques"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Sit-Up",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Leg Raise",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Hanging Leg Raise",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Hanging Knee Raise",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Toes-to-Bar",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors",
+      "latissimus dorsi"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "V-Up",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Russian Twist",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "abdominals"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Weighted Russian Twist",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "abdominals"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Bicycle Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques",
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Mountain Climber",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors",
+      "obliques"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Ab Wheel Rollout",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis",
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "obliques",
+      "lower back"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Pallof Press",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis",
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "abdominals"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Woodchop",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "abdominals",
+      "glutes"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Hollow Body Hold",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis",
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Dragon Flag",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "obliques",
+      "lower back",
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Weighted Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis",
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "obliques",
+      "lower back"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Flutter Kick",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Running",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "calves",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Treadmill Running",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "calves",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "hip flexors"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Cycling",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "calves"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Stationary Bike",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "calves"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Rowing Machine",
+    "category": "Cardio",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "glutes",
+      "biceps",
+      "erector spinae"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Elliptical",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "calves"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Stair Climber",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Jump Rope",
+    "category": "Cardio",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Burpee",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes",
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "abdominals",
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Jumping Jack",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "adductors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "High Knees",
+    "category": "Cardio",
+    "primary_muscles": [
+      "hip flexors",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "abdominals"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Battle Ropes",
+    "category": "Cardio",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "abdominals",
+      "quadriceps"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Sled Push",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "anterior deltoid"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Sled Pull",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "latissimus dorsi"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Bear Crawl",
+    "category": "Cardio",
+    "primary_muscles": [
+      "abdominals",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "anterior deltoid",
+      "transverse abdominis"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Box Step-Up",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Dumbbell Clean and Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "quadriceps",
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Power Clean",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings",
+      "erector spinae"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "anterior deltoid",
+      "quadriceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Hang Clean",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings",
+      "erector spinae"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "quadriceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Snatch",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings",
+      "erector spinae"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "anterior deltoid",
+      "quadriceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Kettlebell Swing",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "erector spinae",
+      "abdominals"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Turkish Get-Up",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "transverse abdominis"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Clean",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "erector spinae"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "trapezius"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "posterior deltoid"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Goblet Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "adductors"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Snatch",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "erector spinae",
+      "trapezius",
+      "anterior deltoid"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Resistance Band Pull-Apart",
+    "category": "Back",
+    "primary_muscles": [
+      "posterior deltoid",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Resistance Band Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "posterior deltoid"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Resistance Band Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Resistance Band Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Resistance Band Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Resistance Band Glute Kickback",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Resistance Band Chest Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Incline Barbell Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "posterior deltoid",
+      "biceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Cable Pullover",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "posterior deltoid",
+      "triceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Dumbbell Pullover",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "posterior deltoid",
+      "pectoralis major",
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Seated Cable Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Underhand Cable Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rhomboids"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Single-Arm Cable Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "obliques"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Close-Grip Lat Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rhomboids"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Dumbbell Rear Delt Row",
+    "category": "Back",
+    "primary_muscles": [
+      "posterior deltoid",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Band-Assisted Pull-Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rhomboids"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Weighted Pull-Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rhomboids"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Cable Face Pull",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "posterior deltoid",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Dumbbell Side Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Band Face Pull",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "posterior deltoid",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Dumbbell Front Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "lateral deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Plate Front Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "lateral deltoid"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Cable Lateral Raise (Cross-Body)",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Push Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "glutes",
+      "quadriceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Behind-the-Neck Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid",
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Wall Push-Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Incline Push-Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Decline Push-Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Cable Chest Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Smith Machine Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Smith Machine Incline Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Svend Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Band Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Zottman Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps",
+      "brachialis"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Spider Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Cross-Body Hammer Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "brachialis",
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Overhead Triceps Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Single-Arm Triceps Pushdown",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Bench Dip",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "pectoralis major"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "JM Press",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Tate Press",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Band Triceps Pushdown",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "band"
+  },
+  {
+    "name": "Barbell Wrist Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "forearms"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Pinch Grip Carry",
+    "category": "Arms",
+    "primary_muscles": [
+      "forearms"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Smith Machine Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Safety Bar Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Pause Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Box Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Zercher Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "abdominals",
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Sissy Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Stiff-Leg Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Single-Leg Romanian Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Glute Kickback",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Calf Raise on Leg Press",
+    "category": "Legs",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Tibialis Raise",
+    "category": "Legs",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Side-Lying Clamshell",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Lateral Band Walk",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Donkey Kick",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Fire Hydrant",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Curtsy Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Sumo Deadlift High Pull",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "erector spinae",
+      "lateral deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Hollow Body Rock",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals",
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "L-Sit",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals",
+      "hip flexors"
+    ],
+    "secondary_muscles": [
+      "transverse abdominis",
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Copenhagen Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques",
+      "adductors"
+    ],
+    "secondary_muscles": [
+      "transverse abdominis"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Stir the Pot",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis",
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "obliques"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Landmine Rotation",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "abdominals",
+      "anterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Suitcase Carry",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques",
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "forearms"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Overhead Carry",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis",
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Incline Sit-Up",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Decline Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "obliques"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Reverse Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Toe Touch",
+    "category": "Core",
+    "primary_muscles": [
+      "abdominals"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Windmill",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "abdominals",
+      "glutes"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Hip Circle",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques",
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Swimming",
+    "category": "Cardio",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "pectoralis major",
+      "glutes",
+      "hamstrings"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Sprinting",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes",
+      "calves"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Assault Bike",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "calves"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "SkiErg",
+    "category": "Cardio",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "abdominals"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "anterior deltoid"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Walking",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "calves"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Incline Walking",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "calves"
+    ],
+    "secondary_muscles": [
+      "quadriceps",
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Kettlebell Carry",
+    "category": "Cardio",
+    "primary_muscles": [
+      "forearms",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "abdominals",
+      "glutes"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Tire Flip",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "erector spinae",
+      "anterior deltoid",
+      "pectoralis major"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Rowing (Outdoor)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "rhomboids",
+      "biceps",
+      "glutes"
+    ],
+    "equipment": "other"
+  },
+  {
+    "name": "Hiking",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Dumbbell Squeeze Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Low Cable Crossover",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "High Cable Crossover",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Decline Dumbbell Fly",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Incline Dumbbell Squeeze Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Plate Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "anterior deltoid"
+    ],
+    "equipment": "plate"
+  },
+  {
+    "name": "Single Arm Dumbbell Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Floor Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Floor Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Close Grip Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Incline Smith Machine Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Decline Smith Machine Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Cable Fly (Mid Height)",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Incline Cable Fly",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Push Up (Diamond)",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Push Up (Wide)",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Decline Push Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Archer Push Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Plyometric Push Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Ring Push Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "rings"
+  },
+  {
+    "name": "Ring Fly",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "core"
+    ],
+    "equipment": "rings"
+  },
+  {
+    "name": "Meadows Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rear deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Chest Supported Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids",
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rear deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Chest Supported T-Bar Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Single Arm Cable Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rear deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Wide Grip Cable Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids",
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Close Grip Cable Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Straight Arm Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "teres major"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Neutral Grip Lat Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Single Arm Lat Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Ring Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids",
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "rings"
+  },
+  {
+    "name": "Neutral Grip Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Wide Grip Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "teres major"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Weighted Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "weighted"
+  },
+  {
+    "name": "Muscle Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Kroc Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rear deltoid",
+      "grip"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Helms Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Seal Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids",
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rear deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Snatch Grip Deadlift",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "trapezius"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Rack Pull",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "grip"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Deficit Deadlift",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "latissimus dorsi"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Reverse Hyper",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "GHD Back Extension",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Z Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Behind The Neck Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Single Arm Dumbbell Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Lu Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid",
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Bus Driver",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "equipment": "plate"
+  },
+  {
+    "name": "Seated Dumbbell Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Leaning Cable Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Handstand Push Up",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "trapezius"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Pike Push Up",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Upright Row (Dumbbell)",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Upright Row",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Bent Over Reverse Fly (Cable)",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Machine Reverse Fly",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids",
+      "trapezius"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Band Pull Apart",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Face Pull (Rope)",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid",
+      "external rotators"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Cuban Rotation",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "external rotators"
+    ],
+    "secondary_muscles": [
+      "rear deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Prone Y Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lower trapezius"
+    ],
+    "secondary_muscles": [
+      "rear deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Prone T Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rhomboids",
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "lower trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Bottoms Up Kettlebell Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "grip",
+      "core"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Bayesian Cable Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Drag Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Waiter Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Overhead Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Reverse Curl (Barbell)",
+    "category": "Arms",
+    "primary_muscles": [
+      "brachioradialis"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Reverse Curl (Dumbbell)",
+    "category": "Arms",
+    "primary_muscles": [
+      "brachioradialis"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cross Body Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "brachialis"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "EZ Bar Preacher Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "ez bar"
+  },
+  {
+    "name": "Overhead Cable Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Single Arm Overhead Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Close Grip Push Up",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "pectoralis major"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Weighted Dip",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps",
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "weighted"
+  },
+  {
+    "name": "California Press",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps",
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "V Bar Pushdown",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Straight Bar Pushdown",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Farmer Carry",
+    "category": "Arms",
+    "primary_muscles": [
+      "grip",
+      "forearms"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "core"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Plate Pinch Hold",
+    "category": "Arms",
+    "primary_muscles": [
+      "grip"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "equipment": "plate"
+  },
+  {
+    "name": "Dead Hang",
+    "category": "Arms",
+    "primary_muscles": [
+      "grip",
+      "forearms"
+    ],
+    "secondary_muscles": [
+      "latissimus dorsi"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Pin Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Tempo Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Belt Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Spanish Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Peterson Step Up",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps (VMO)"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Dumbbell Reverse Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Barbell Reverse Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Walking Lunge (Dumbbell)",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Deficit Reverse Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Pendulum Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "V Squat Machine",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Single Leg Press",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Narrow Stance Leg Press",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Wide Stance Leg Press",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "adductors"
+    ],
+    "secondary_muscles": [
+      "quadriceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Single Leg Extension",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Nordic Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Lying Leg Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Single Leg Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Glute Ham Raise",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Barbell Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Single Leg Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Cable Pull Through",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Single Leg Romanian Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Stiff Leg Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Hip Abduction Machine",
+    "category": "Legs",
+    "primary_muscles": [
+      "gluteus medius"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Hip Adduction Machine",
+    "category": "Legs",
+    "primary_muscles": [
+      "adductors"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Cable Hip Abduction",
+    "category": "Legs",
+    "primary_muscles": [
+      "gluteus medius"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Standing Calf Raise (Machine)",
+    "category": "Legs",
+    "primary_muscles": [
+      "gastrocnemius"
+    ],
+    "secondary_muscles": [
+      "soleus"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Single Leg Calf Raise",
+    "category": "Legs",
+    "primary_muscles": [
+      "gastrocnemius"
+    ],
+    "secondary_muscles": [
+      "soleus"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Donkey Calf Raise",
+    "category": "Legs",
+    "primary_muscles": [
+      "gastrocnemius"
+    ],
+    "secondary_muscles": [
+      "soleus"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Leg Press Calf Raise",
+    "category": "Legs",
+    "primary_muscles": [
+      "gastrocnemius",
+      "soleus"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Shrimp Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Broad Jump",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Standing Ab Wheel Rollout",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "obliques",
+      "shoulders"
+    ],
+    "equipment": "ab wheel"
+  },
+  {
+    "name": "Toes To Bar",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis",
+      "hip flexors"
+    ],
+    "secondary_muscles": [
+      "grip"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Decline Sit Up",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bench"
+  },
+  {
+    "name": "Weighted Decline Sit Up",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bench"
+  },
+  {
+    "name": "GHD Sit Up",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis",
+      "hip flexors"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Machine Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Pallof Press (Band)",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques",
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [],
+    "equipment": "band"
+  },
+  {
+    "name": "Side Plank (Weighted)",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "gluteus medius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Turkish Get Up",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "hip flexors"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Dead Bug (Weighted)",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "rectus abdominis"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Bird Dog",
+    "category": "Core",
+    "primary_muscles": [
+      "erector spinae",
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Plank (Weighted)",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "rectus abdominis"
+    ],
+    "equipment": "plate"
+  },
+  {
+    "name": "RKC Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis",
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "quads"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Body Saw",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "obliques"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Stir The Pot",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis",
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "transverse abdominis"
+    ],
+    "equipment": "stability ball"
+  },
+  {
+    "name": "Hanging Windshield Wiper",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "rectus abdominis",
+      "grip"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Cable Woodchop (High to Low)",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Cable Woodchop (Low to High)",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Weighted Reverse Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Ski Erg",
+    "category": "Cardio",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Stairmaster",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Incline Treadmill Walk",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "calves"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Sprint Intervals",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Hill Sprints",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Jump Rope (Double Under)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [
+      "shoulders",
+      "core"
+    ],
+    "equipment": "jump rope"
+  },
+  {
+    "name": "Prowler Push",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core",
+      "calves"
+    ],
+    "equipment": "sled"
+  },
+  {
+    "name": "Burpee Over Bar",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Cycling (Stationary)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "calves"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Cycling (Outdoor)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "calves",
+      "glutes"
+    ],
+    "equipment": "bicycle"
+  },
+  {
+    "name": "Shadow Boxing",
+    "category": "Cardio",
+    "primary_muscles": [
+      "shoulders",
+      "core"
+    ],
+    "secondary_muscles": [
+      "legs"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Heavy Bag",
+    "category": "Cardio",
+    "primary_muscles": [
+      "shoulders",
+      "core"
+    ],
+    "secondary_muscles": [
+      "legs",
+      "chest"
+    ],
+    "equipment": "heavy bag"
+  },
+  {
+    "name": "Versa Climber",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Clean and Jerk",
+    "category": "Legs",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Power Snatch",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "quadriceps",
+      "shoulders"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Hang Snatch",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Clean Pull",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Snatch Pull",
+    "category": "Back",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Foam Roll (Quads)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "foam roller"
+  },
+  {
+    "name": "Foam Roll (IT Band)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "hip abductors"
+    ],
+    "secondary_muscles": [],
+    "equipment": "foam roller"
+  },
+  {
+    "name": "Foam Roll (Back)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "erector spinae"
+    ],
+    "secondary_muscles": [],
+    "equipment": "foam roller"
+  },
+  {
+    "name": "Hip 90/90 Stretch",
+    "category": "Cardio",
+    "primary_muscles": [
+      "hip rotators"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "World's Greatest Stretch",
+    "category": "Cardio",
+    "primary_muscles": [
+      "hip flexors",
+      "thoracic spine"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Cat Cow",
+    "category": "Cardio",
+    "primary_muscles": [
+      "spine"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Couch Stretch",
+    "category": "Cardio",
+    "primary_muscles": [
+      "hip flexors",
+      "quadriceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Barbell Shrug",
+    "category": "Back",
+    "primary_muscles": [
+      "trapezius"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Behind Back Shrug",
+    "category": "Back",
+    "primary_muscles": [
+      "trapezius"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Cable Shrug",
+    "category": "Back",
+    "primary_muscles": [
+      "trapezius"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Decline Dumbbell Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Scott Curl (Machine)",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Overhead Tricep Extension (Cable)",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "French Press",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "ez bar"
+  },
+  {
+    "name": "Dip Machine",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "pectoralis major"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Step Up (Barbell)",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Landmine Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Jefferson Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors",
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Cossack Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "adductors"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "ATG Split Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Rear Foot Elevated Split Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Front Foot Elevated Split Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Lateral Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "adductors",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Cable Kickback (Glute)",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Frog Pump",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Barbell Glute Bridge",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Banded Walk",
+    "category": "Legs",
+    "primary_muscles": [
+      "gluteus medius"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Clamshell",
+    "category": "Legs",
+    "primary_muscles": [
+      "gluteus medius"
+    ],
+    "secondary_muscles": [],
+    "equipment": "band"
+  },
+  {
+    "name": "Thrusters",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Thrusters",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Wall Ball",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "shoulders",
+      "core"
+    ],
+    "equipment": "medicine ball"
+  },
+  {
+    "name": "Medicine Ball Slam",
+    "category": "Cardio",
+    "primary_muscles": [
+      "core",
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "latissimus dorsi"
+    ],
+    "equipment": "medicine ball"
+  },
+  {
+    "name": "Lateral Medicine Ball Throw",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "core",
+      "shoulders"
+    ],
+    "equipment": "medicine ball"
+  },
+  {
+    "name": "Plank To Push Up",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Superman Hold",
+    "category": "Core",
+    "primary_muscles": [
+      "erector spinae"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Back Extension (Machine)",
+    "category": "Core",
+    "primary_muscles": [
+      "erector spinae"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Hanging L-Sit",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis",
+      "hip flexors"
+    ],
+    "secondary_muscles": [
+      "grip"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Decline Russian Twist",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "rectus abdominis"
+    ],
+    "equipment": "bench"
+  },
+  {
+    "name": "Swiss Ball Pike",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "stability ball"
+  },
+  {
+    "name": "McGill Curl Up",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Side Bend (Dumbbell)",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Side Bend",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Sandbag Carry",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "grip"
+    ],
+    "secondary_muscles": [
+      "legs",
+      "back"
+    ],
+    "equipment": "sandbag"
+  },
+  {
+    "name": "Cross Carry",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "grip",
+      "shoulders"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Machine Chest Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "anterior deltoid"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Incline Machine Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "anterior deltoid"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Pec Deck",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Deficit Push Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "anterior deltoid"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "TRX Push Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "core",
+      "triceps"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Fly",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "core",
+      "anterior deltoid"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "Resistance Band Fly",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Hex Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Guillotine Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Smith Machine Floor Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Kettlebell Floor Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Reverse Grip Lat Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Wide Grip Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids",
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Seated Cable Row (V-Grip)",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Machine High Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Machine Low Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Supine Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids",
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "TRX Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids",
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "core"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "Band Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rear deltoid"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Bent Over Dumbbell Row (Two Arm)",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Yates Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rhomboids"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Smith Machine Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Kayak Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Renegade Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "core",
+      "biceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Gorilla Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "core",
+      "biceps"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Prone Incline Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids",
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Superman Row",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "rear deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Resistance Band Pull Apart (Overhead)",
+    "category": "Back",
+    "primary_muscles": [
+      "rear deltoid",
+      "lower trapezius"
+    ],
+    "secondary_muscles": [
+      "rhomboids"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Dumbbell Y Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Bradford Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Landmine Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell W Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid",
+      "external rotators"
+    ],
+    "secondary_muscles": [
+      "lower trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Smith Machine Shoulder Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Kettlebell Halo",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "deltoids"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Windmill",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "shoulders",
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Scarecrow Rotation",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "external rotators"
+    ],
+    "secondary_muscles": [
+      "rear deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable External Rotation",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "external rotators"
+    ],
+    "secondary_muscles": [
+      "rear deltoid"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Cable Internal Rotation",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "internal rotators"
+    ],
+    "secondary_muscles": [
+      "subscapularis"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Dumbbell Lateral Raise (Leaning)",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Dumbbell High Pull",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "rear deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Kettlebell Clean and Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core",
+      "grip"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "TRX Y Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lower trapezius",
+      "rear deltoid"
+    ],
+    "secondary_muscles": [],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX T Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid",
+      "rhomboids"
+    ],
+    "secondary_muscles": [],
+    "equipment": "trx"
+  },
+  {
+    "name": "Preacher Curl (Dumbbell)",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Curl (Straight Bar)",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Cable Curl (EZ Bar)",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "21s (Barbell Curl)",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Chin Up (Close Grip)",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps",
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Towel Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "grip"
+    ],
+    "equipment": "towel"
+  },
+  {
+    "name": "Pronated Dumbbell Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "brachioradialis"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Rope Pushdown (Single Arm)",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Diamond Push Up",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "pectoralis major"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Bodyweight Skull Crusher",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Band Pushdown",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "band"
+  },
+  {
+    "name": "Band Overhead Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "band"
+  },
+  {
+    "name": "Rolling Tricep Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Kettlebell Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "grip"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Fat Grip Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps",
+      "forearms"
+    ],
+    "secondary_muscles": [
+      "grip"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Wrist Roller",
+    "category": "Arms",
+    "primary_muscles": [
+      "forearms"
+    ],
+    "secondary_muscles": [],
+    "equipment": "wrist roller"
+  },
+  {
+    "name": "Finger Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "forearms"
+    ],
+    "secondary_muscles": [
+      "grip"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Gripper",
+    "category": "Arms",
+    "primary_muscles": [
+      "grip"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "equipment": "gripper"
+  },
+  {
+    "name": "Dumbbell Step Up",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Lateral Step Up",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Anderson Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Overhead Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "shoulders",
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Double Kettlebell Front Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Hack Squat (Barbell)",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Smith Machine Split Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Smith Machine Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Barbell Front Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "High Bar Back Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Low Bar Back Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "quadriceps",
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Leg Press (High Foot)",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "quadriceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Hack Squat (Reverse)",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "quadriceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Cable Romanian Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "B Stance Romanian Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "B Stance Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Smith Machine Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Reverse Nordic Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Poliquin Step Up",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps (VMO)"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Split Squat (Barbell)",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Drop Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Ski Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Prisoner Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Dumbbell Sumo Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "adductors",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "quadriceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Kettlebell Sumo Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "adductors"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Single Leg Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Ab Crunch (Cable, Standing)",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Knee Tuck (Hanging)",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Scissor Kick",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis",
+      "hip flexors"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Cross Body Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "rectus abdominis"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Jackknife Sit Up",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Swiss Ball Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [],
+    "equipment": "stability ball"
+  },
+  {
+    "name": "Swiss Ball Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "rectus abdominis"
+    ],
+    "equipment": "stability ball"
+  },
+  {
+    "name": "Swiss Ball Knee Tuck",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis",
+      "hip flexors"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "stability ball"
+  },
+  {
+    "name": "Bosu Ball Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "bosu ball"
+  },
+  {
+    "name": "TRX Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Mountain Climber",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis",
+      "hip flexors"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Pike",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "shoulders",
+      "hip flexors"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "Sledgehammer Swing",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques",
+      "core"
+    ],
+    "secondary_muscles": [
+      "shoulders",
+      "grip"
+    ],
+    "equipment": "sledgehammer"
+  },
+  {
+    "name": "Sandbag Get Up",
+    "category": "Core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "shoulders",
+      "legs"
+    ],
+    "equipment": "sandbag"
+  },
+  {
+    "name": "Double Kettlebell Swing",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "core",
+      "grip"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Long Cycle",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Devil Press",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Man Maker",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Thruster (Barbell)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "core",
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Cluster (Clean + Thruster)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Rope Climb",
+    "category": "Cardio",
+    "primary_muscles": [
+      "grip",
+      "biceps",
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "rope"
+  },
+  {
+    "name": "Atlas Stone",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "stone"
+  },
+  {
+    "name": "Sandbag Clean",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "core"
+    ],
+    "equipment": "sandbag"
+  },
+  {
+    "name": "Sandbag Over Shoulder",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "sandbag"
+  },
+  {
+    "name": "Yoke Walk",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "yoke"
+  },
+  {
+    "name": "Log Press",
+    "category": "Cardio",
+    "primary_muscles": [
+      "shoulders",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "log"
+  },
+  {
+    "name": "Axle Bar Deadlift",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "grip",
+      "erector spinae"
+    ],
+    "equipment": "axle bar"
+  },
+  {
+    "name": "Farmers Walk (Trap Bar)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "grip",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "core",
+      "legs"
+    ],
+    "equipment": "trap bar"
+  },
+  {
+    "name": "Crossover Step Up",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Skater Jump",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Butt Kicks",
+    "category": "Cardio",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Jumping Jacks",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Tuck Jump",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core",
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Star Jump",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Long Distance Run",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Tempo Run",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Interval Run",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Fartlek Run",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Recovery Jog",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Cross Country Skiing",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "skis"
+  },
+  {
+    "name": "Kayaking",
+    "category": "Cardio",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "core",
+      "shoulders"
+    ],
+    "equipment": "kayak"
+  },
+  {
+    "name": "Rock Climbing",
+    "category": "Cardio",
+    "primary_muscles": [
+      "grip",
+      "forearms",
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "core",
+      "biceps"
+    ],
+    "equipment": "wall"
+  },
+  {
+    "name": "Tennis",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "racket"
+  },
+  {
+    "name": "Basketball",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "ball"
+  },
+  {
+    "name": "Soccer",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "core"
+    ],
+    "equipment": "ball"
+  },
+  {
+    "name": "Dumbbell Snatch",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "core"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Kettlebell Turkish Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "core",
+      "triceps"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Viking Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Seated Smith Machine Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Single Arm Landmine Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Incline Rear Delt Fly",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Smith Machine Upright Row",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Partials Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Dead Stop Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Lying Rear Delt Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Dumbbell Power Clean",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "quadriceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Dumbbell Hang Clean",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Single Arm Farmer Walk",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques",
+      "grip"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Rack Carry",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Zercher Carry",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "quadriceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Bottoms Up Walk",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "grip"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Waiter Walk",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "grip"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Mixed Carry",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "grip",
+      "shoulders"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Band Resisted Sprint",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Parachute Sprint",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "parachute"
+  },
+  {
+    "name": "Agility Ladder",
+    "category": "Cardio",
+    "primary_muscles": [
+      "calves",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "ladder"
+  },
+  {
+    "name": "Cone Drills",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "calves"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "cones"
+  },
+  {
+    "name": "Shuttle Run",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Plyo Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Squat Jump (Weighted)",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Depth Jump",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "box"
+  },
+  {
+    "name": "Single Leg Box Jump",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "core"
+    ],
+    "equipment": "box"
+  },
+  {
+    "name": "Lateral Box Jump",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "box"
+  },
+  {
+    "name": "Seated Box Jump",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "box"
+  },
+  {
+    "name": "Cable Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Band Leg Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [],
+    "equipment": "band"
+  },
+  {
+    "name": "Band Good Morning",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings",
+      "erector spinae"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Band Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Banded Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "band"
+  },
+  {
+    "name": "Pause Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "anterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Tempo Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Spoto Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Wide Grip Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Reverse Grip Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Board Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Pin Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Dumbbell Around The World",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Incline Push Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Clap Push Up",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Behind Neck Lat Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rhomboids"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Close Grip Chin Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Commando Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "L-Sit Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "core"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Towel Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "grip"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "towel"
+  },
+  {
+    "name": "Mixed Grip Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Archer Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Typewriter Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Machine Pullover",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "teres major"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Dumbbell Deadlift",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Jefferson Deadlift",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "quadriceps",
+      "adductors"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Suitcase Deadlift",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "grip",
+      "glutes"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Band Assisted Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Eccentric Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Scap Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "lower trapezius"
+    ],
+    "secondary_muscles": [
+      "rhomboids"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Overhead Press (Strict)",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Seated Barbell Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Klokov Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid",
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Sotts Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "core",
+      "quadriceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Javelin Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "core",
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Lateral Raise (21s)",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cross Cable Rear Delt Fly",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Reverse Cable Crossover",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Plate Raise (Front)",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "plate"
+  },
+  {
+    "name": "Dumbbell Iron Cross",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid",
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Single Arm Cable Front Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Standing EZ Bar Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "ez bar"
+  },
+  {
+    "name": "Seated EZ Bar Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "brachialis"
+    ],
+    "equipment": "ez bar"
+  },
+  {
+    "name": "Seated Alternating Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Standing Barbell Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Cheat Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid",
+      "back"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Single Arm Machine Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Single Arm Cable Pushdown",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Lying EZ Bar Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "ez bar"
+  },
+  {
+    "name": "Overhead EZ Bar Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "ez bar"
+  },
+  {
+    "name": "Close Grip Floor Press",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "pectoralis major"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Tricep Machine Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Reverse Grip Pushdown",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Cross Body Cable Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "1.5 Rep Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Pulse Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Eccentric Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Pause Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Touch and Go Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Single Leg Leg Press",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Leg Press (Feet Together)",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Sissy Squat (Machine)",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Lunge (In Place)",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Weighted Step Up",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Crossover Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Clock Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Elevated Heel Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Heels Elevated Goblet Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Paused Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "1.5 Rep Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Banded Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Slide Board Leg Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "slide board"
+  },
+  {
+    "name": "Swiss Ball Leg Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "stability ball"
+  },
+  {
+    "name": "TRX Leg Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "Single Leg Swiss Ball Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "core"
+    ],
+    "equipment": "stability ball"
+  },
+  {
+    "name": "Smith Machine Calf Raise",
+    "category": "Legs",
+    "primary_muscles": [
+      "gastrocnemius"
+    ],
+    "secondary_muscles": [
+      "soleus"
+    ],
+    "equipment": "smith machine"
+  },
+  {
+    "name": "Sled Calf Raise",
+    "category": "Legs",
+    "primary_muscles": [
+      "gastrocnemius",
+      "soleus"
+    ],
+    "secondary_muscles": [],
+    "equipment": "sled"
+  },
+  {
+    "name": "Long Lever Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Plank With Arm Reach",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Plank With Leg Lift",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis",
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Bear Hold",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "shoulders",
+      "quadriceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Bear Crawl (Weighted)",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "quadriceps"
+    ],
+    "equipment": "weighted vest"
+  },
+  {
+    "name": "Hardstyle Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Anti-Rotation Press",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques",
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Single Arm Plank",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques",
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Plank Drag",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis",
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Inchworm",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Dead Bug (Band)",
+    "category": "Core",
+    "primary_muscles": [
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [
+      "rectus abdominis"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Half Kneeling Chop",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Half Kneeling Lift",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Tall Kneeling Pallof Press",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques",
+      "transverse abdominis"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Standing Oblique Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "EMOM Training",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "various"
+  },
+  {
+    "name": "AMRAP Training",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "various"
+  },
+  {
+    "name": "Tabata Protocol",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "various"
+  },
+  {
+    "name": "Circuit Training",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "various"
+  },
+  {
+    "name": "Spin Class",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "calves"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Rowing Intervals",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "machine"
+  },
+  {
+    "name": "Bike Intervals",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "calves"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Trail Running",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Stair Climb",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps",
+      "calves"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Jump Rope (Single Under)",
+    "category": "Cardio",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "jump rope"
+  },
+  {
+    "name": "Boxing Rounds",
+    "category": "Cardio",
+    "primary_muscles": [
+      "shoulders",
+      "core"
+    ],
+    "secondary_muscles": [
+      "legs"
+    ],
+    "equipment": "gloves"
+  },
+  {
+    "name": "Kickboxing",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "gloves"
+  },
+  {
+    "name": "Muay Thai Pad Work",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "pads"
+  },
+  {
+    "name": "Grappling/BJJ",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "gi"
+  },
+  {
+    "name": "Wrestling Drill",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Pilates",
+    "category": "Core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "mat"
+  },
+  {
+    "name": "Yoga Flow",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "mat"
+  },
+  {
+    "name": "Vinyasa Flow",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "mat"
+  },
+  {
+    "name": "Power Yoga",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "mat"
+  },
+  {
+    "name": "Yin Yoga",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "mat"
+  },
+  {
+    "name": "Stretching Routine",
+    "category": "Cardio",
+    "primary_muscles": [
+      "full body"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Active Recovery Walk",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Loaded Carry Complex",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "grip"
+    ],
+    "secondary_muscles": [
+      "trapezius",
+      "legs"
+    ],
+    "equipment": "various"
+  },
+  {
+    "name": "Prowler Drag",
+    "category": "Cardio",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "grip"
+    ],
+    "equipment": "sled"
+  },
+  {
+    "name": "Backward Sled Drag",
+    "category": "Cardio",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "equipment": "sled"
+  },
+  {
+    "name": "Lateral Sled Drag",
+    "category": "Cardio",
+    "primary_muscles": [
+      "adductors",
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "sled"
+  },
+  {
+    "name": "TRX Bicep Curl",
+    "category": "Arms",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Tricep Extension",
+    "category": "Arms",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Chest Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Face Pull",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids",
+      "core"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Single Leg Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Hamstring Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Hip Drop",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Crunch",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Body Saw",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "TRX Fallout",
+    "category": "Core",
+    "primary_muscles": [
+      "rectus abdominis"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "trx"
+  },
+  {
+    "name": "Cable Face Pull (Kneeling)",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid",
+      "external rotators"
+    ],
+    "secondary_muscles": [
+      "trapezius"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Prone I-Y-T Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lower trapezius",
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Standing Dumbbell Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Alternating Dumbbell Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Half Kneeling Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "core",
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Tall Kneeling Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "core",
+      "triceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Single Arm Cable Lateral Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Dumbbell Clean",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid",
+      "trapezius"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Reverse Fly",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "rhomboids"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Cable Y Raise",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lower trapezius",
+      "lateral deltoid"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Single Arm Machine Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Dumbbell Incline Row",
+    "category": "Back",
+    "primary_muscles": [
+      "rhomboids",
+      "rear deltoid"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Deficit Push Up (Dumbbell)",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "anterior deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Eccentric Only Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Eccentric Only Nordic Curl",
+    "category": "Legs",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Bodyweight Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Band Pull Up",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Plate Loaded Chest Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Plate Loaded Row",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Plate Loaded Shoulder Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Plate Loaded Leg Press",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Plate Loaded Hack Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Plate Loaded Lat Pulldown",
+    "category": "Back",
+    "primary_muscles": [
+      "latissimus dorsi"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Plate Loaded Hip Thrust",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Cable Lateral Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "adductors",
+      "quadriceps"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Cable Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [],
+    "equipment": "cable"
+  },
+  {
+    "name": "Cable Lunge",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Band Squat to Press",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Kettlebell Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Double Kettlebell Clean",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "grip",
+      "shoulders"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Single Arm Kettlebell Swing",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "core",
+      "grip"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "American Kettlebell Swing",
+    "category": "Cardio",
+    "primary_muscles": [
+      "glutes",
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Figure 8",
+    "category": "Core",
+    "primary_muscles": [
+      "core",
+      "grip"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Double Kettlebell Press",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "anterior deltoid"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Kettlebell Arm Bar",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rotator cuff",
+      "core"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "equipment": "kettlebell"
+  },
+  {
+    "name": "Band Dislocate",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "rotator cuff"
+    ],
+    "secondary_muscles": [
+      "rear deltoid"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Wall Slide",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "lower trapezius",
+      "serratus anterior"
+    ],
+    "secondary_muscles": [
+      "rotator cuff"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Serratus Push Up",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "serratus anterior"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Scapular Push Up",
+    "category": "Back",
+    "primary_muscles": [
+      "serratus anterior"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Face Down I-Y-T-W",
+    "category": "Back",
+    "primary_muscles": [
+      "lower trapezius",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "rear deltoid"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Band Over And Back",
+    "category": "Shoulders",
+    "primary_muscles": [
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "chest"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Dumbbell Fly (Flat)",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "anterior deltoid"
+    ],
+    "equipment": "dumbbell"
+  },
+  {
+    "name": "Cable Lateral Walk",
+    "category": "Legs",
+    "primary_muscles": [
+      "gluteus medius"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "cable"
+  },
+  {
+    "name": "Banded Lateral Walk",
+    "category": "Legs",
+    "primary_muscles": [
+      "gluteus medius"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Glute Focused Back Extension",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "machine"
+  },
+  {
+    "name": "Reverse Hyper (Bench)",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "erector spinae"
+    ],
+    "equipment": "bench"
+  },
+  {
+    "name": "Banded Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Banded Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "band"
+  },
+  {
+    "name": "Chain Bench Press",
+    "category": "Chest",
+    "primary_muscles": [
+      "pectoralis major"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Chain Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Band Resisted Squat",
+    "category": "Legs",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Tempo Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Paused Deadlift",
+    "category": "Legs",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Block Pull",
+    "category": "Back",
+    "primary_muscles": [
+      "erector spinae",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "grip"
+    ],
+    "equipment": "barbell"
+  },
+  {
+    "name": "Opposite Arm/Leg Raise",
+    "category": "Core",
+    "primary_muscles": [
+      "erector spinae",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Prone Cobra",
+    "category": "Core",
+    "primary_muscles": [
+      "erector spinae",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "equipment": "bodyweight"
+  },
+  {
+    "name": "Lying Windmill",
+    "category": "Core",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "equipment": "bodyweight"
+  }
+]

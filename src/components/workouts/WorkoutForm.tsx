@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import type { ExerciseLogEntry, ExerciseSet } from '@/types/workouts'
+import ExerciseAutocomplete from './ExerciseAutocomplete'
+import ExerciseSuggestion from './ExerciseSuggestion'
+import { useUser } from '@/context/UserContext'
 
 interface WorkoutFormProps {
   initialName?: string
@@ -12,24 +15,27 @@ interface WorkoutFormProps {
 }
 
 export default function WorkoutForm({ initialName, initialExercises, templateId, onSave, onClose }: WorkoutFormProps) {
+  const { user } = useUser()
+  const showSuggestions = (user?.ai_coaching_prefs as Record<string, boolean> | undefined)?.pre_workout_suggestions !== false
+
   const [name, setName] = useState(initialName ?? '')
-  const [exercises, setExercises] = useState<{ exercise_name: string; sets: ExerciseSet[] }[]>(
-    initialExercises ?? [{ exercise_name: '', sets: [{ reps: 0, weight_kg: null }] }]
+  const [exercises, setExercises] = useState<{ exercise_name: string; exercise_id: number | null; sets: ExerciseSet[] }[]>(
+    initialExercises?.map(ex => ({ ...ex, exercise_id: null })) ?? [{ exercise_name: '', exercise_id: null, sets: [{ reps: 0, weight_kg: null }] }]
   )
   const [duration, setDuration] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
   function addExercise() {
-    setExercises(prev => [...prev, { exercise_name: '', sets: [{ reps: 0, weight_kg: null }] }])
+    setExercises(prev => [...prev, { exercise_name: '', exercise_id: null, sets: [{ reps: 0, weight_kg: null }] }])
   }
 
   function removeExercise(idx: number) {
     setExercises(prev => prev.filter((_, i) => i !== idx))
   }
 
-  function updateExerciseName(idx: number, value: string) {
-    setExercises(prev => prev.map((ex, i) => i === idx ? { ...ex, exercise_name: value } : ex))
+  function updateExercise(idx: number, name: string, exerciseId: number | null) {
+    setExercises(prev => prev.map((ex, i) => i === idx ? { ...ex, exercise_name: name, exercise_id: exerciseId } : ex))
   }
 
   function addSet(exIdx: number) {
@@ -67,6 +73,7 @@ export default function WorkoutForm({ initialName, initialExercises, templateId,
         name: name.trim(),
         exercises: exercises.map((ex, i) => ({
           exercise_name: ex.exercise_name,
+          exercise_id: ex.exercise_id ?? null,
           sets: ex.sets,
           order: i + 1,
         })),
@@ -95,13 +102,9 @@ export default function WorkoutForm({ initialName, initialExercises, templateId,
           display: 'flex', flexDirection: 'column', gap: '10px',
         }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <input
-              className="input-field"
+            <ExerciseAutocomplete
               value={ex.exercise_name}
-              onChange={e => updateExerciseName(exIdx, e.target.value)}
-              placeholder="Exercise name"
-              required
-              style={{ flex: 1 }}
+              onChange={(name, id) => updateExercise(exIdx, name, id)}
             />
             {exercises.length > 1 && (
               <button type="button" onClick={() => removeExercise(exIdx)} style={{
@@ -110,6 +113,7 @@ export default function WorkoutForm({ initialName, initialExercises, templateId,
               }}>×</button>
             )}
           </div>
+          <ExerciseSuggestion exerciseName={ex.exercise_name} enabled={showSuggestions} />
 
           {ex.sets.map((set, setIdx) => (
             <div key={setIdx} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>

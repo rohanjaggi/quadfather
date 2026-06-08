@@ -49,6 +49,7 @@ export async function PUT(request: NextRequest) {
         ...(body.ai_coaching_prefs !== undefined && {
           ai_coaching_prefs: body.ai_coaching_prefs,
         }),
+        ...(body.training_focus !== undefined && { training_focus: body.training_focus }),
       },
     });
 
@@ -77,6 +78,7 @@ export async function PUT(request: NextRequest) {
       dietary_restrictions: updated.dietary_restrictions ? JSON.parse(updated.dietary_restrictions) : [],
       ai_features_enabled: updated.ai_features_enabled,
       ai_coaching_prefs: updated.ai_coaching_prefs ?? undefined,
+      training_focus: updated.training_focus ?? null,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createTemplate } from '@/lib/api'
 import type { TemplateExercise } from '@/types/workouts'
+import ExerciseAutocomplete from './ExerciseAutocomplete'
 
 interface TemplateCreatorProps {
   onClose: () => void
@@ -11,23 +12,26 @@ interface TemplateCreatorProps {
 
 export default function TemplateCreator({ onClose, onCreated }: TemplateCreatorProps) {
   const [name, setName] = useState('')
-  const [exercises, setExercises] = useState<TemplateExercise[]>([
-    { name: '', defaultSets: 3, defaultReps: 10, defaultWeightKg: null },
+  const [exercises, setExercises] = useState<(TemplateExercise & { exercise_id?: number | null })[]>([
+    { name: '', defaultSets: 3, defaultReps: 10, defaultWeightKg: null, exercise_id: null },
   ])
   const [saving, setSaving] = useState(false)
 
   function addExercise() {
-    setExercises(prev => [...prev, { name: '', defaultSets: 3, defaultReps: 10, defaultWeightKg: null }])
+    setExercises(prev => [...prev, { name: '', defaultSets: 3, defaultReps: 10, defaultWeightKg: null, exercise_id: null }])
   }
 
   function removeExercise(idx: number) {
     setExercises(prev => prev.filter((_, i) => i !== idx))
   }
 
-  function updateExercise(idx: number, field: keyof TemplateExercise, value: string) {
+  function updateExerciseName(idx: number, name: string, exerciseId: number | null) {
+    setExercises(prev => prev.map((ex, i) => i === idx ? { ...ex, name, exercise_id: exerciseId } : ex))
+  }
+
+  function updateExerciseField(idx: number, field: 'defaultSets' | 'defaultReps' | 'defaultWeightKg', value: string) {
     setExercises(prev => prev.map((ex, i) => {
       if (i !== idx) return ex
-      if (field === 'name') return { ...ex, name: value }
       if (field === 'defaultWeightKg') return { ...ex, defaultWeightKg: value === '' ? null : parseFloat(value) }
       return { ...ex, [field]: parseInt(value) || 0 }
     }))
@@ -62,7 +66,10 @@ export default function TemplateCreator({ onClose, onCreated }: TemplateCreatorP
           display: 'flex', flexDirection: 'column', gap: '8px',
         }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <input className="input-field" value={ex.name} onChange={e => updateExercise(idx, 'name', e.target.value)} placeholder="Exercise name" required style={{ flex: 1 }} />
+            <ExerciseAutocomplete
+              value={ex.name}
+              onChange={(name, id) => updateExerciseName(idx, name, id)}
+            />
             {exercises.length > 1 && (
               <button type="button" onClick={() => removeExercise(idx)} style={{
                 background: 'none', border: 'none', color: 'var(--accent-calories)', fontSize: '18px', cursor: 'pointer',
@@ -72,15 +79,15 @@ export default function TemplateCreator({ onClose, onCreated }: TemplateCreatorP
           <div style={{ display: 'flex', gap: '6px' }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontFamily: 'var(--font-display)', fontSize: '9px', color: 'var(--tg-theme-hint-color)' }}>Sets</label>
-              <input className="input-field" type="number" value={ex.defaultSets || ''} onChange={e => updateExercise(idx, 'defaultSets', e.target.value)} />
+              <input className="input-field" type="number" value={ex.defaultSets || ''} onChange={e => updateExerciseField(idx, 'defaultSets', e.target.value)} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ fontFamily: 'var(--font-display)', fontSize: '9px', color: 'var(--tg-theme-hint-color)' }}>Reps</label>
-              <input className="input-field" type="number" value={ex.defaultReps || ''} onChange={e => updateExercise(idx, 'defaultReps', e.target.value)} />
+              <input className="input-field" type="number" value={ex.defaultReps || ''} onChange={e => updateExerciseField(idx, 'defaultReps', e.target.value)} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ fontFamily: 'var(--font-display)', fontSize: '9px', color: 'var(--tg-theme-hint-color)' }}>kg</label>
-              <input className="input-field" type="number" step="0.5" value={ex.defaultWeightKg ?? ''} onChange={e => updateExercise(idx, 'defaultWeightKg', e.target.value)} placeholder="—" />
+              <input className="input-field" type="number" step="0.5" value={ex.defaultWeightKg ?? ''} onChange={e => updateExerciseField(idx, 'defaultWeightKg', e.target.value)} placeholder="—" />
             </div>
           </div>
         </div>

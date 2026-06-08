@@ -19,6 +19,7 @@ export default function GoalsPage() {
   const [water, setWater] = useState('')
   const [bottleSize, setBottleSize] = useState('')
   const [stepGoal, setStepGoal] = useState('')
+  const [trainingFocus, setTrainingFocus] = useState('')
 
   const canGenerate = !!(
     user?.personal?.sex &&
@@ -39,6 +40,7 @@ export default function GoalsPage() {
       setWater(String(user.goals.daily_water_goal))
       setBottleSize(String(user.water_bottle_size))
       setStepGoal(String(user.goals.daily_step_goal))
+      setTrainingFocus((user as unknown as { training_focus?: string }).training_focus ?? '')
     }
   }, [user])
 
@@ -77,7 +79,8 @@ export default function GoalsPage() {
         daily_water_goal: parseFloat(water),
         daily_step_goal: parseInt(stepGoal),
         water_bottle_size: parseFloat(bottleSize),
-      })
+        training_focus: trainingFocus || null,
+      } as Parameters<typeof updateGoals>[0] & { training_focus: string | null })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } finally {
@@ -321,6 +324,30 @@ export default function GoalsPage() {
               required
               className="input-field"
             />
+          </div>
+        </div>
+
+        {/* Training focus section */}
+        <div className="fade-up fade-up-2" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '4px' }}>
+          <p style={{
+            fontFamily: 'var(--font-display)', fontSize: '11px',
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--tg-theme-hint-color)', marginBottom: '-4px',
+          }}>
+            Training
+          </p>
+          <div>
+            <label className="label-caps" style={{ display: 'block', marginBottom: '6px' }}>Training Focus</label>
+            <select
+              className="input-field"
+              value={trainingFocus}
+              onChange={e => setTrainingFocus(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              <option value="">General Fitness</option>
+              <option value="strength">Strength (weight progression)</option>
+              <option value="hypertrophy">Hypertrophy (volume progression)</option>
+            </select>
           </div>
         </div>
 

@@ -25,6 +25,7 @@ export interface WorkoutTemplateCreate {
 
 export interface ExerciseLogEntry {
   exercise_name: string
+  exercise_id?: number | null
   sets: ExerciseSet[]
   order: number
 }
@@ -40,6 +41,12 @@ export interface WorkoutLog {
   exercises: ExerciseLogEntry[]
   workout_date: string
   logged_at: string
+  analysis?: {
+    muscle_groups_hit: string[]
+    prs: { exercise: string; type: 'weight' | 'reps'; value: string }[]
+    volume_comparison: string
+    takeaway: string
+  } | null
 }
 
 export interface WorkoutLogCreate {

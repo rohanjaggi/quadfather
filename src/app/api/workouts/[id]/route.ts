@@ -44,7 +44,26 @@ export async function DELETE(
       return NextResponse.json({ detail: 'Workout not found' }, { status: 404 })
     }
 
+    const exercises = await prisma.exerciseLog.findMany({
+      where: { workout_log_id: id },
+      select: { exercise_name: true },
+    })
+
     await prisma.workoutLog.delete({ where: { id } })
+
+    // Clean up orphaned progress snapshots for exercises that no longer have any logs
+    const exerciseNames = [...new Set(exercises.map(e => e.exercise_name))]
+    for (const name of exerciseNames) {
+      const remaining = await prisma.exerciseLog.count({
+        where: { exercise_name: name, workout: { user_id: user.id } },
+      })
+      if (remaining === 0) {
+        await prisma.progressSnapshot.deleteMany({
+          where: { user_id: user.id, exercise_name: name },
+        })
+      }
+    }
+
     return new NextResponse(null, { status: 204 })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Internal error'

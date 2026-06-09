@@ -905,6 +905,21 @@ export async function generateWeeklyExerciseDigest(
   return raw.trim();
 }
 
+const WORKOUT_RECAP_PROMPT = `You are a concise strength coach reviewing a lifter's training data.
+
+Period: {period} days
+Workouts logged: {workout_count}
+Total volume: {total_volume}kg
+Previous period volume: {prev_volume}kg
+Muscle groups hit: {muscles_hit}
+Muscle groups missed: {muscles_missed}
+PRs this period: {prs_summary}
+
+Exercises performed:
+{exercise_summary}
+
+Write a 2-4 sentence training recap. Cover: frequency, volume trend vs previous period, any muscle coverage gaps. End with one specific, actionable suggestion. Be factual and coach-like — no motivational fluff, no greetings, no sign-offs.`;
+
 const WORKOUT_SUGGESTION_PROMPT = `You are a fitness coach. Based on the user's recent training history, suggest what they should train today in ONE short sentence (max 20 words).
 
 Recent workouts (last 7 days):
@@ -955,4 +970,35 @@ export async function generateWorkoutSuggestion(
     suggestion: String(data.suggestion ?? "Time to train!"),
     template_id: data.template_id ?? null,
   };
+}
+
+export async function generateWorkoutRecap(
+  provider: AIProvider,
+  apiKey: string,
+  model: string | null,
+  context: {
+    period: number
+    workoutCount: number
+    totalVolume: number
+    prevVolume: number
+    musclesHit: string[]
+    musclesMissed: string[]
+    prsSummary: string
+    exerciseSummary: string
+  },
+): Promise<string> {
+  const resolvedModel = getModelForProvider(provider, model)
+
+  const prompt = WORKOUT_RECAP_PROMPT
+    .replace('{period}', String(context.period))
+    .replace('{workout_count}', String(context.workoutCount))
+    .replace('{total_volume}', String(context.totalVolume))
+    .replace('{prev_volume}', String(context.prevVolume))
+    .replace('{muscles_hit}', context.musclesHit.join(', ') || 'none')
+    .replace('{muscles_missed}', context.musclesMissed.join(', ') || 'none')
+    .replace('{prs_summary}', context.prsSummary || 'none')
+    .replace('{exercise_summary}', context.exerciseSummary)
+
+  const raw = await callText(provider, apiKey, resolvedModel, prompt)
+  return raw.trim()
 }

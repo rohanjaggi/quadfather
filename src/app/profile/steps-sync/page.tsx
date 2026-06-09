@@ -299,15 +299,19 @@ export default function StepsSyncPage() {
           </div>
 
           <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.6 }}>
-            Steps sync automatically every time you open Telegram:
+            Add 2 automations that both run the same shortcut:
           </p>
 
+          {/* Automation 1: Telegram */}
           <div style={{
             padding: '14px', borderRadius: '12px',
             backgroundColor: 'var(--tg-theme-bg-color)',
             display: 'flex', flexDirection: 'column', gap: '4px',
             fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8,
           }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
+              Automation 1: When you open Telegram
+            </p>
             <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>1.</strong> Go to the <strong>Automation</strong> tab in Shortcuts</div>
             <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>2.</strong> Tap <strong>+</strong> &rarr; <strong>App</strong></div>
             <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>3.</strong> Choose <strong>Telegram</strong>, keep &ldquo;Is Opened&rdquo; selected</div>
@@ -315,16 +319,28 @@ export default function StepsSyncPage() {
             <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>5.</strong> Add action &rarr; <strong>Run Shortcut</strong> &rarr; select your shortcut</div>
           </div>
 
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--accent-protein)', lineHeight: 1.5, fontWeight: 500 }}>
-            Done! Steps sync every time you open the app.
-          </p>
+          {/* Automation 2: Nightly */}
+          <div style={{
+            padding: '14px', borderRadius: '12px',
+            backgroundColor: 'var(--tg-theme-bg-color)',
+            display: 'flex', flexDirection: 'column', gap: '4px',
+            fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8,
+          }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
+              Automation 2: Nightly at 11 PM
+            </p>
+            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>1.</strong> Tap <strong>+</strong> &rarr; <strong>Time of Day</strong></div>
+            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>2.</strong> Set time to <strong>11:00 PM</strong></div>
+            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>3.</strong> Choose <strong>Run Immediately</strong></div>
+            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>4.</strong> Add action &rarr; <strong>Run Shortcut</strong> &rarr; select the same shortcut</div>
+          </div>
 
           <div style={{
             padding: '10px 12px', borderRadius: '8px',
             backgroundColor: 'var(--tg-theme-bg-color)',
             fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5,
           }}>
-            <strong style={{ color: 'var(--tg-theme-text-color)' }}>Alternative:</strong> Use <strong>Time of Day</strong> trigger instead (e.g. 9 PM daily) if you prefer a nightly sync.
+            <strong style={{ color: 'var(--tg-theme-text-color)' }}>Why 2 triggers?</strong> The Telegram trigger keeps today&rsquo;s count fresh throughout the day. The 11 PM trigger captures your final step count before midnight, so yesterday&rsquo;s total is always accurate.
           </div>
         </div>
       </div>

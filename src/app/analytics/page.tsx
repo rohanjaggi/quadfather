@@ -1,12 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import SummaryCard from '@/components/dashboard/SummaryCard'
-import { getAnalytics, getRunningAnalytics, getAnalyticsInsights, getSteps } from '@/lib/api'
+import { getAnalytics, getRunningAnalytics, getAnalyticsInsights, getSteps, getWorkouts } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
 import type { AnalyticsResponse, AnalyticsDayData } from '@/types/api'
 import type { RunningAnalyticsResponse } from '@/types/running'
-import type { StepLog } from '@/types/workouts'
+import type { StepLog, WorkoutLog } from '@/types/workouts'
+import MuscleMap from '@/components/workouts/MuscleMap'
+import { calculateMuscleIntensities } from '@/lib/muscle-intensity'
+import VolumeTrendsChart from '@/components/workouts/VolumeTrendsChart'
+import PersonalRecords from '@/components/workouts/PersonalRecords'
+import TrainingRecap from '@/components/workouts/TrainingRecap'
+import MuscleBalance from '@/components/workouts/MuscleBalance'
 
 const ACTIVITY_BASELINE_STEPS: Record<string, number> = {
   sedentary: 4000,
@@ -173,7 +179,8 @@ function SectionHeader({ title }: { title: string }) {
   )
 }
 
-type Domain = 'food' | 'exercise' | 'steps'
+type Domain = 'food' | 'exercise'
+type ExerciseSub = 'runs' | 'workouts' | 'steps'
 
 export default function AnalyticsPage() {
   const { user } = useUser()
@@ -181,10 +188,13 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [domain, setDomain] = useState<Domain>('food')
+  const [exerciseSub, setExerciseSub] = useState<ExerciseSub>('runs')
   const [runningData, setRunningData] = useState<RunningAnalyticsResponse | null>(null)
   const [runningLoading, setRunningLoading] = useState(false)
   const [stepsData, setStepsData] = useState<StepLog[]>([])
   const [stepsLoading, setStepsLoading] = useState(false)
+  const [workoutData, setWorkoutData] = useState<WorkoutLog[]>([])
+  const [workoutLoading, setWorkoutLoading] = useState(false)
   const stepGoal = user?.goals.daily_step_goal ?? 10000
 
   useEffect(() => {
@@ -196,24 +206,43 @@ export default function AnalyticsPage() {
   }, [period])
 
   useEffect(() => {
-    if (domain === 'exercise') {
+    if (domain === 'exercise' && exerciseSub === 'runs') {
       setRunningLoading(true)
       getRunningAnalytics(period)
         .then(setRunningData)
         .catch(console.error)
         .finally(() => setRunningLoading(false))
     }
-  }, [domain, period])
+  }, [domain, exerciseSub, period])
 
   useEffect(() => {
-    if (domain === 'steps') {
+    if (domain === 'exercise' && exerciseSub === 'steps') {
       setStepsLoading(true)
       getSteps(period)
-        .then(setStepsData)
+        .then(data => setStepsData([...data].sort((a, b) => a.date.localeCompare(b.date))))
         .catch(console.error)
         .finally(() => setStepsLoading(false))
     }
-  }, [domain, period])
+  }, [domain, exerciseSub, period])
+
+  useEffect(() => {
+    if (domain === 'exercise' && exerciseSub === 'workouts') {
+      setWorkoutLoading(true)
+      getWorkouts(period)
+        .then(setWorkoutData)
+        .catch(console.error)
+        .finally(() => setWorkoutLoading(false))
+    }
+  }, [domain, exerciseSub, period])
+
+  const workoutIntensities = useMemo(() => {
+    if (workoutData.length === 0) return {}
+    return calculateMuscleIntensities(workoutData.flatMap(w => w.exercises))
+  }, [workoutData])
+
+  const activeZoneCount = useMemo(() => {
+    return Object.values(workoutIntensities).filter((v): v is number => typeof v === 'number' && v >= 0.2).length
+  }, [workoutIntensities])
 
   const days = data?.days ?? []
   const goals = data?.goals
@@ -325,7 +354,7 @@ export default function AnalyticsPage() {
         padding: '3px',
         gap: '2px',
       }}>
-        {(['food', 'exercise', 'steps'] as Domain[]).map(d => (
+        {(['food', 'exercise'] as Domain[]).map(d => (
           <button
             key={d}
             onClick={() => setDomain(d)}
@@ -343,10 +372,44 @@ export default function AnalyticsPage() {
               transition: 'background-color 0.2s ease, color 0.2s ease',
             }}
           >
-            {d === 'food' ? 'Food' : d === 'exercise' ? 'Exercise' : 'Steps'}
+            {d === 'food' ? 'Food' : 'Exercise'}
           </button>
         ))}
       </div>
+
+      {/* Exercise sub-filter */}
+      {domain === 'exercise' && (
+        <div style={{
+          display: 'flex',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          borderRadius: '10px',
+          padding: '3px',
+          gap: '2px',
+        }}>
+          {(['runs', 'workouts', 'steps'] as ExerciseSub[]).map(s => (
+            <button
+              key={s}
+              onClick={() => setExerciseSub(s)}
+              style={{
+                flex: 1,
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: exerciseSub === s ? 'var(--tg-theme-bg-color)' : 'transparent',
+                color: exerciseSub === s ? 'var(--tg-theme-text-color)' : 'var(--tg-theme-hint-color)',
+                fontFamily: 'var(--font-display)',
+                fontSize: '12px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                boxShadow: exerciseSub === s ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
+              }}
+            >
+              {s === 'runs' ? 'Runs' : s === 'workouts' ? 'Workouts' : 'Steps'}
+            </button>
+          ))}
+        </div>
+      )}
 
       {domain === 'food' && loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
@@ -673,7 +736,7 @@ export default function AnalyticsPage() {
 
           </>)}
 
-          {domain === 'exercise' && runningLoading && (
+          {domain === 'exercise' && exerciseSub === 'runs' && runningLoading && (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
                 Loading…
@@ -681,7 +744,7 @@ export default function AnalyticsPage() {
             </div>
           )}
 
-          {domain === 'exercise' && !runningLoading && runningData && (
+          {domain === 'exercise' && exerciseSub === 'runs' && !runningLoading && runningData && (
             <>
               {/* Running summary */}
               <div className="fade-up fade-up-1">
@@ -773,13 +836,69 @@ export default function AnalyticsPage() {
             </>
           )}
 
-          {domain === 'steps' && stepsLoading && (
+          {domain === 'exercise' && exerciseSub === 'workouts' && workoutLoading && (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+                Loading…
+              </p>
+            </div>
+          )}
+
+          {domain === 'exercise' && exerciseSub === 'workouts' && !workoutLoading && (
+            <>
+              <div className="fade-up fade-up-1">
+                <SummaryCard title="Muscles worked">
+                  {workoutData.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <MuscleMap intensities={workoutIntensities} size="md" sex={user?.personal?.sex} />
+                      <p style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: '12px',
+                        color: 'var(--tg-theme-hint-color)',
+                        textAlign: 'center',
+                      }}>
+                        {workoutData.length} workout{workoutData.length !== 1 ? 's' : ''} · {activeZoneCount} muscle groups hit
+                      </p>
+                    </div>
+                  ) : (
+                    <p style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '13px',
+                      color: 'var(--tg-theme-hint-color)',
+                      textAlign: 'center',
+                      padding: '16px 0',
+                    }}>
+                      No workouts logged in this period
+                    </p>
+                  )}
+                </SummaryCard>
+              </div>
+
+              <div className="fade-up fade-up-2">
+                <VolumeTrendsChart workouts={workoutData} period={period} />
+              </div>
+
+              <div className="fade-up fade-up-3">
+                <PersonalRecords period={period} />
+              </div>
+
+              <div className="fade-up fade-up-4">
+                <TrainingRecap period={period} workoutCount={workoutData.length} />
+              </div>
+
+              <div className="fade-up fade-up-4">
+                <MuscleBalance workouts={workoutData} />
+              </div>
+            </>
+          )}
+
+          {domain === 'exercise' && exerciseSub === 'steps' && stepsLoading && (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>Loading…</p>
             </div>
           )}
 
-          {domain === 'steps' && !stepsLoading && (
+          {domain === 'exercise' && exerciseSub === 'steps' && !stepsLoading && (
             <>
               {/* Streaks & Consistency */}
               <div className="fade-up fade-up-1">

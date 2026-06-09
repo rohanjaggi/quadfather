@@ -62,7 +62,7 @@ export default function RecentWorkouts() {
                 fontSize: '16px', cursor: 'pointer', padding: '4px',
               }}>×</button>
             </div>
-            {showAnalysis && <WorkoutAnalysis workoutId={w.id} existingAnalysis={w.analysis} />}
+            {showAnalysis && <WorkoutAnalysis workoutId={w.id} existingAnalysis={w.analysis} exercises={w.exercises} />}
           </div>
         )
       })}

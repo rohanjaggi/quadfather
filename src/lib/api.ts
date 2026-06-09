@@ -138,3 +138,20 @@ export const getExerciseProgress = (exerciseName: string) =>
 
 export const analyseWorkout = (id: number) =>
   apiFetch<WorkoutAnalysis>(`/workouts/${id}/analyse`, { method: 'POST' })
+
+export interface WorkoutPR {
+  exercise_name: string
+  type: 'weight'
+  value: string
+  volume: number
+  date: string
+}
+
+export const getWorkoutPRs = (days: number) =>
+  apiFetch<{ prs: WorkoutPR[] }>(`/workouts/prs?days=${days}`)
+
+export const getAllWorkoutPRs = () =>
+  apiFetch<{ prs: WorkoutPR[] }>('/workouts/prs?all=1')
+
+export const getWorkoutRecap = (days: number) =>
+  apiFetch<{ recap: string }>(`/workouts/recap?days=${days}`)

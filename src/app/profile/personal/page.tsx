@@ -48,6 +48,7 @@ const DIETARY_RESTRICTIONS: { value: string; label: string }[] = [
   { value: 'kosher', label: 'Kosher' },
   { value: 'low_carb', label: 'Low Carb' },
   { value: 'keto', label: 'Keto' },
+  { value: 'oil_free', label: 'Oil-Free' },
 ]
 
 export default function PersonalPage() {
@@ -280,7 +281,7 @@ export default function PersonalPage() {
                 <span style={{ fontSize: '11px', opacity: 0.6, fontWeight: 400 }}>
                   {dietaryRestrictions.length > 0
                     ? DIETARY_RESTRICTIONS.filter(r => dietaryRestrictions.includes(r.value)).map(r => r.label).join(', ')
-                    : 'Select all that apply — used for meal suggestions'}
+                    : 'Select all that apply'}
                 </span>
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

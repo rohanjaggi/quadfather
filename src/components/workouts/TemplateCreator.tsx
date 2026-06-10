@@ -13,12 +13,12 @@ interface TemplateCreatorProps {
 export default function TemplateCreator({ onClose, onCreated }: TemplateCreatorProps) {
   const [name, setName] = useState('')
   const [exercises, setExercises] = useState<(TemplateExercise & { exercise_id?: number | null })[]>([
-    { name: '', defaultSets: 3, defaultReps: 10, defaultWeightKg: null, exercise_id: null },
+    { name: '', defaultSets: 3, defaultReps: 0, defaultWeightKg: null, exercise_id: null },
   ])
   const [saving, setSaving] = useState(false)
 
   function addExercise() {
-    setExercises(prev => [...prev, { name: '', defaultSets: 3, defaultReps: 10, defaultWeightKg: null, exercise_id: null }])
+    setExercises(prev => [...prev, { name: '', defaultSets: 3, defaultReps: 0, defaultWeightKg: null, exercise_id: null }])
   }
 
   function removeExercise(idx: number) {
@@ -80,14 +80,6 @@ export default function TemplateCreator({ onClose, onCreated }: TemplateCreatorP
             <div style={{ flex: 1 }}>
               <label style={{ fontFamily: 'var(--font-display)', fontSize: '9px', color: 'var(--tg-theme-hint-color)' }}>Sets</label>
               <input className="input-field" type="number" value={ex.defaultSets || ''} onChange={e => updateExerciseField(idx, 'defaultSets', e.target.value)} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ fontFamily: 'var(--font-display)', fontSize: '9px', color: 'var(--tg-theme-hint-color)' }}>Reps</label>
-              <input className="input-field" type="number" value={ex.defaultReps || ''} onChange={e => updateExerciseField(idx, 'defaultReps', e.target.value)} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ fontFamily: 'var(--font-display)', fontSize: '9px', color: 'var(--tg-theme-hint-color)' }}>kg</label>
-              <input className="input-field" type="number" step="0.5" value={ex.defaultWeightKg ?? ''} onChange={e => updateExerciseField(idx, 'defaultWeightKg', e.target.value)} placeholder="—" />
             </div>
           </div>
         </div>

@@ -29,8 +29,8 @@ export default function TemplateSelector({ onSave, onClose }: TemplateSelectorPr
         initialExercises={selected.exercises.map(ex => ({
           exercise_name: ex.name,
           sets: Array.from({ length: ex.defaultSets }, () => ({
-            reps: ex.defaultReps,
-            weight_kg: ex.defaultWeightKg,
+            reps: 0,
+            weight_kg: null,
           })),
         }))}
         templateId={selected.id}

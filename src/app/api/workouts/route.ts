@@ -6,17 +6,24 @@ import { updateProgressAfterWorkout } from '@/lib/progress'
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser(request)
+    const dateParam = request.nextUrl.searchParams.get('date')
     const days = parseInt(request.nextUrl.searchParams.get('days') ?? '30', 10)
 
-    const startDate = new Date()
-    startDate.setDate(startDate.getDate() - days)
-    startDate.setUTCHours(0, 0, 0, 0)
+    let where: { user_id: number; workout_date?: object } = { user_id: user.id }
+
+    if (dateParam) {
+      const start = new Date(dateParam + 'T00:00:00Z')
+      const end = new Date(dateParam + 'T23:59:59.999Z')
+      where.workout_date = { gte: start, lte: end }
+    } else {
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+      startDate.setUTCHours(0, 0, 0, 0)
+      where.workout_date = { gte: startDate }
+    }
 
     const workouts = await prisma.workoutLog.findMany({
-      where: {
-        user_id: user.id,
-        workout_date: { gte: startDate },
-      },
+      where,
       include: { exercises: { orderBy: { order: 'asc' } } },
       orderBy: { workout_date: 'desc' },
     })

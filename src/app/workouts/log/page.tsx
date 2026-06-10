@@ -108,12 +108,12 @@ export default function WorkoutsLogPage() {
         </div>
       )}
 
-      <div className="fade-up fade-up-2" key={key}>
-        <RecentWorkouts />
+      <div className="fade-up fade-up-2" key={`tpl-${key}`}>
+        <TemplateList onCreateNew={() => setMode('create-template')} />
       </div>
 
-      <div className="fade-up fade-up-3" key={`tpl-${key}`}>
-        <TemplateList onCreateNew={() => setMode('create-template')} />
+      <div className="fade-up fade-up-3" key={key}>
+        <RecentWorkouts />
       </div>
     </div>
   )

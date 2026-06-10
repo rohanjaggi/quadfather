@@ -25,11 +25,10 @@ function formatDistance(meters: number): string {
 interface RunCardProps {
   run: RunLog
   onToggle: (id: number, added: boolean) => void
-  onDelete: (id: number) => void
   isLast: boolean
 }
 
-export default function RunCard({ run, onToggle, onDelete, isLast }: RunCardProps) {
+export default function RunCard({ run, onToggle, isLast }: RunCardProps) {
   return (
     <div style={{
       display: 'flex',
@@ -110,23 +109,6 @@ export default function RunCard({ run, onToggle, onDelete, isLast }: RunCardProp
           {Math.round(run.calories_burned)}
           <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)' }}> kcal</span>
         </p>
-        <button
-          onClick={() => onDelete(run.id)}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '4px',
-            cursor: 'pointer',
-            color: 'var(--tg-theme-hint-color)',
-            opacity: 0.6,
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-          </svg>
-        </button>
       </div>
     </div>
   )

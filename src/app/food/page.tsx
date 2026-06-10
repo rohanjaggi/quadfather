@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import MealCard from '@/components/food/MealCard'
+import SwipeToDelete, { SwipeDeleteProvider } from '@/components/SwipeToDelete'
 import ManualFoodForm from '@/components/food/ManualFoodForm'
 import PhotoUpload from '@/components/food/PhotoUpload'
 import TextFoodInput from '@/components/food/TextFoodInput'
@@ -280,13 +281,26 @@ export default function FoodPage() {
       {/* Favourites */}
       {savedFoods.length > 0 && (
         <div className="fade-up fade-up-2" style={{ marginTop: '10px' }}>
-          <SummaryCard title="Favourites">
+          <SummaryCard title={
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Favourites</span>
+              {savedFoods.length > 3 && (
+                <Link href="/food/favourites" style={{
+                  fontFamily: 'var(--font-display)', fontSize: '11px',
+                  fontWeight: 500, color: 'var(--tg-theme-hint-color)',
+                  textDecoration: 'none',
+                }}>
+                  View all {'→'}
+                </Link>
+              )}
+            </div>
+          }>
             <div>
-              {savedFoods.map((food, i) => (
+              {savedFoods.slice(0, 3).map((food, i) => (
                 <SavedFoodCard
                   key={food.id}
                   food={food}
-                  isLast={i === savedFoods.length - 1}
+                  isLast={i === Math.min(savedFoods.length, 3) - 1}
                   onAdd={handleQuickAdd}
                   onDelete={deleteSavedFood}
                 />
@@ -329,20 +343,22 @@ export default function FoodPage() {
                 No meals logged yet
               </p>
             ) : (
-              foodLogs.map((log, i) => (
-                <MealCard
-                  key={log.id}
-                  name={log.food_name}
-                  calories={Math.round(log.calories)}
-                  protein={Math.round(log.protein)}
-                  carbs={Math.round(log.carbohydrates)}
-                  fats={Math.round(log.fats)}
-                  fiber={Math.round(log.fiber ?? 0)}
-                  savedFoodId={log.saved_food_id}
-                  isLast={i === foodLogs.length - 1}
-                  onDelete={() => deleteFood(log.id)}
-                />
-              ))
+              <SwipeDeleteProvider>
+                {foodLogs.map((log, i) => (
+                  <SwipeToDelete key={log.id} id={`meal-${log.id}`} onDelete={() => deleteFood(log.id)}>
+                    <MealCard
+                      name={log.food_name}
+                      calories={Math.round(log.calories)}
+                      protein={Math.round(log.protein)}
+                      carbs={Math.round(log.carbohydrates)}
+                      fats={Math.round(log.fats)}
+                      fiber={Math.round(log.fiber ?? 0)}
+                      savedFoodId={log.saved_food_id}
+                      isLast={i === foodLogs.length - 1}
+                    />
+                  </SwipeToDelete>
+                ))}
+              </SwipeDeleteProvider>
             )}
           </div>
         </SummaryCard>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { getTemplates, deleteTemplate } from '@/lib/api'
 import type { WorkoutTemplate } from '@/types/workouts'
+import SwipeToDelete, { SwipeDeleteProvider } from '@/components/SwipeToDelete'
 
 interface TemplateListProps {
   onCreateNew: () => void
@@ -44,26 +45,26 @@ export default function TemplateList({ onCreateNew }: TemplateListProps) {
           No templates yet
         </p>
       ) : (
-        templates.map(t => (
-          <div key={t.id} style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '14px 16px', borderRadius: '14px',
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          }}>
-            <div>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 500, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
-                {t.name}
-              </p>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>
-                {t.exercises.length} exercises
-              </p>
-            </div>
-            <button onClick={() => handleDelete(t.id)} style={{
-              background: 'none', border: 'none', color: 'var(--tg-theme-hint-color)',
-              fontSize: '16px', cursor: 'pointer', padding: '4px',
-            }}>×</button>
-          </div>
-        ))
+        <SwipeDeleteProvider>
+          {templates.map(t => (
+            <SwipeToDelete key={t.id} id={`template-${t.id}`} onDelete={() => handleDelete(t.id)} borderRadius="14px">
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '14px 16px', borderRadius: '14px',
+                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+              }}>
+                <div>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 500, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
+                    {t.name}
+                  </p>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>
+                    {t.exercises.length} exercises
+                  </p>
+                </div>
+              </div>
+            </SwipeToDelete>
+          ))}
+        </SwipeDeleteProvider>
       )}
     </div>
   )

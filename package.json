@@ -16,6 +16,7 @@
     "@prisma/client": "^6.19.3",
     "@twa-dev/sdk": "^7.10.0",
     "@vercel/analytics": "^2.0.1",
+    "framer-motion": "^12.40.0",
     "grammy": "^1.42.0",
     "next": "14.2.29",
     "openai": "^6.34.0",

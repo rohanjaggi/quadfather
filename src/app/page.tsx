@@ -24,7 +24,7 @@ function getDateDisplay() {
 }
 
 export default function DashboardPage() {
-  const { user, summary, foodLogs, waterLogs, todaySteps } = useUser()
+  const { user, summary, foodLogs, waterLogs, todaySteps, weeklyWorkouts } = useUser()
 
   const calories = summary?.macros.calories ?? { total: 0, goal: user?.goals.daily_calorie_goal ?? 2000 }
   const protein = summary?.macros.protein ?? { total: 0, goal: user?.goals.daily_protein_goal ?? 120 }
@@ -148,7 +148,10 @@ export default function DashboardPage() {
 
       {/* Recent Activity */}
       <div className="fade-up fade-up-3">
-        <RecentActivity foodLogs={foodLogs} waterLogs={waterLogs} />
+        <RecentActivity foodLogs={foodLogs} waterLogs={waterLogs} workoutLogs={weeklyWorkouts.filter(w => {
+          const today = new Date().toISOString().split('T')[0]
+          return w.workout_date.startsWith(today)
+        })} />
       </div>
 
     </div>

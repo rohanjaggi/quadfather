@@ -276,6 +276,7 @@ select.input-field-bordered {
   background-color: var(--tg-theme-secondary-bg-color);
   border-radius: 18px;
   padding: 20px;
+  overflow: hidden;
 }
 
 .section-open {

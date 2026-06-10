@@ -93,6 +93,8 @@ import type {
 // Workouts
 export const getWorkouts = (days?: number) =>
   apiFetch<WorkoutLog[]>(`/workouts${days ? `?days=${days}` : ''}`)
+export const getWorkoutsByDate = (date: string) =>
+  apiFetch<WorkoutLog[]>(`/workouts?date=${date}`)
 export const logWorkout = (data: WorkoutLogCreate) =>
   apiFetch<WorkoutLog>('/workouts', { method: 'POST', body: JSON.stringify(data) })
 export const deleteWorkout = (id: number) =>

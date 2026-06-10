@@ -3,6 +3,7 @@
 import { useUser } from '@/context/UserContext'
 import RunCard from './RunCard'
 import SummaryCard from '@/components/dashboard/SummaryCard'
+import SwipeToDelete, { SwipeDeleteProvider } from '@/components/SwipeToDelete'
 
 export default function RunsList() {
   const { runLogs, deleteRun, toggleRunAllowance } = useUser()
@@ -20,17 +21,17 @@ export default function RunsList() {
           No runs logged yet
         </p>
       ) : (
-        <div>
+        <SwipeDeleteProvider>
           {runLogs.map((run, i) => (
-            <RunCard
-              key={run.id}
-              run={run}
-              onToggle={toggleRunAllowance}
-              onDelete={deleteRun}
-              isLast={i === runLogs.length - 1}
-            />
+            <SwipeToDelete key={run.id} id={`run-${run.id}`} onDelete={() => deleteRun(run.id)}>
+              <RunCard
+                run={run}
+                onToggle={toggleRunAllowance}
+                isLast={i === runLogs.length - 1}
+              />
+            </SwipeToDelete>
           ))}
-        </div>
+        </SwipeDeleteProvider>
       )}
     </SummaryCard>
   )

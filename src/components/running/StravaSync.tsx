@@ -8,12 +8,14 @@ export default function StravaSync() {
   const { user, refresh } = useUser()
   const [syncing, setSyncing] = useState(false)
   const [autoSynced, setAutoSynced] = useState(false)
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
 
   const doSync = useCallback(async () => {
     if (syncing) return
     setSyncing(true)
     try {
-      await syncStravaRuns()
+      const result = await syncStravaRuns()
+      setLastSyncedAt(result.last_synced_at)
       await refresh()
     } catch (e) {
       console.error('Strava sync failed:', e)
@@ -31,8 +33,9 @@ export default function StravaSync() {
 
   if (!user?.strava_connected) return null
 
-  const lastSynced = user.strava_last_synced_at
-    ? formatRelativeTime(new Date(user.strava_last_synced_at))
+  const syncTime = lastSyncedAt ?? user.strava_last_synced_at
+  const lastSynced = syncTime
+    ? formatRelativeTime(new Date(syncTime))
     : 'Never'
 
   return (

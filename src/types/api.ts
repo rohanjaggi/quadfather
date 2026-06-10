@@ -35,6 +35,8 @@ export interface User {
     activity_level: string
     fitness_goal: string
   }
+  strava_connected: boolean
+  strava_last_synced_at: string | null
 }
 
 export interface BudgetBreakdown {

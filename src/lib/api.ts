@@ -59,7 +59,7 @@ export async function analyseMeal(imageFile: File, description: string): Promise
   return res.json()
 }
 
-import type { RunLog, RunLogCreate, RunAnalysis, RunningAnalyticsResponse } from '@/types/running'
+import type { RunLog, RunLogCreate, RunAnalysis, RunningAnalyticsResponse, RunPRsResponse } from '@/types/running'
 
 export const getRunLogs = (date?: string) =>
   apiFetch<RunLog[]>(`/runs${date ? `?date=${date}` : ''}`)
@@ -71,6 +71,10 @@ export const toggleRunAllowance = (id: number, added: boolean) =>
   apiFetch<RunLog>(`/runs/${id}`, { method: 'PATCH', body: JSON.stringify({ added_to_allowance: added }) })
 export const getRunningAnalytics = (days: number) =>
   apiFetch<RunningAnalyticsResponse>(`/analytics/running?days=${days}`)
+export const getRunPRs = () =>
+  apiFetch<RunPRsResponse>('/runs/prs')
+export const getRunHistory = (days: number) =>
+  apiFetch<RunLog[]>(`/runs/history?days=${days}`)
 
 export async function analyseRunScreenshot(imageFile: File): Promise<RunAnalysis> {
   const initData = typeof window !== 'undefined' ? WebApp.initData : ''
@@ -157,3 +161,11 @@ export const getAllWorkoutPRs = () =>
 
 export const getWorkoutRecap = (days: number) =>
   apiFetch<{ recap: string }>(`/workouts/recap?days=${days}`)
+
+// Strava
+export const getStravaConnectUrl = () =>
+  apiFetch<{ url: string }>('/strava/connect')
+export const disconnectStrava = () =>
+  apiFetch<{ disconnected: boolean }>('/strava/disconnect', { method: 'POST' })
+export const syncStravaRuns = () =>
+  apiFetch<{ synced: number; total_fetched: number; last_synced_at: string }>('/runs/sync', { method: 'POST' })

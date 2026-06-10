@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUser } from '@/context/UserContext'
 
 interface ManualRunFormProps {
@@ -8,12 +8,22 @@ interface ManualRunFormProps {
 }
 
 export default function ManualRunForm({ onClose }: ManualRunFormProps) {
-  const { logRun } = useUser()
+  const { user, logRun } = useUser()
   const [distance, setDistance] = useState('')
   const [minutes, setMinutes] = useState('')
   const [seconds, setSeconds] = useState('')
   const [calories, setCalories] = useState('')
+  const [caloriesManual, setCaloriesManual] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (caloriesManual) return
+    const distKm = parseFloat(distance)
+    if (!distKm || distKm <= 0) return
+    const weight = user?.personal?.weight_kg ?? 70
+    const estimated = Math.round(distKm * weight * 1.036)
+    setCalories(String(estimated))
+  }, [distance, user, caloriesManual])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -88,14 +98,18 @@ export default function ManualRunForm({ onClose }: ManualRunFormProps) {
 
       <div>
         <label className="label-caps" style={{ display: 'block', marginBottom: '6px' }}>
-          Calories burned
+          Calories burned {!caloriesManual && calories && (
+            <span style={{ fontWeight: 400, letterSpacing: 'normal', textTransform: 'none', opacity: 0.7 }}>
+              (estimated)
+            </span>
+          )}
         </label>
         <input
           className="input-field"
           type="number"
           placeholder="350"
           value={calories}
-          onChange={e => setCalories(e.target.value)}
+          onChange={e => { setCalories(e.target.value); setCaloriesManual(true) }}
           required
         />
       </div>

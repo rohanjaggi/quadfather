@@ -53,3 +53,14 @@ export interface RunningAnalyticsResponse {
     run_count: number
   }
 }
+
+export interface RunPR {
+  label: string
+  value: string
+  detail: string
+  date: string
+}
+
+export interface RunPRsResponse {
+  prs: RunPR[]
+}

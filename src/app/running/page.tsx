@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import BurnSummary from '@/components/running/BurnSummary'
+import WeeklyRunStats from '@/components/running/BurnSummary'
+import RunningPRs from '@/components/running/RunningPRs'
 import RunsList from '@/components/running/RunsList'
 import ManualRunForm from '@/components/running/ManualRunForm'
 import RunPhotoUpload from '@/components/running/RunPhotoUpload'
+import StravaSync from '@/components/running/StravaSync'
 
 type Mode = null | 'photo' | 'manual'
 
@@ -46,10 +48,14 @@ export default function RunningPage() {
       </div>
 
       <div className="fade-up fade-up-1">
-        <BurnSummary />
+        <StravaSync />
       </div>
 
       <div className="fade-up fade-up-2">
+        <WeeklyRunStats />
+      </div>
+
+      <div className="fade-up fade-up-3">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           {([
             { key: 'photo' as const, label: 'Screenshot', icon: (
@@ -96,8 +102,30 @@ export default function RunningPage() {
         </div>
       )}
 
-      <div className="fade-up fade-up-3">
+      <div className="fade-up fade-up-4">
+        <RunningPRs />
+      </div>
+
+      <div className="fade-up fade-up-5">
         <RunsList />
+      </div>
+
+      <div className="fade-up fade-up-5">
+        <Link href="/running/history" style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: '6px', padding: '12px',
+          borderRadius: '12px',
+          border: '1px solid var(--surface-border)',
+          fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 500,
+          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
+          transition: 'background-color 0.15s ease',
+        }}>
+          View Run History
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
       </div>
 
     </div>

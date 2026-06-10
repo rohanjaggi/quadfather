@@ -52,6 +52,8 @@ export async function POST(request: NextRequest) {
       ai_features_enabled: user.ai_features_enabled,
       ai_coaching_prefs: user.ai_coaching_prefs ?? undefined,
       training_focus: user.training_focus ?? null,
+      strava_connected: !!user.strava_access_token,
+      strava_last_synced_at: user.strava_last_synced_at?.toISOString() ?? null,
     }, { status: 201 });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";

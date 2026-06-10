@@ -33,6 +33,12 @@ model User {
   ai_coaching_prefs   Json?
   training_focus     String?  @db.VarChar(20)
   access_token       String?  @unique @db.VarChar(64)
+  strava_athlete_id    BigInt?
+  strava_access_token  String?
+  strava_refresh_token String?
+  strava_token_expires Int?
+  strava_scope         String?  @db.VarChar(100)
+  strava_last_synced_at DateTime?
   created_at      DateTime? @default(now())
 
   saved_foods SavedFood[]
@@ -114,6 +120,7 @@ model WaterLog {
 model RunLog {
   id                  Int      @id @default(autoincrement())
   user_id             Int
+  strava_activity_id  BigInt?  @unique
   distance_meters     Float
   duration_seconds    Int
   calories_burned     Float

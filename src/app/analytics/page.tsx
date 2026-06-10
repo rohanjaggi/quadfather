@@ -15,11 +15,11 @@ import TrainingRecap from '@/components/workouts/TrainingRecap'
 import MuscleBalance from '@/components/workouts/MuscleBalance'
 
 const ACTIVITY_BASELINE_STEPS: Record<string, number> = {
-  sedentary: 4000,
-  lightly_active: 6000,
-  moderately_active: 8000,
-  very_active: 10000,
-  extra_active: 12000,
+  sedentary: 3000,
+  lightly_active: 5000,
+  moderately_active: 7000,
+  very_active: 9000,
+  extra_active: 11000,
 }
 
 type Period = 7 | 30
@@ -967,7 +967,7 @@ export default function AnalyticsPage() {
                       label="Extra Calories Earned"
                       value={`${(() => {
                         const activityLevel = user?.personal?.activity_level ?? 'moderately_active'
-                        const baseline = ACTIVITY_BASELINE_STEPS[activityLevel] ?? 8000
+                        const baseline = ACTIVITY_BASELINE_STEPS[activityLevel] ?? 7000
                         const weight = user?.personal?.weight_kg ?? 70
                         const total = stepsData.reduce((sum, d) => sum + Math.max(0, d.steps - baseline) * 0.04 * weight, 0)
                         return Math.round(total).toLocaleString()

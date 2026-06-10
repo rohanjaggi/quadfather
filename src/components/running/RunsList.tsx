@@ -6,7 +6,7 @@ import SummaryCard from '@/components/dashboard/SummaryCard'
 import SwipeToDelete, { SwipeDeleteProvider } from '@/components/SwipeToDelete'
 
 export default function RunsList() {
-  const { runLogs, deleteRun, toggleRunAllowance } = useUser()
+  const { runLogs, deleteRun } = useUser()
 
   return (
     <SummaryCard title="Today's Runs">
@@ -26,7 +26,6 @@ export default function RunsList() {
             <SwipeToDelete key={run.id} id={`run-${run.id}`} onDelete={() => deleteRun(run.id)}>
               <RunCard
                 run={run}
-                onToggle={toggleRunAllowance}
                 isLast={i === runLogs.length - 1}
               />
             </SwipeToDelete>

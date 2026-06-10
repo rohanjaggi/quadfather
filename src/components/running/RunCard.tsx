@@ -24,11 +24,10 @@ function formatDistance(meters: number): string {
 
 interface RunCardProps {
   run: RunLog
-  onToggle: (id: number, added: boolean) => void
   isLast: boolean
 }
 
-export default function RunCard({ run, onToggle, isLast }: RunCardProps) {
+export default function RunCard({ run, isLast }: RunCardProps) {
   return (
     <div style={{
       display: 'flex',
@@ -37,30 +36,6 @@ export default function RunCard({ run, onToggle, isLast }: RunCardProps) {
       borderBottom: isLast ? 'none' : '1px solid var(--surface-border)',
       gap: '12px',
     }}>
-      <button
-        onClick={() => onToggle(run.id, !run.added_to_allowance)}
-        style={{
-          width: 22,
-          height: 22,
-          borderRadius: '6px',
-          border: `2px solid ${run.added_to_allowance ? 'var(--accent-calories)' : 'var(--surface-border)'}`,
-          backgroundColor: run.added_to_allowance ? 'var(--accent-calories)' : 'transparent',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          flexShrink: 0,
-          transition: 'all 0.2s ease',
-        }}
-      >
-        {run.added_to_allowance && (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-            stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        )}
-      </button>
-
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
           <span style={{

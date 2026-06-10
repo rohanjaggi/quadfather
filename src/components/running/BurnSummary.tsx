@@ -4,8 +4,8 @@ import { useUser } from '@/context/UserContext'
 
 export default function BurnSummary() {
   const { runLogs } = useUser()
-  const toggledRuns = runLogs.filter(r => r.added_to_allowance)
-  const totalBurn = toggledRuns.reduce((s, r) => s + r.calories_burned, 0)
+  const totalBurnRaw = runLogs.reduce((s, r) => s + r.calories_burned, 0)
+  const credited = Math.round(totalBurnRaw * 0.5)
 
   if (runLogs.length === 0) return null
 
@@ -24,7 +24,7 @@ export default function BurnSummary() {
           color: 'var(--tg-theme-hint-color)',
           marginBottom: '4px',
         }}>
-          Calories earned
+          Credited to budget
         </p>
         <p style={{
           fontFamily: 'var(--font-display)',
@@ -33,7 +33,7 @@ export default function BurnSummary() {
           color: 'var(--accent-calories)',
           lineHeight: 1,
         }}>
-          +{Math.round(totalBurn)}
+          +{credited}
           <span style={{
             fontFamily: 'var(--font-display)',
             fontSize: '12px',
@@ -50,8 +50,8 @@ export default function BurnSummary() {
         color: 'var(--tg-theme-hint-color)',
         textAlign: 'right',
       }}>
-        <p>{toggledRuns.length} run{toggledRuns.length !== 1 ? 's' : ''} added</p>
-        <p>to daily allowance</p>
+        <p>{Math.round(totalBurnRaw)} kcal burned</p>
+        <p>50% credited (conservative)</p>
       </div>
     </div>
   )

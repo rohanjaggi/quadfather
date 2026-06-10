@@ -81,12 +81,10 @@ export async function GET(request: NextRequest) {
         else break;
       }
 
-      const runAllowanceBurn = runLogs.filter(r => r.added_to_allowance).reduce((s, r) => s + r.calories_burned, 0);
       const stepAllowance = calculateStepAllowance(
         todayStepCount,
         user.activity_level,
         user.weight_kg,
-        runAllowanceBurn,
       );
 
       const message = await generateDailyCoach(creds.provider, creds.apiKey, creds.model, {

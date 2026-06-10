@@ -1,6 +1,7 @@
 'use client'
 
 import GoalRing from '@/components/dashboard/GoalRing'
+import BudgetBreakdown from '@/components/dashboard/BudgetBreakdown'
 import LogActions from '@/components/dashboard/LogActions'
 import RecentActivity from '@/components/dashboard/RecentActivity'
 import { useUser } from '@/context/UserContext'
@@ -95,19 +96,6 @@ export default function DashboardPage() {
           <GoalRing label="Protein" current={protein.total} goal={protein.goal} unit="g" color="var(--accent-protein)" />
           <GoalRing label="Steps" current={steps.total} goal={steps.goal} unit="steps" color="var(--accent-steps)" />
         </div>
-        {steps.extra_allowance > 0 && (
-          <p style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '11px',
-            color: 'var(--accent-steps)',
-            textAlign: 'center',
-            marginTop: '-20px',
-            marginBottom: '20px',
-          }}>
-            +{steps.extra_allowance} kcal from steps
-          </p>
-        )}
-
         {/* Macro bars */}
         <div style={{
           display: 'flex',
@@ -144,6 +132,12 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+
+        {summary?.budget && (
+          <div style={{ marginTop: '14px' }}>
+            <BudgetBreakdown budget={summary.budget} consumed={calories.total} />
+          </div>
+        )}
       </div>
 
       {/* Recent Activity */}

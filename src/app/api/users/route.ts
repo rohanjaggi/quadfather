@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       dietary_restrictions: user.dietary_restrictions ? JSON.parse(user.dietary_restrictions) : [],
       ai_features_enabled: user.ai_features_enabled,
       ai_coaching_prefs: user.ai_coaching_prefs ?? undefined,
+      training_focus: user.training_focus ?? null,
     }, { status: 201 });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";

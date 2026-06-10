@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const todayEnd = new Date(todayStart);
     todayEnd.setUTCHours(23, 59, 59, 999);
 
-    const [foodLogs, waterLogs, runLogs, stepLog] = await Promise.all([
+    const [foodLogs, waterLogs, runLogs, workoutLogs, stepLog] = await Promise.all([
       prisma.foodLog.findMany({
         where: { user_id: user.id, logged_at: { gte: todayStart } },
       }),
@@ -23,7 +23,12 @@ export async function GET(request: NextRequest) {
         where: {
           user_id: user.id,
           run_date: { gte: todayStart, lte: todayEnd },
-          added_to_allowance: true,
+        },
+      }),
+      prisma.workoutLog.findMany({
+        where: {
+          user_id: user.id,
+          workout_date: { gte: todayStart, lte: todayEnd },
         },
       }),
       prisma.stepLog.findFirst({
@@ -38,14 +43,19 @@ export async function GET(request: NextRequest) {
     const totalFats = foodLogs.reduce((s, l) => s + (l.fats ?? 0), 0);
     const totalFiber = foodLogs.reduce((s, l) => s + (l.fiber ?? 0), 0);
     const totalWater = waterLogs.reduce((s, l) => s + l.amount_liters, 0);
-    const exerciseBurn = runLogs.reduce((s, r) => s + r.calories_burned, 0);
+
+    const DAMPENING = 0.5;
+    const runBurnRaw = runLogs.reduce((s, r) => s + r.calories_burned, 0);
+    const workoutBurnRaw = workoutLogs.reduce((s, w) => s + (w.calories_burned ?? 0), 0);
+    const runBurnDampened = Math.round(runBurnRaw * DAMPENING);
+    const workoutBurnDampened = Math.round(workoutBurnRaw * DAMPENING);
+    const exerciseBurn = runBurnDampened + workoutBurnDampened;
 
     const todaySteps = stepLog?.steps ?? 0;
     const stepAllowance = calculateStepAllowance(
       todaySteps,
       user.activity_level,
       user.weight_kg,
-      exerciseBurn,
     );
 
     const totalGoal = user.daily_calorie_goal + exerciseBurn + stepAllowance;
@@ -92,6 +102,15 @@ export async function GET(request: NextRequest) {
       },
       meals_logged: foodLogs.length,
       exercise_burn: Math.round(exerciseBurn),
+      budget: {
+        base: user.daily_calorie_goal,
+        runs_raw: Math.round(runBurnRaw),
+        runs_credit: runBurnDampened,
+        workouts_raw: Math.round(workoutBurnRaw),
+        workouts_credit: workoutBurnDampened,
+        steps_credit: stepAllowance,
+        total: Math.round(totalGoal),
+      },
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";

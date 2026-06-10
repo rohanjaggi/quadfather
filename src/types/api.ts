@@ -37,6 +37,16 @@ export interface User {
   }
 }
 
+export interface BudgetBreakdown {
+  base: number
+  runs_raw: number
+  runs_credit: number
+  workouts_raw: number
+  workouts_credit: number
+  steps_credit: number
+  total: number
+}
+
 export interface DailySummary {
   date: string
   macros: {
@@ -50,6 +60,7 @@ export interface DailySummary {
   steps: { total: number; goal: number; extra_allowance: number }
   meals_logged: number
   exercise_burn: number
+  budget: BudgetBreakdown
 }
 
 export interface FoodLog {

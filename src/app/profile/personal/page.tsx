@@ -21,11 +21,11 @@ const ACTIVITY_OPTIONS = Object.entries(ACTIVITY_LABELS) as [ActivityLevel, stri
 const GOAL_OPTIONS = Object.entries(GOAL_LABELS) as [FitnessGoal, string][]
 
 const ACTIVITY_DESCRIPTIONS: Record<ActivityLevel, string> = {
-  sedentary: 'Desk job, little to no exercise',
-  lightly_active: 'Light exercise 1–3 days/week',
-  moderately_active: 'Moderate exercise 3–5 days/week',
-  very_active: 'Hard exercise 6–7 days/week',
-  extra_active: 'Intense training or physical job',
+  sedentary: 'Desk job, drive everywhere',
+  lightly_active: 'On feet some of the day, light walking',
+  moderately_active: 'Active job or lots of daily walking',
+  very_active: 'Physical labor or very active job',
+  extra_active: 'Intense physical labor all day',
 }
 
 const GOAL_DESCRIPTIONS: Record<FitnessGoal, string> = {

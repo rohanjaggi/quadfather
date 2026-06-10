@@ -19,18 +19,31 @@ export async function POST(request: NextRequest) {
     const targetDate = date ? new Date(date) : new Date()
     targetDate.setUTCHours(0, 0, 0, 0)
 
-    const stepLog = await prisma.stepLog.upsert({
-      where: {
-        user_id_date: { user_id: user.id, date: targetDate },
-      },
-      update: { steps: Math.round(steps), logged_at: new Date() },
-      create: {
-        user_id: user.id,
-        steps: Math.round(steps),
-        date: targetDate,
-        source: 'shortcut',
-      },
+    const rounded = Math.round(steps)
+
+    const existing = await prisma.stepLog.findUnique({
+      where: { user_id_date: { user_id: user.id, date: targetDate } },
     })
+
+    if (existing && existing.steps >= rounded) {
+      console.log(`[steps] Rejected lower value: incoming=${rounded}, stored=${existing.steps}, date=${targetDate.toISOString()}`)
+    }
+
+    const stepLog = existing
+      ? existing.steps >= rounded
+        ? existing
+        : await prisma.stepLog.update({
+            where: { id: existing.id },
+            data: { steps: rounded, logged_at: new Date() },
+          })
+      : await prisma.stepLog.create({
+          data: {
+            user_id: user.id,
+            steps: rounded,
+            date: targetDate,
+            source: 'shortcut',
+          },
+        })
 
     return NextResponse.json(stepLog, { status: 200 })
   } catch (e) {

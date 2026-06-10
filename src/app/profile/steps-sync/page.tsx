@@ -181,19 +181,24 @@ export default function StepsSyncPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>Unit</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>count</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Group by</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>Day</strong>
-              </div>
             </div>
           </div>
 
           <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-            This grabs today&rsquo;s total step count from Apple Health.
+            This finds all of today&rsquo;s step samples from Apple Health.
           </p>
+
+          <div style={{
+            padding: '10px 12px', borderRadius: '8px',
+            backgroundColor: 'var(--tg-theme-bg-color)',
+            fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--accent-calories)', lineHeight: 1.5,
+          }}>
+            <strong>Important:</strong> Do NOT set &ldquo;Group by&rdquo; &mdash; leave it unset so all individual samples are returned.
+          </div>
         </div>
       </div>
 
-      {/* Step 3: Action 2 — Get Contents of URL */}
+      {/* Step 3: Action 2 — Calculate Statistics */}
       <div className="fade-up fade-up-3">
         <div style={{
           padding: '18px', borderRadius: '16px',
@@ -209,12 +214,57 @@ export default function StepsSyncPage() {
               fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
             }}>3</div>
             <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-              Action 2: Get Contents of URL
+              Action 2: Calculate Statistics
             </p>
           </div>
 
           <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-            Search for &ldquo;Get Contents of URL&rdquo; and add it below the first action. Then configure:
+            Search for &ldquo;Calculate Statistics&rdquo; and add it below Action 1.
+          </p>
+
+          <div style={{
+            padding: '14px', borderRadius: '12px',
+            backgroundColor: 'var(--tg-theme-bg-color)',
+            display: 'flex', flexDirection: 'column', gap: '8px',
+          }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Operation</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>Sum</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Input</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>Health Samples</strong>
+              </div>
+            </div>
+          </div>
+
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
+            This adds up all the individual step recordings into one total number.
+          </p>
+        </div>
+      </div>
+
+      {/* Step 4: Action 3 — Get Contents of URL */}
+      <div className="fade-up fade-up-4">
+        <div style={{
+          padding: '18px', borderRadius: '16px',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          display: 'flex', flexDirection: 'column', gap: '14px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%',
+              backgroundColor: 'var(--tg-theme-button-color)',
+              color: 'var(--tg-theme-button-text-color)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
+            }}>4</div>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
+              Action 3: Get Contents of URL
+            </p>
+          </div>
+
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
+            Search for &ldquo;Get Contents of URL&rdquo; and add it below. Then configure:
           </p>
 
           <div style={{
@@ -267,19 +317,19 @@ export default function StepsSyncPage() {
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8 }}>
                   <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>1.</strong> Tap &ldquo;Add new field&rdquo; &rarr; choose <strong>Number</strong></div>
                   <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>2.</strong> Key: type <strong>steps</strong></div>
-                  <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>3.</strong> Value: tap the field, then tap the <strong>Health Samples</strong> variable (magic variable from Action 1 above)</div>
+                  <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>3.</strong> Value: tap the field, then select <strong>Statistics</strong> (the result from Action 2)</div>
                 </div>
               </div>
               <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginTop: '6px', lineHeight: 1.5 }}>
-                The value should show as a purple/pink pill that says &ldquo;Health Samples&rdquo; — this passes the step count dynamically.
+                The value should show as a pink pill that says &ldquo;Statistics&rdquo; or &ldquo;Sum&rdquo; — this is your total step count for the day.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Step 4: Automate */}
-      <div className="fade-up fade-up-4">
+      {/* Step 5: Automate */}
+      <div className="fade-up fade-up-5">
         <div style={{
           padding: '18px', borderRadius: '16px',
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
@@ -292,7 +342,7 @@ export default function StepsSyncPage() {
               color: 'var(--tg-theme-button-text-color)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
-            }}>4</div>
+            }}>5</div>
             <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
               Run It Automatically
             </p>
@@ -346,7 +396,7 @@ export default function StepsSyncPage() {
       </div>
 
       {/* Troubleshooting */}
-      <div className="fade-up fade-up-5">
+      <div className="fade-up fade-up-6">
         <div style={{
           padding: '18px', borderRadius: '16px',
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',

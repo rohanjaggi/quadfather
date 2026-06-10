@@ -21,7 +21,10 @@ export async function GET(request: NextRequest) {
       orderBy: { run_date: 'desc' },
     })
 
-    return NextResponse.json(runs)
+    return NextResponse.json(runs.map(r => ({
+      ...r,
+      strava_activity_id: r.strava_activity_id?.toString() ?? null,
+    })))
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Internal error'
     if (message === 'User not found') {

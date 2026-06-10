@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
       orderBy: { run_date: 'desc' },
     })
 
-    return NextResponse.json(runs)
+    return NextResponse.json(runs.map(r => ({
+      ...r,
+      strava_activity_id: r.strava_activity_id?.toString() ?? null,
+    })))
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Internal error'
     if (message === 'User not found') {
@@ -64,7 +67,10 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(run, { status: 201 })
+    return NextResponse.json({
+      ...run,
+      strava_activity_id: run.strava_activity_id?.toString() ?? null,
+    }, { status: 201 })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Internal error'
     if (message.includes('initData') || message.includes('hash')) {

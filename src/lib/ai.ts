@@ -1002,3 +1002,5 @@ export async function generateWorkoutRecap(
   const raw = await callText(provider, apiKey, resolvedModel, prompt)
   return raw.trim()
 }
+
+export { callText as callTextDirect }

@@ -134,13 +134,16 @@ export const generateAccessToken = () =>
 export const deleteAccessToken = () =>
   apiFetch<void>('/users/me/token', { method: 'DELETE' })
 
-import type { Exercise, ProgressData, WorkoutAnalysis } from '@/types/exercises'
+import type { Exercise, ProgressData, PredictionData, WorkoutAnalysis } from '@/types/exercises'
 
 export const searchExercises = (q: string, category?: string) =>
   apiFetch<Exercise[]>(`/exercises?q=${encodeURIComponent(q)}${category ? `&category=${category}` : ''}`)
 
 export const getExerciseProgress = (exerciseName: string) =>
   apiFetch<ProgressData>(`/workouts/progress?exercise_name=${encodeURIComponent(exerciseName)}`)
+
+export const getExercisePrediction = (exerciseName: string) =>
+  apiFetch<PredictionData>(`/workouts/predict?exercise_name=${encodeURIComponent(exerciseName)}`)
 
 export const analyseWorkout = (id: number) =>
   apiFetch<WorkoutAnalysis>(`/workouts/${id}/analyse`, { method: 'POST' })

@@ -22,6 +22,19 @@ export interface ProgressData {
   is_pr_territory: boolean
 }
 
+export interface PredictionData {
+  prediction: {
+    sets: { reps: number; weight_kg: number }[]
+    reasoning: string
+  } | null
+  confidence: 'high' | 'medium' | 'low'
+  fallback_used: boolean
+  last_session: {
+    date: string
+    sets: { reps: number; weight_kg: number | null }[]
+  } | null
+}
+
 export interface WorkoutAnalysis {
   muscle_groups_hit: string[]
   prs: { exercise: string; type: 'weight' | 'reps'; value: string }[]

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getExerciseProgress } from '@/lib/api'
-import type { ProgressData } from '@/types/exercises'
+import { getExercisePrediction } from '@/lib/api'
+import type { PredictionData } from '@/types/exercises'
 
 interface ExerciseSuggestionProps {
   exerciseName: string
@@ -10,7 +10,9 @@ interface ExerciseSuggestionProps {
 }
 
 export default function ExerciseSuggestion({ exerciseName, enabled = true }: ExerciseSuggestionProps) {
-  const [data, setData] = useState<ProgressData | null>(null)
+  const [data, setData] = useState<PredictionData | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     if (!enabled || !exerciseName || exerciseName.length < 3) {
@@ -19,42 +21,109 @@ export default function ExerciseSuggestion({ exerciseName, enabled = true }: Exe
     }
 
     let cancelled = false
+    setLoading(true)
     const timeout = setTimeout(() => {
-      getExerciseProgress(exerciseName)
+      getExercisePrediction(exerciseName)
         .then(d => { if (!cancelled) setData(d) })
         .catch(() => { if (!cancelled) setData(null) })
-    }, 500)
+        .finally(() => { if (!cancelled) setLoading(false) })
+    }, 800)
 
     return () => { cancelled = true; clearTimeout(timeout) }
   }, [exerciseName, enabled])
 
-  if (!enabled || !data || data.status === 'new') return null
+  if (!enabled) return null
+  if (loading) {
+    return (
+      <div style={{
+        marginTop: '8px',
+        padding: '10px 12px',
+        borderRadius: '10px',
+        border: '1px solid var(--surface-border)',
+      }}>
+        <div style={{
+          height: '11px',
+          width: '60%',
+          borderRadius: '4px',
+          backgroundColor: 'var(--surface-border)',
+          animation: 'pulse 1.5s ease-in-out infinite',
+        }} />
+      </div>
+    )
+  }
+  if (!data || !data.prediction) return null
 
   return (
     <div style={{
-      padding: '8px 12px', borderRadius: '10px',
-      backgroundColor: data.status === 'stalled'
-        ? 'rgba(255, 149, 0, 0.08)'
-        : 'rgba(48, 209, 88, 0.08)',
-      marginTop: '6px',
+      marginTop: '8px',
+      borderRadius: '10px',
+      border: '1px solid var(--surface-border)',
+      overflow: 'hidden',
     }}>
-      {data.last_session && (
-        <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginBottom: '3px' }}>
-          Last: {data.last_session.sets.length}x{data.last_session.sets[0]?.reps}
-          {data.last_session.sets[0]?.weight_kg ? ` @ ${data.last_session.sets[0].weight_kg}kg` : ''}
-          {' '}({data.last_session.date})
-        </p>
-      )}
-      {data.suggestion && (
-        <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-          {data.status === 'stalled' ? '⚠ ' : '↑ '}
-          {data.suggestion.value ? `Try ${data.suggestion.value}` : data.suggestion.reason}
-        </p>
-      )}
-      {data.status === 'stalled' && data.stall_weeks > 0 && (
-        <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginTop: '2px' }}>
-          Stalled {data.stall_weeks}+ weeks — {data.suggestion?.reason}
-        </p>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%',
+          padding: '10px 12px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        <span style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '11px',
+          fontWeight: 500,
+          color: 'var(--accent-protein)',
+        }}>
+          Suggested: {data.prediction.sets.length} sets
+        </span>
+        <span style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '10px',
+          color: 'var(--tg-theme-hint-color)',
+          transition: 'transform 0.2s ease-out',
+          transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+        }}>
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div style={{
+          padding: '0 12px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
+        }}>
+          {data.prediction.sets.map((set, i) => (
+            <div key={i} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '10px',
+                color: 'var(--tg-theme-hint-color)',
+                width: '14px',
+              }}>
+                {i + 1}
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '12px',
+                fontWeight: 500,
+                color: 'var(--tg-theme-text-color)',
+              }}>
+                {set.reps} reps × {set.weight_kg}kg
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

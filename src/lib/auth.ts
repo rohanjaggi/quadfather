@@ -9,15 +9,52 @@ const SKIP_TELEGRAM_AUTH =
   (process.env.SKIP_TELEGRAM_AUTH ?? "false").toLowerCase() === "true";
 const DEV_USER_ID = parseInt(process.env.DEV_USER_ID ?? "12345678", 10);
 
+/**
+ * How long a signed initData payload stays usable, in seconds.
+ *
+ * initData is a bearer credential: the signature proves Telegram issued it but
+ * says nothing about *when*, so without this an intercepted header would
+ * authenticate that user forever. The window has to be generous because the
+ * mini-app SDK does not refresh `WebApp.initData` while the app stays open —
+ * a short TTL would log out anyone who leaves the app backgrounded. 24h is
+ * Telegram's own suggested bound; do not shorten it.
+ */
+const MAX_AUTH_AGE_SECONDS = 86_400;
+
 interface TelegramUser {
   id: number;
   username?: string;
   first_name?: string;
 }
 
+/**
+ * Constant-time comparison that tolerates a length mismatch.
+ *
+ * `crypto.timingSafeEqual` throws `RangeError` when the buffers differ in
+ * length, so a malformed `hash=abc` used to escape as an unhandled error and
+ * be mapped to a 500 instead of the 401 it is.
+ *
+ * This duplicates `timingSafeEqualStr` in `@/lib/api-handler` on purpose:
+ * api-handler imports this module, so importing it back would close a cycle.
+ */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  if (ab.length !== bb.length || ab.length === 0) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
 export function verifyTelegramAuth(initData: string): TelegramUser {
   if (SKIP_TELEGRAM_AUTH) {
     return { id: DEV_USER_ID, username: "devuser", first_name: "Dev" };
+  }
+
+  // Fail closed: with an empty bot token the HMAC secret is a publicly known
+  // constant, so anyone could sign an initData payload for any user id.
+  // The message deliberately avoids the words "initData"/"hash" so route
+  // handlers map it to a 500 (server misconfiguration) rather than a 401.
+  if (!BOT_TOKEN) {
+    throw new Error("Server misconfigured: BOTFATHER_TOKEN is not set");
   }
 
   const params = new URLSearchParams(initData);
@@ -42,29 +79,24 @@ export function verifyTelegramAuth(initData: string): TelegramUser {
     .update(dataCheckString)
     .digest("hex");
 
-  if (
-    !crypto.timingSafeEqual(
-      Buffer.from(expectedHash),
-      Buffer.from(hash),
-    )
-  ) {
+  if (!safeEqual(expectedHash, hash)) {
     throw new Error("Invalid initData signature");
   }
 
+  // Only meaningful once the signature checks out: `auth_date` is covered by
+  // the HMAC, so before that point it is attacker-controlled. `Number(null)`
+  // is NaN, so a payload without the field is rejected too. The message keeps
+  // the word "initData" on purpose — `AUTH_ERROR_PATTERNS` in
+  // `@/lib/api-handler` matches on it to map this to a 401 rather than a 500.
+  const authDate = Number(params.get("auth_date"));
+  if (
+    !Number.isFinite(authDate) ||
+    Date.now() / 1000 - authDate > MAX_AUTH_AGE_SECONDS
+  ) {
+    throw new Error("initData has expired");
+  }
+
   return JSON.parse(params.get("user") ?? "{}");
-}
-
-export function verifyBotAuth(request: NextRequest): number {
-  const botToken = request.headers.get("x-bot-token") ?? "";
-  const telegramId = request.nextUrl.searchParams.get("telegram_id");
-
-  if (!BOT_TOKEN || botToken !== BOT_TOKEN) {
-    throw new Error("Invalid bot token");
-  }
-  if (!telegramId) {
-    throw new Error("Missing telegram_id");
-  }
-  return parseInt(telegramId, 10);
 }
 
 export async function getAuthenticatedUser(request: NextRequest) {

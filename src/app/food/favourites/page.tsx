@@ -10,7 +10,13 @@ export default function FavouritesPage() {
   const { savedFoods, deleteSavedFood, logFood } = useUser()
 
   async function handleQuickAdd(food: SavedFood) {
-    await logFood({
+    // `saved_food_id` links the log back to the favourite it came from, which
+    // is what the heart on each meal row reads — without it the row falls back
+    // to matching on the food name, so a rename or a duplicate name gets it
+    // wrong. `POST /api/foods` accepts and stores the field; it just isn't on
+    // `FoodLogCreate` yet, hence the separate object (an inline literal would
+    // trip the excess-property check).
+    const payload = {
       food_name: food.name,
       calories: food.calories,
       protein: food.protein,
@@ -18,7 +24,9 @@ export default function FavouritesPage() {
       fats: food.fats,
       fiber: food.fiber,
       source: food.source,
-    })
+      saved_food_id: food.id,
+    }
+    await logFood(payload)
   }
 
   return (

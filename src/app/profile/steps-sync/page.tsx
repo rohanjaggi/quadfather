@@ -1,14 +1,42 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { generateAccessToken, deleteAccessToken, getAccessTokenStatus } from '@/lib/api'
+import { errorMessage } from '@/lib/errors'
+
+type Confirmable = 'regenerate' | 'revoke'
+
+const CONFIRM_MESSAGE: Record<Confirmable, string> = {
+  regenerate:
+    'Regenerating replaces your current token. The Shortcut on your iPhone will stop syncing steps until you paste the new one into it. Continue?',
+  revoke:
+    'Revoking deletes your token. Steps sync stops immediately and the Shortcut will start failing. Continue?',
+}
+
+const CONFIRM_ACTION_LABEL: Record<Confirmable, string> = {
+  regenerate: 'Regenerate',
+  revoke: 'Revoke',
+}
+
+const COPY_FAILED_MESSAGE = 'Copy failed — long-press the text to select it manually.'
 
 export default function StepsSyncPage() {
   const [token, setToken] = useState<string | null>(null)
   const [tokenHint, setTokenHint] = useState<string | null>(null)
   const [tokenLoading, setTokenLoading] = useState(false)
+  const [tokenError, setTokenError] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
+  // Label of the field whose last copy attempt failed, so the fallback hint
+  // appears under that field rather than under all of them.
+  const [copyFailed, setCopyFailed] = useState<string | null>(null)
+  // Set only when the native confirm is unavailable — see `requestConfirm`.
+  const [confirming, setConfirming] = useState<Confirmable | null>(null)
+  // True from the moment a confirm is requested until it is answered. Blocks a
+  // second tap from opening a second sheet (Telegram throws `WebAppPopupOpened`
+  // for that), which used to land in the `.catch` below and raise the inline
+  // confirm *as well* — two independent routes to the same destructive call.
+  const confirmPendingRef = useRef(false)
 
   useEffect(() => {
     getAccessTokenStatus().then(({ has_token, hint }) => {
@@ -18,38 +46,133 @@ export default function StepsSyncPage() {
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
   const stepsUrl = `${baseUrl}/api/steps`
-  const authHeader = token ? `Bearer ${token}` : tokenHint ? `Bearer ${tokenHint}` : 'Bearer <generate-token-first>'
+  // The server only ever returns the token once, at generation. `tokenHint` is a
+  // MASK (`••••abc123`) — pasting it into the Shortcut produces a header that
+  // fails auth, so it is never offered as copyable header text.
+  const authHeader = token ? `Bearer ${token}` : null
 
   async function handleGenerateToken() {
+    if (tokenLoading) return
+    setConfirming(null)
     setTokenLoading(true)
+    setTokenError(null)
     try {
       const { token: newToken } = await generateAccessToken()
       setToken(newToken)
       setTokenHint(null)
     } catch (err) {
-      console.error(err)
+      setTokenError(errorMessage(err, 'Failed to generate token'))
     } finally {
       setTokenLoading(false)
     }
   }
 
   async function handleRevokeToken() {
+    if (tokenLoading) return
+    setConfirming(null)
     setTokenLoading(true)
+    setTokenError(null)
     try {
       await deleteAccessToken()
       setToken(null)
       setTokenHint(null)
     } catch (err) {
-      console.error(err)
+      setTokenError(errorMessage(err, 'Failed to revoke token'))
     } finally {
       setTokenLoading(false)
     }
   }
 
+  /**
+   * Confirms a destructive token action. Prefers Telegram's native sheet; falls
+   * back to a two-tap inline confirm on clients that predate `showConfirm`.
+   * Never `window.confirm` — it blocks the Mini App webview and on several
+   * Telegram clients never paints at all, leaving the app frozen.
+   */
+  function requestConfirm(action: Confirmable, run: () => void) {
+    if (confirmPendingRef.current) return
+    confirmPendingRef.current = true
+    // The SDK touches `window` at module scope, so it must only load in the
+    // browser — a static import here breaks this page's prerender.
+    void import('@twa-dev/sdk')
+      .then(({ default: WebApp }) => {
+        // Client predates `showConfirm` — hand off to the inline confirm, which
+        // is now the only thing that can run the action.
+        if (typeof WebApp.showConfirm !== 'function') {
+          confirmPendingRef.current = false
+          setConfirming(action)
+          return
+        }
+        try {
+          WebApp.showConfirm(CONFIRM_MESSAGE[action], (confirmed) => {
+            confirmPendingRef.current = false
+            if (confirmed) run()
+          })
+        } catch (err) {
+          // A sheet is already open (`WebAppPopupOpened`). The user is already
+          // being asked — don't stack an inline confirm on top of it.
+          console.error('showConfirm failed:', err)
+          confirmPendingRef.current = false
+        }
+      })
+      .catch(() => {
+        // Only the dynamic import failing reaches here — fall back inline.
+        confirmPendingRef.current = false
+        setConfirming(action)
+      })
+  }
+
+  function handleGenerateClick() {
+    if (tokenLoading) return
+    // Nothing to invalidate the first time round, so don't ask.
+    if (!token && !tokenHint) {
+      void handleGenerateToken()
+      return
+    }
+    requestConfirm('regenerate', () => { void handleGenerateToken() })
+  }
+
+  function handleRevokeClick() {
+    if (tokenLoading) return
+    requestConfirm('revoke', () => { void handleRevokeToken() })
+  }
+
+  /**
+   * The token is shown exactly once, so a false "Copied" is data loss: the user
+   * dismisses the page believing they have it and the only copy is gone.
+   *
+   * `navigator.clipboard` is undefined on several Telegram Android webviews
+   * (and on any non-secure origin), where the old call threw a TypeError before
+   * `setCopied` ever ran; `writeText` also rejects when the webview denies the
+   * permission, and the floating promise meant that rejection was invisible
+   * under a green "Copied". Both now fail loudly instead.
+   */
   function copyText(text: string, label: string) {
-    navigator.clipboard.writeText(text)
-    setCopied(label)
-    setTimeout(() => setCopied(null), 2000)
+    setCopyFailed(null)
+    const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : undefined
+    if (!clipboard?.writeText) {
+      reportCopyFailure(label)
+      return
+    }
+    clipboard.writeText(text).then(
+      () => {
+        setCopied(label)
+        setTimeout(() => setCopied(null), 2000)
+      },
+      () => reportCopyFailure(label),
+    )
+  }
+
+  function reportCopyFailure(label: string) {
+    setCopied(null)
+    setCopyFailed(label)
+    // Best-effort native alert on top of the inline hint — the inline one is
+    // what the user is guaranteed to see if the SDK isn't there.
+    void import('@twa-dev/sdk')
+      .then(({ default: WebApp }) => {
+        if (typeof WebApp.showAlert === 'function') WebApp.showAlert(COPY_FAILED_MESSAGE)
+      })
+      .catch(() => {})
   }
 
   return (
@@ -108,34 +231,92 @@ export default function StepsSyncPage() {
           </p>
 
           {token ? (
-            <CopyableField value={token} label="token" copied={copied} onCopy={copyText} />
+            <>
+              <CopyableField value={token} label="token" copied={copied} copyFailed={copyFailed} onCopy={copyText} />
+              <p style={{
+                fontFamily: 'var(--font-display)', fontSize: '11px',
+                color: 'var(--accent-calories)', lineHeight: 1.5,
+              }}>
+                Copy it now — this is the only time it is shown in full.
+              </p>
+            </>
           ) : tokenHint ? (
-            <div style={{
-              padding: '9px 11px', borderRadius: '8px',
-              backgroundColor: 'var(--tg-theme-bg-color)',
-              fontFamily: 'monospace', fontSize: '11px',
-              color: 'var(--tg-theme-hint-color)',
-              display: 'flex', alignItems: 'center', gap: '6px',
-            }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              Token active: {tokenHint}
-            </div>
+            <>
+              <div style={{
+                padding: '9px 11px', borderRadius: '8px',
+                backgroundColor: 'var(--tg-theme-bg-color)',
+                fontFamily: 'monospace', fontSize: '11px',
+                color: 'var(--tg-theme-hint-color)',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Token active: {tokenHint}
+              </div>
+              <p style={{
+                fontFamily: 'var(--font-display)', fontSize: '11px',
+                color: 'var(--tg-theme-hint-color)', lineHeight: 1.5,
+              }}>
+                Only the last few characters are kept — this is a mask, not the
+                token. Regenerate to reveal a new token.
+              </p>
+            </>
           ) : null}
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {(token || tokenHint) && (
-              <button type="button" onClick={handleRevokeToken} disabled={tokenLoading}
-                className="btn-secondary" style={{ flex: 1, color: 'var(--accent-calories)' }}>
-                Revoke
+          {tokenError && (
+            <p style={{
+              fontFamily: 'var(--font-display)', fontSize: '12px',
+              color: 'var(--accent-calories)', padding: '10px 12px',
+              backgroundColor: 'oklch(0.94 0.02 30)', borderRadius: '10px',
+            }}>
+              {tokenError}
+            </p>
+          )}
+
+          {confirming ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <p style={{
+                fontFamily: 'var(--font-display)', fontSize: '12px',
+                color: 'var(--tg-theme-text-color)', lineHeight: 1.5,
+                padding: '10px 12px', borderRadius: '10px',
+                backgroundColor: 'var(--tg-theme-bg-color)',
+              }}>
+                {CONFIRM_MESSAGE[confirming]}
+              </p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button type="button" onClick={() => setConfirming(null)} disabled={tokenLoading}
+                  className="btn-secondary" style={{ flex: 1 }}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirming === 'regenerate') void handleGenerateToken()
+                    else void handleRevokeToken()
+                  }}
+                  disabled={tokenLoading}
+                  className="btn-primary"
+                  style={{ flex: 1, backgroundColor: 'var(--accent-calories)' }}
+                >
+                  {tokenLoading ? 'Working…' : `Yes, ${CONFIRM_ACTION_LABEL[confirming].toLowerCase()}`}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(token || tokenHint) && (
+                <button type="button" onClick={handleRevokeClick} disabled={tokenLoading}
+                  className="btn-secondary" style={{ flex: 1, color: 'var(--accent-calories)' }}>
+                  Revoke
+                </button>
+              )}
+              <button type="button" onClick={handleGenerateClick} disabled={tokenLoading}
+                className="btn-primary" style={{ flex: (token || tokenHint) ? 2 : 1 }}>
+                {tokenLoading ? 'Generating…' : (token || tokenHint) ? 'Regenerate' : 'Generate Token'}
               </button>
-            )}
-            <button type="button" onClick={handleGenerateToken} disabled={tokenLoading}
-              className="btn-primary" style={{ flex: (token || tokenHint) ? 2 : 1 }}>
-              {tokenLoading ? 'Generating…' : (token || tokenHint) ? 'Regenerate' : 'Generate Token'}
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -277,7 +458,7 @@ export default function StepsSyncPage() {
               <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '4px' }}>
                 Tap the blue &ldquo;URL&rdquo; text and paste:
               </p>
-              <CopyableField value={stepsUrl} label="url" copied={copied} onCopy={copyText} />
+              <CopyableField value={stepsUrl} label="url" copied={copied} copyFailed={copyFailed} onCopy={copyText} />
             </div>
 
             {/* Method */}
@@ -295,11 +476,34 @@ export default function StepsSyncPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <div>
                   <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginBottom: '3px' }}>Key: Authorization &nbsp;|&nbsp; Value:</p>
-                  <CopyableField value={authHeader} label="auth" copied={copied} onCopy={copyText} />
+                  {authHeader ? (
+                    <CopyableField value={authHeader} label="auth" copied={copied} copyFailed={copyFailed} onCopy={copyText} />
+                  ) : (
+                    <>
+                      <code style={{
+                        display: 'block', padding: '9px 11px', borderRadius: '8px',
+                        backgroundColor: 'var(--tg-theme-bg-color)',
+                        fontFamily: 'monospace', fontSize: '11px',
+                        color: 'var(--tg-theme-hint-color)',
+                        wordBreak: 'break-all', lineHeight: 1.4,
+                        border: '1px solid var(--surface-border)',
+                      }}>
+                        Bearer {tokenHint ?? '<generate a token in step 1>'}
+                      </code>
+                      <p style={{
+                        fontFamily: 'var(--font-display)', fontSize: '10px',
+                        color: 'var(--tg-theme-hint-color)', marginTop: '4px', lineHeight: 1.5,
+                      }}>
+                        {tokenHint
+                          ? 'Masked — the real token is only shown once, right after it is generated. Regenerate to reveal a new token, then copy this header.'
+                          : 'Generate a token in step 1 and the full header appears here, ready to copy.'}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div>
                   <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginBottom: '3px' }}>Key: Content-Type &nbsp;|&nbsp; Value:</p>
-                  <CopyableField value="application/json" label="content-type" copied={copied} onCopy={copyText} />
+                  <CopyableField value="application/json" label="content-type" copied={copied} copyFailed={copyFailed} onCopy={copyText} />
                 </div>
               </div>
             </div>
@@ -418,37 +622,53 @@ export default function StepsSyncPage() {
   )
 }
 
-function CopyableField({ value, label, copied, onCopy }: {
+function CopyableField({ value, label, copied, copyFailed, onCopy }: {
   value: string
   label: string
   copied: string | null
+  copyFailed: string | null
   onCopy: (text: string, label: string) => void
 }) {
+  const failed = copyFailed === label
   return (
-    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-      <code style={{
-        flex: 1, padding: '9px 11px', borderRadius: '8px',
-        backgroundColor: 'var(--tg-theme-bg-color)',
-        fontFamily: 'monospace', fontSize: '11px',
-        color: 'var(--tg-theme-text-color)',
-        wordBreak: 'break-all', lineHeight: 1.4,
-        border: '1px solid var(--surface-border)',
-      }}>
-        {value}
-      </code>
-      <button
-        type="button"
-        onClick={() => onCopy(value, label)}
-        style={{
-          background: 'none', border: '1px solid var(--surface-border)',
-          borderRadius: '8px', padding: '7px 10px',
-          fontFamily: 'var(--font-display)', fontSize: '11px',
-          color: copied === label ? 'var(--accent-protein)' : 'var(--tg-theme-hint-color)',
-          cursor: 'pointer', flexShrink: 0,
-        }}
-      >
-        {copied === label ? 'Copied' : 'Copy'}
-      </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+        <code style={{
+          flex: 1, padding: '9px 11px', borderRadius: '8px',
+          backgroundColor: 'var(--tg-theme-bg-color)',
+          fontFamily: 'monospace', fontSize: '11px',
+          color: 'var(--tg-theme-text-color)',
+          wordBreak: 'break-all', lineHeight: 1.4,
+          border: '1px solid var(--surface-border)',
+          // Selectable so the fallback hint below is actually actionable.
+          userSelect: 'all',
+        }}>
+          {value}
+        </code>
+        <button
+          type="button"
+          onClick={() => onCopy(value, label)}
+          style={{
+            background: 'none', border: '1px solid var(--surface-border)',
+            borderRadius: '8px', padding: '7px 10px',
+            fontFamily: 'var(--font-display)', fontSize: '11px',
+            color: copied === label ? 'var(--accent-protein)'
+              : failed ? 'var(--accent-calories)'
+              : 'var(--tg-theme-hint-color)',
+            cursor: 'pointer', flexShrink: 0,
+          }}
+        >
+          {copied === label ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      {failed && (
+        <p role="alert" style={{
+          fontFamily: 'var(--font-display)', fontSize: '11px', lineHeight: 1.4,
+          color: 'var(--accent-calories)',
+        }}>
+          {COPY_FAILED_MESSAGE}
+        </p>
+      )}
     </div>
   )
 }

@@ -1,7 +1,10 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
+import { getRunHistory } from '@/lib/api'
+import type { RunLog } from '@/types/running'
 import ActivityHighlights from '@/components/dashboard/ActivityHighlights'
 
 function daysAgo(dateStr: string): string {
@@ -11,17 +14,46 @@ function daysAgo(dateStr: string): string {
   return `${diff}d ago`
 }
 
+/**
+ * Monday 00:00 UTC of the week containing `date`.
+ *
+ * `run_date` is stored and parsed as UTC, so the boundary has to be UTC too —
+ * a local-midnight start put runs from Sunday evening (UTC Monday) outside the
+ * week for anyone east of UTC, and pulled last Sunday in for anyone west.
+ */
+function startOfWeekUTC(date: Date): Date {
+  const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7))
+  return start
+}
+
 export default function ExercisePage() {
   const { user, todaySteps, weeklySteps, weeklyWorkouts, runLogs } = useUser()
+
+  // The context only holds *today's* runs, so "this week" needs its own fetch.
+  // Refetched when the context's runs change so a new run shows up immediately.
+  const [weekRuns, setWeekRuns] = useState<RunLog[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    getRunHistory(7)
+      .then(runs => {
+        if (cancelled) return
+        const weekStart = startOfWeekUTC(new Date())
+        setWeekRuns(runs.filter(r => new Date(r.run_date) >= weekStart))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [runLogs])
 
   const lastWorkout = weeklyWorkouts.length > 0 ? weeklyWorkouts[0] : null
   const workoutDesc = lastWorkout
     ? `Last: ${lastWorkout.name}, ${daysAgo(lastWorkout.workout_date)}`
     : `${weeklyWorkouts.length} sessions this week`
 
-  const totalKm = runLogs.reduce((sum, r) => sum + r.distance_meters, 0) / 1000
-  const runDesc = runLogs.length > 0
-    ? `${runLogs.length} ${runLogs.length === 1 ? 'run' : 'runs'}, ${totalKm.toFixed(1)}km this week`
+  const totalKm = weekRuns.reduce((sum, r) => sum + r.distance_meters, 0) / 1000
+  const runDesc = weekRuns.length > 0
+    ? `${weekRuns.length} ${weekRuns.length === 1 ? 'run' : 'runs'}, ${totalKm.toFixed(1)}km this week`
     : 'Log a run to get started'
 
   return (

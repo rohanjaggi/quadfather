@@ -3,29 +3,48 @@
 import { useHaptic } from '@/components/TelegramProvider'
 
 export default function BottleCounter({
-  count,
+  liters,
+  bottles,
   goal,
   bottleSize,
   onAdd,
   onRemove,
+  pending = false,
+  disabled = false,
 }: {
-  count: number
+  /** Real total logged today, in litres — drives the big number and the bar. */
+  liters: number
+  /** Whole bottles that total represents — drives the dot row only. */
+  bottles: number
   goal: number
   bottleSize: number
   onAdd: () => void
   onRemove: () => void
+  /** A bottle add/remove is in flight — blocks taps AND shows "Saving…". */
+  pending?: boolean
+  /** Blocks taps without claiming this widget is saving (e.g. another
+   *  water mutation elsewhere on the page is in flight). */
+  disabled?: boolean
 }) {
   const haptic = useHaptic()
-  const totalBottles = Math.ceil(goal / bottleSize)
-  const liters = count * bottleSize
-  const pct = Math.min(liters / goal, 1)
+  const totalBottles = bottleSize > 0 ? Math.ceil(goal / bottleSize) : 0
+  const pct = goal > 0 ? Math.min(liters / goal, 1) : 0
+  // 1dp normally, 2dp when a custom amount (e.g. 0.25L) would round away
+  const tenths = liters * 10
+  const litersLabel = Math.abs(tenths - Math.round(tenths)) < 1e-6
+    ? liters.toFixed(1)
+    : liters.toFixed(2)
+
+  const blocked = pending || disabled
 
   function handleAdd() {
+    if (blocked) return
     haptic.impact('light')
     onAdd()
   }
 
   function handleRemove() {
+    if (blocked) return
     haptic.impact('light')
     onRemove()
   }
@@ -42,8 +61,8 @@ export default function BottleCounter({
               width: 10,
               height: 10,
               borderRadius: '50%',
-              backgroundColor: i < count ? 'var(--accent-water)' : 'transparent',
-              border: `1.5px solid ${i < count ? 'var(--accent-water)' : 'var(--surface-border)'}`,
+              backgroundColor: i < bottles ? 'var(--accent-water)' : 'transparent',
+              border: `1.5px solid ${i < bottles ? 'var(--accent-water)' : 'var(--surface-border)'}`,
               transition: 'all 0.3s var(--ease-smooth)',
             }}
           />
@@ -60,7 +79,7 @@ export default function BottleCounter({
           color: 'var(--tg-theme-text-color)',
           letterSpacing: '-0.02em',
         }}>
-          {liters.toFixed(1)}
+          {litersLabel}
         </span>
         <span style={{
           fontFamily: 'var(--font-display)',
@@ -103,7 +122,7 @@ export default function BottleCounter({
       <div style={{ display: 'flex', gap: '10px' }}>
         <button
           onClick={handleRemove}
-          disabled={count === 0}
+          disabled={blocked || liters <= 0}
           className="btn-ghost"
           style={{ flex: 1, padding: '14px' }}
         >
@@ -111,7 +130,7 @@ export default function BottleCounter({
         </button>
         <button
           onClick={handleAdd}
-          disabled={false}
+          disabled={blocked}
           className="btn-primary"
           style={{
             flex: 1,
@@ -119,7 +138,7 @@ export default function BottleCounter({
             backgroundColor: 'var(--accent-water)',
           }}
         >
-          + Add Bottle
+          {pending ? 'Saving…' : '+ Add Bottle'}
         </button>
       </div>
 

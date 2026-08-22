@@ -7,8 +7,17 @@ export interface RunLog {
   average_heartrate?: number
   elevation_gain?: number
   name?: string
-  source: 'manual' | 'ai_parsed'
+  /**
+   * `'manual'`, `'ai_parsed'` and `'strava'` are what the app writes today
+   * (`'strava'` rows must not be badged "Manual"), but `POST /runs` stores any
+   * string the caller sends, so importers like the iOS Shortcut can widen this
+   * set without a schema change. Same reasoning as `WorkoutLog.source`:
+   * compare against the known values, never assume it is only those.
+   */
+  source: string
   added_to_allowance: boolean
+  /** Serialised BigInt (the JSON number would lose precision beyond 2^53). */
+  strava_activity_id: string | null
   run_date: string
   logged_at: string
 }
@@ -50,6 +59,8 @@ export interface RunningAnalyticsResponse {
     distance: number
     duration: number
     calories: number
+    /** Sum of dampened burn over runs with `added_to_allowance` — what the budget actually credits. */
+    credited_calories?: number
     run_count: number
   }
 }

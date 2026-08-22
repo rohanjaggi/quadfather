@@ -1,53 +1,42 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthenticatedUser, getUserAICredentials } from "@/lib/auth";
+import { getUserAICredentials } from "@/lib/auth";
 import { suggestMeals } from "@/lib/ai";
+import { getDailyBudget } from "@/lib/budget";
+import { callAIProvider, parseJsonStringArray, withUser } from "@/lib/api-handler";
 
-export async function GET(request: NextRequest) {
-  try {
-    const user = await getAuthenticatedUser(request);
-    const { provider, apiKey, model } = getUserAICredentials(user);
+export const GET = withUser(async (request, user) => {
+  const { provider, apiKey, model } = getUserAICredentials(user);
 
-    const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
+  // Same budget the dashboard shows: goal + exercise credit + step credit.
+  const budget = await getDailyBudget(user);
 
-    const foodLogs = await prisma.foodLog.findMany({
-      where: { user_id: user.id, logged_at: { gte: todayStart } },
-    });
+  const remainingCalories = Math.max(budget.remaining, 0);
+  const remainingProtein = Math.max(user.daily_protein_goal - budget.food.protein, 0);
+  const mealNames = budget.logs.food
+    .map((l) => l.food_name)
+    .filter((n): n is string => !!n);
 
-    const totalCalories = foodLogs.reduce((s, l) => s + (l.calories ?? 0), 0);
-    const totalProtein = foodLogs.reduce((s, l) => s + (l.protein ?? 0), 0);
-    const remainingCalories = Math.max(
-      user.daily_calorie_goal - totalCalories,
-      0,
-    );
-    const remainingProtein = Math.max(
-      user.daily_protein_goal - totalProtein,
-      0,
-    );
-    const mealNames = foodLogs
-      .map((l) => l.food_name)
-      .filter((n): n is string => !!n);
+  // Tolerant read: legacy rows can hold a bare JSON string rather than an array.
+  const dietaryRestrictions = parseJsonStringArray(user.dietary_restrictions);
 
-    const dietaryRestrictions: string[] = user.dietary_restrictions
-      ? JSON.parse(user.dietary_restrictions)
-      : [];
+  const savedFoods = await prisma.savedFood.findMany({
+    where: { user_id: user.id },
+    select: { name: true },
+    take: 10,
+    orderBy: { created_at: "desc" },
+  });
+  const savedFoodNames = savedFoods.map((f) => f.name);
 
-    const savedFoods = await prisma.savedFood.findMany({
-      where: { user_id: user.id },
-      select: { name: true },
-      take: 10,
-      orderBy: { created_at: 'desc' },
-    });
-    const savedFoodNames = savedFoods.map(f => f.name);
+  // The dampened exercise credit (50% of runs + workouts) — i.e. the number
+  // that actually sits inside `remainingCalories`. Passing raw burn here made
+  // the model treat it as headroom on top of the remaining budget and
+  // double-count it, so send the credit and let the prompt say it is already
+  // included.
+  const exerciseToday = budget.exercise_burn;
 
-    const runLogs = await prisma.runLog.findMany({
-      where: { user_id: user.id, logged_at: { gte: todayStart } },
-      select: { calories_burned: true },
-    });
-    const exerciseToday = runLogs.reduce((sum, r) => sum + r.calories_burned, 0);
-
-    const suggestions = await suggestMeals(
+  const suggestions = await callAIProvider("foods/suggest", () =>
+    suggestMeals(
       provider,
       apiKey,
       model,
@@ -57,20 +46,8 @@ export async function GET(request: NextRequest) {
       dietaryRestrictions,
       savedFoodNames,
       exerciseToday,
-    );
+    ),
+  );
 
-    return NextResponse.json(suggestions);
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Internal error";
-    if (message === "User not found") {
-      return NextResponse.json({ detail: message }, { status: 404 });
-    }
-    if (message.includes("initData") || message.includes("hash")) {
-      return NextResponse.json({ detail: message }, { status: 401 });
-    }
-    if (message.includes("No API key")) {
-      return NextResponse.json({ detail: message }, { status: 403 });
-    }
-    return NextResponse.json({ detail: message }, { status: 500 });
-  }
-}
+  return NextResponse.json(suggestions);
+});

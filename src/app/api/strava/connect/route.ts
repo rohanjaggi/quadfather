@@ -1,18 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getAuthenticatedUser } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withUser } from '@/lib/api-handler'
 import { getStravaAuthUrl, signStravaState } from '@/lib/strava'
 
-export async function GET(request: NextRequest) {
-  try {
-    const user = await getAuthenticatedUser(request)
-    const state = signStravaState(`${user.telegram_id}`)
-    const url = getStravaAuthUrl(state)
-    return NextResponse.json({ url })
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Internal error'
-    if (message.includes('initData') || message.includes('hash')) {
-      return NextResponse.json({ detail: message }, { status: 401 })
-    }
-    return NextResponse.json({ detail: message }, { status: 500 })
-  }
-}
+// The shared wrapper replaces a hand-rolled try/catch that echoed raw error
+// text at 500 — a missing STRAVA_CLIENT_ID or a signing failure leaked its
+// message straight to the client. Auth failures still map to 401.
+export const GET = withUser(async (_request, user) => {
+  const state = signStravaState(`${user.telegram_id}`)
+  const url = getStravaAuthUrl(state)
+  return NextResponse.json({ url })
+})

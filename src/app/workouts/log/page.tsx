@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { logWorkout } from '@/lib/api'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { logWorkout, getTemplates } from '@/lib/api'
 import Link from 'next/link'
 import WorkoutForm from '@/components/workouts/WorkoutForm'
 import TemplateSelector from '@/components/workouts/TemplateSelector'
@@ -9,14 +9,41 @@ import AiParseInput from '@/components/workouts/AiParseInput'
 import RecentWorkouts from '@/components/workouts/RecentWorkouts'
 import TemplateList from '@/components/workouts/TemplateList'
 import TemplateCreator from '@/components/workouts/TemplateCreator'
-import type { WorkoutLogCreate } from '@/types/workouts'
+import type { WorkoutLogCreate, WorkoutTemplate } from '@/types/workouts'
+import { useUser } from '@/context/UserContext'
+import { errorMessage } from '@/lib/errors'
 
 type Mode = null | 'template' | 'freestyle' | 'ai' | 'create-template'
 
 export default function WorkoutsLogPage() {
+  const { refresh } = useUser()
   const [mode, setMode] = useState<Mode>(null)
   const [key, setKey] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
+
+  // One fetch shared by TemplateList and TemplateSelector.
+  const [templates, setTemplates] = useState<WorkoutTemplate[]>([])
+  const [templatesLoading, setTemplatesLoading] = useState(true)
+  // A failed fetch used to look exactly like "you have no templates", which
+  // sends people off to recreate templates they already have.
+  const [templatesError, setTemplatesError] = useState<string | null>(null)
+
+  const loadTemplates = useCallback(() => {
+    setTemplatesLoading(true)
+    setTemplatesError(null)
+    return getTemplates()
+      .then(data => {
+        setTemplates(data)
+        setTemplatesError(null)
+      })
+      .catch(err => {
+        console.error('Failed to load templates:', err)
+        setTemplatesError(errorMessage(err, 'Could not load your templates'))
+      })
+      .finally(() => setTemplatesLoading(false))
+  }, [])
+
+  useEffect(() => { loadTemplates() }, [loadTemplates])
 
   useEffect(() => {
     if (mode && panelRef.current) {
@@ -28,18 +55,48 @@ export default function WorkoutsLogPage() {
     setMode(prev => prev === next ? null : next)
   }
 
-  async function handleSave(data: { name: string; exercises: { exercise_name: string; sets: { reps: number; weight_kg: number | null }[]; order: number }[]; duration_minutes?: number; notes?: string; template_id?: number }) {
+  const templatesErrorNotice = (
+    <p style={{
+      fontFamily: 'var(--font-display)', fontSize: '12px', lineHeight: 1.5,
+      color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '12px 0',
+    }}>
+      <span style={{ color: 'var(--accent-calories)' }}>{templatesError}</span>{' '}
+      <button
+        type="button"
+        onClick={() => loadTemplates()}
+        disabled={templatesLoading}
+        style={{
+          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+          fontFamily: 'var(--font-display)', fontSize: '12px',
+          color: 'var(--tg-theme-button-color)',
+        }}
+      >
+        {templatesLoading ? 'Retrying…' : 'Retry'}
+      </button>
+    </p>
+  )
+
+  async function handleSave(
+    data: { name: string; exercises: { exercise_name: string; sets: { reps: number; weight_kg: number | null }[]; order: number }[]; duration_minutes?: number; notes?: string; template_id?: number },
+    source: 'manual' | 'ai_parse' = 'manual',
+  ) {
     const payload: WorkoutLogCreate = {
       name: data.name,
       exercises: data.exercises,
       duration_minutes: data.duration_minutes,
       notes: data.notes,
       template_id: data.template_id,
-      source: 'manual',
+      source,
     }
     await logWorkout(payload)
     setMode(null)
     setKey(prev => prev + 1)
+    // Keep the dashboard / exercise summaries in step with what was just logged.
+    try {
+      await refresh()
+    } catch (err) {
+      console.error('Failed to refresh after logging workout:', err)
+    }
   }
 
   return (
@@ -93,9 +150,18 @@ export default function WorkoutsLogPage() {
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
           borderRadius: '20px', padding: '20px',
         }}>
-          {mode === 'template' && <TemplateSelector onSave={handleSave} onClose={() => setMode(null)} />}
+          {mode === 'template' && (
+            templatesError && !templatesLoading ? templatesErrorNotice : (
+              <TemplateSelector
+                onSave={handleSave}
+                onClose={() => setMode(null)}
+                templates={templates}
+                loading={templatesLoading}
+              />
+            )
+          )}
           {mode === 'freestyle' && <WorkoutForm onSave={handleSave} onClose={() => setMode(null)} />}
-          {mode === 'ai' && <AiParseInput onSave={handleSave} onClose={() => setMode(null)} />}
+          {mode === 'ai' && <AiParseInput onSave={data => handleSave(data, 'ai_parse')} onClose={() => setMode(null)} />}
         </div>
       )}
 
@@ -104,12 +170,19 @@ export default function WorkoutsLogPage() {
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
           borderRadius: '20px', padding: '20px',
         }}>
-          <TemplateCreator onClose={() => setMode(null)} onCreated={() => { setMode(null); setKey(prev => prev + 1) }} />
+          <TemplateCreator onClose={() => setMode(null)} onCreated={() => { setMode(null); loadTemplates() }} />
         </div>
       )}
 
-      <div className="fade-up fade-up-2" key={`tpl-${key}`}>
-        <TemplateList onCreateNew={() => setMode('create-template')} />
+      <div className="fade-up fade-up-2">
+        {templatesError && !templatesLoading ? templatesErrorNotice : (
+          <TemplateList
+            onCreateNew={() => setMode('create-template')}
+            templates={templates}
+            loading={templatesLoading}
+            onDeleted={id => setTemplates(prev => prev.filter(t => t.id !== id))}
+          />
+        )}
       </div>
 
       <div className="fade-up fade-up-3" key={key}>

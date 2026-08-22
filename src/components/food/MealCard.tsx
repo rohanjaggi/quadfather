@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useHaptic } from '@/components/TelegramProvider'
 import { useUser } from '@/context/UserContext'
+import { toast, errorMessage } from '@/components/ui/Toast'
 
 export default function MealCard({
   name,
@@ -46,8 +47,9 @@ export default function MealCard({
       })
       haptic.notification('success')
       setJustSaved(true)
-    } catch {
+    } catch (err) {
       haptic.notification('error')
+      toast(errorMessage(err, 'Could not save to favourites'))
     } finally {
       setSaving(false)
     }
@@ -113,8 +115,11 @@ export default function MealCard({
             cursor: isFavourited ? 'default' : 'pointer',
             color: isFavourited ? 'var(--accent-calories)' : 'var(--tg-theme-hint-color)',
             lineHeight: 1,
-            opacity: isFavourited ? 1 : 0.4,
-            transition: 'color 0.2s ease, opacity 0.2s ease',
+            // No opacity on the un-favourited state: 0.4 put the outline heart
+            // at ~1.6:1 on the card, well under the 3:1 a UI control needs. The
+            // hint-vs-accent colour still carries the on/off distinction.
+            opacity: 1,
+            transition: 'color 0.2s ease',
           }}
           aria-label={isFavourited ? 'Already favourited' : 'Save as favourite'}
         >

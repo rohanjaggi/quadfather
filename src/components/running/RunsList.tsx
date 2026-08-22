@@ -4,9 +4,20 @@ import { useUser } from '@/context/UserContext'
 import RunCard from './RunCard'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import SwipeToDelete, { SwipeDeleteProvider } from '@/components/SwipeToDelete'
+import { toast, errorMessage } from '@/components/ui/Toast'
 
 export default function RunsList() {
   const { runLogs, deleteRun } = useUser()
+
+  // Rethrow after toasting so SwipeToDelete restores the row it hid.
+  async function handleDelete(id: number) {
+    try {
+      await deleteRun(id)
+    } catch (err) {
+      toast(errorMessage(err, 'Could not delete this run'), { type: 'error' })
+      throw err
+    }
+  }
 
   return (
     <SummaryCard title="Today's Runs">
@@ -23,7 +34,7 @@ export default function RunsList() {
       ) : (
         <SwipeDeleteProvider>
           {runLogs.map((run, i) => (
-            <SwipeToDelete key={run.id} id={`run-${run.id}`} onDelete={() => deleteRun(run.id)}>
+            <SwipeToDelete key={run.id} id={`run-${run.id}`} onDelete={() => handleDelete(run.id)}>
               <RunCard
                 run={run}
                 isLast={i === runLogs.length - 1}

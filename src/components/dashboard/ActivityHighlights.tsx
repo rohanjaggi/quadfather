@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { formatInt } from '@/lib/format'
 import type { StepLog } from '@/types/workouts'
 
 interface Props {
@@ -38,13 +39,13 @@ export default function ActivityHighlights({ todaySteps, weeklySteps, stepGoal: 
               fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 600,
               color: 'var(--tg-theme-text-color)', letterSpacing: '-0.01em',
             }}>
-              {todaySteps > 0 ? todaySteps.toLocaleString() : '0'} steps
+              {formatInt(todaySteps)} steps
             </span>
             <span style={{
               fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 400,
               color: 'var(--tg-theme-hint-color)',
             }}>
-              / {stepGoal.toLocaleString()}
+              / {formatInt(stepGoal)}
             </span>
           </div>
           <div style={{
@@ -78,7 +79,7 @@ export default function ActivityHighlights({ todaySteps, weeklySteps, stepGoal: 
             fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 600,
             color: 'var(--tg-theme-text-color)', marginTop: '2px', letterSpacing: '-0.01em',
           }}>
-            {avgSteps > 0 ? avgSteps.toLocaleString() : '-'}
+            {avgSteps > 0 ? formatInt(avgSteps) : '-'}
             <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>
               /day
             </span>
@@ -102,7 +103,7 @@ export default function ActivityHighlights({ todaySteps, weeklySteps, stepGoal: 
             color: remaining === 0 ? 'var(--accent-protein)' : 'var(--tg-theme-text-color)',
             marginTop: '2px', letterSpacing: '-0.01em',
           }}>
-            {remaining === 0 ? 'Goal hit' : remaining.toLocaleString()}
+            {remaining === 0 ? 'Goal hit' : formatInt(remaining)}
             {remaining > 0 && (
               <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>
                 to go

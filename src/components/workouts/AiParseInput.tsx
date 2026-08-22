@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { parseWorkout } from '@/lib/api'
 import type { ExerciseSet } from '@/types/workouts'
 import WorkoutForm from './WorkoutForm'
+import { errorMessage } from '@/lib/errors'
 
 interface AiParseInputProps {
   onSave: (data: { name: string; exercises: { exercise_name: string; sets: ExerciseSet[]; order: number }[]; duration_minutes?: number; notes?: string; template_id?: number }) => Promise<void>
@@ -30,7 +31,7 @@ export default function AiParseInput({ onSave, onClose }: AiParseInputProps) {
         })),
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse')
+      setError(errorMessage(err, 'Failed to parse'))
     } finally {
       setParsing(false)
     }

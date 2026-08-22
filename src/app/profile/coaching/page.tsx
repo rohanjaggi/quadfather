@@ -3,19 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
-
-interface CoachingPrefs {
-  daily_coach: boolean
-  weekly_insights: boolean
-  nudge_inactivity: boolean
-  nudge_recovery: boolean
-  nudge_nutrition_gap: boolean
-  nudge_steps: boolean
-  nudge_consistency: boolean
-  pre_workout_suggestions: boolean
-  workout_analysis: boolean
-  weekly_exercise_digest: boolean
-}
+import { updateCoachingPrefs } from '@/lib/api'
+import { errorMessage } from '@/lib/errors'
+import type { CoachingPrefs } from '@/types/api'
 
 const DEFAULT_PREFS: CoachingPrefs = {
   daily_coach: true,
@@ -58,10 +48,28 @@ const FEATURE_GROUPS = [
   },
 ]
 
-function Toggle({ enabled, onChange, disabled }: { enabled: boolean; onChange: () => void; disabled?: boolean }) {
+/**
+ * The stored JSON is free-form and predates three of the toggles, so a saved
+ * object is merged *over* the defaults rather than replacing them — otherwise a
+ * user who saved before the exercise group shipped sees those three read as
+ * `undefined` and render as off.
+ */
+function withDefaults(stored: Partial<CoachingPrefs> | undefined): CoachingPrefs {
+  return { ...DEFAULT_PREFS, ...stored }
+}
+
+function Toggle({ enabled, onChange, disabled, label }: {
+  enabled: boolean
+  onChange: () => void
+  disabled?: boolean
+  label: string
+}) {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={label}
       onClick={onChange}
       disabled={disabled}
       style={{
@@ -87,39 +95,69 @@ function Toggle({ enabled, onChange, disabled }: { enabled: boolean; onChange: (
 }
 
 export default function CoachingPage() {
-  const { user } = useUser()
+  const { user, refreshUser } = useUser()
 
   const [masterEnabled, setMasterEnabled] = useState(user?.ai_features_enabled ?? false)
-  const [prefs, setPrefs] = useState<CoachingPrefs>((user?.ai_coaching_prefs as CoachingPrefs | undefined) ?? DEFAULT_PREFS)
+  const [prefs, setPrefs] = useState<CoachingPrefs>(withDefaults(user?.ai_coaching_prefs))
+  const [saveError, setSaveError] = useState<string | null>(null)
+  // One save at a time. Each handler PUTs the whole prefs object and then
+  // refreshes the user (which feeds the effect below back into `prefs`), so
+  // overlapping taps would both clobber each other and land out of order.
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (user) {
       setMasterEnabled(user.ai_features_enabled)
-      setPrefs((user.ai_coaching_prefs as CoachingPrefs | undefined) ?? DEFAULT_PREFS)
+      setPrefs(withDefaults(user.ai_coaching_prefs))
     }
   }, [user])
 
-  async function save(updates: { ai_features_enabled?: boolean; ai_coaching_prefs?: CoachingPrefs }) {
-    await fetch('/api/users/me/goals', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-telegram-init-data': window.Telegram?.WebApp?.initData ?? '',
-      },
-      body: JSON.stringify(updates),
-    })
+  /**
+   * Saves one change, then pulls the user back down so navigating away and
+   * returning doesn't revert to the stale context copy. The revert only applies
+   * to a failed PUT — if the PUT landed and only the refresh failed, the
+   * optimistic value is the truth and undoing it would be a lie.
+   */
+  async function save(put: () => Promise<unknown>, revert: () => void) {
+    setSaveError(null)
+    setBusy(true)
+    try {
+      await put()
+    } catch (err) {
+      revert()
+      setSaveError(errorMessage(err, 'Failed to save preference'))
+      setBusy(false)
+      return
+    }
+    try {
+      await refreshUser()
+    } catch (err) {
+      setSaveError(`Saved, but couldn't reload your settings — ${errorMessage(err)}`)
+    } finally {
+      setBusy(false)
+    }
   }
 
-  function handleMasterToggle() {
-    const newVal = !masterEnabled
+  async function handleMasterToggle() {
+    if (busy) return
+    const previous = masterEnabled
+    const newVal = !previous
     setMasterEnabled(newVal)
-    save({ ai_features_enabled: newVal })
+    await save(
+      () => updateCoachingPrefs({ ai_features_enabled: newVal }),
+      () => setMasterEnabled(previous),
+    )
   }
 
-  function handleFeatureToggle(key: keyof CoachingPrefs) {
+  async function handleFeatureToggle(key: keyof CoachingPrefs) {
+    if (busy) return
+    const previous = prefs
     const updated = { ...prefs, [key]: !prefs[key] }
     setPrefs(updated)
-    save({ ai_coaching_prefs: updated })
+    await save(
+      () => updateCoachingPrefs({ ai_coaching_prefs: updated }),
+      () => setPrefs(previous),
+    )
   }
 
   return (
@@ -146,6 +184,17 @@ export default function CoachingPage() {
         </h1>
       </div>
 
+      {saveError && (
+        <p style={{
+          fontFamily: 'var(--font-display)', fontSize: '12px',
+          color: 'var(--accent-calories)', padding: '10px 14px',
+          backgroundColor: 'oklch(0.94 0.02 30)',
+          borderRadius: '10px',
+        }}>
+          {saveError}
+        </p>
+      )}
+
       {/* Master toggle */}
       <div className="fade-up fade-up-1" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -166,7 +215,12 @@ export default function CoachingPage() {
             Receive coaching via Telegram messages
           </p>
         </div>
-        <Toggle enabled={masterEnabled} onChange={handleMasterToggle} />
+        <Toggle
+          enabled={masterEnabled}
+          onChange={handleMasterToggle}
+          disabled={busy}
+          label="Enable AI Coaching"
+        />
       </div>
 
       {/* Feature groups */}
@@ -210,7 +264,8 @@ export default function CoachingPage() {
                 <Toggle
                   enabled={prefs[f.key]}
                   onChange={() => handleFeatureToggle(f.key)}
-                  disabled={!masterEnabled}
+                  disabled={!masterEnabled || busy}
+                  label={f.title}
                 />
               </div>
             ))}

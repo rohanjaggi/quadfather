@@ -11,6 +11,8 @@ import MealSuggestions from '@/components/food/MealSuggestions'
 import SavedFoodCard from '@/components/food/SavedFoodCard'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { useUser } from '@/context/UserContext'
+import { toast, errorMessage } from '@/components/ui/Toast'
+import { formatInt } from '@/lib/format'
 import type { SavedFood } from '@/types/api'
 
 type Mode = null | 'scan' | 'manual' | 'text'
@@ -30,8 +32,16 @@ export default function FoodPage() {
     setMode(prev => prev === next ? null : next)
   }
 
+  // Rejections propagate on purpose: SavedFoodCard owns the per-card pending
+  // guard and surfaces the failure once its own request settles.
   async function handleQuickAdd(food: SavedFood) {
-    await logFood({
+    // `saved_food_id` links the log back to the favourite it came from, which
+    // is what the heart on each meal row reads — without it the row falls back
+    // to matching on the food name, so a rename or a duplicate name gets it
+    // wrong. `POST /api/foods` accepts and stores the field; it just isn't on
+    // `FoodLogCreate` yet, hence the separate object (an inline literal would
+    // trip the excess-property check).
+    const payload = {
       food_name: food.name,
       calories: food.calories,
       protein: food.protein,
@@ -39,7 +49,21 @@ export default function FoodPage() {
       fats: food.fats,
       fiber: food.fiber,
       source: food.source,
-    })
+      saved_food_id: food.id,
+    }
+    await logFood(payload)
+  }
+
+  // Shows the failure, then RETHROWS: `SwipeToDelete` awaits `onDelete` and
+  // restores the row when it rejects. Swallowing the error here would leave a
+  // meal that still exists hidden until the next refresh.
+  async function handleDeleteMeal(id: number) {
+    try {
+      await deleteFood(id)
+    } catch (err) {
+      toast(errorMessage(err, 'Could not delete that meal'))
+      throw err
+    }
   }
 
   const caloriesData = summary?.macros.calories
@@ -207,16 +231,15 @@ export default function FoodPage() {
                     color: 'var(--tg-theme-text-color)',
                     lineHeight: 1,
                   }}>
-                    {Math.round(caloriesData.total)}
+                    {formatInt(caloriesData.total)}
                   </span>
                   <span style={{
                     fontFamily: 'var(--font-display)',
                     fontSize: '12px',
                     color: 'var(--tg-theme-hint-color)',
-                    opacity: 0.75,
                     alignSelf: 'flex-end',
                   }}>
-                    / {caloriesData.goal} kcal
+                    / {formatInt(caloriesData.goal)} kcal
                   </span>
                 </div>
                 <div style={{
@@ -255,7 +278,7 @@ export default function FoodPage() {
                     fontWeight: 500,
                     color: 'var(--tg-theme-text-color)',
                   }}>
-                    {Math.round(m.value)}<span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--tg-theme-hint-color)', opacity: 0.75 }}> / {m.goal}g</span>
+                    {formatInt(m.value)}<span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--tg-theme-hint-color)' }}> / {formatInt(m.goal)}g</span>
                   </span>
                 </div>
                 <div style={{
@@ -345,7 +368,7 @@ export default function FoodPage() {
             ) : (
               <SwipeDeleteProvider>
                 {foodLogs.map((log, i) => (
-                  <SwipeToDelete key={log.id} id={`meal-${log.id}`} onDelete={() => deleteFood(log.id)}>
+                  <SwipeToDelete key={log.id} id={`meal-${log.id}`} onDelete={() => handleDeleteMeal(log.id)}>
                     <MealCard
                       name={log.food_name}
                       calories={Math.round(log.calories)}

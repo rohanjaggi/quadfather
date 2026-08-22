@@ -1,28 +1,28 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getTemplates, deleteTemplate } from '@/lib/api'
+import { deleteTemplate } from '@/lib/api'
 import type { WorkoutTemplate } from '@/types/workouts'
 import SwipeToDelete, { SwipeDeleteProvider } from '@/components/SwipeToDelete'
+import { toast, errorMessage } from '@/components/ui/Toast'
 
 interface TemplateListProps {
   onCreateNew: () => void
+  /** Owned by the page so the list and the selector share one fetch. */
+  templates: WorkoutTemplate[]
+  loading: boolean
+  onDeleted: (id: number) => void
 }
 
-export default function TemplateList({ onCreateNew }: TemplateListProps) {
-  const [templates, setTemplates] = useState<WorkoutTemplate[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    getTemplates()
-      .then(setTemplates)
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
-
+export default function TemplateList({ onCreateNew, templates, loading, onDeleted }: TemplateListProps) {
+  // Rethrow after toasting so SwipeToDelete restores the row it hid.
   async function handleDelete(id: number) {
-    await deleteTemplate(id)
-    setTemplates(prev => prev.filter(t => t.id !== id))
+    try {
+      await deleteTemplate(id)
+    } catch (err) {
+      toast(errorMessage(err, 'Could not delete this template'), { type: 'error' })
+      throw err
+    }
+    onDeleted(id)
   }
 
   if (loading) return null

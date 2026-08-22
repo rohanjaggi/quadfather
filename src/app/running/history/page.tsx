@@ -1,16 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { getRunHistory } from '@/lib/api'
+import { formatPace } from '@/lib/format'
 import type { RunLog } from '@/types/running'
-
-function formatPace(pace: number | undefined | null): string {
-  if (!pace) return '--:--'
-  const mins = Math.floor(pace)
-  const secs = Math.round((pace - mins) * 60)
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -19,12 +13,17 @@ function formatDuration(seconds: number): string {
   return `${m}min`
 }
 
+/** Monday-start week containing `date`. `getDay()` is Sunday-based, so `-getDay()+1` lands on *next* Monday on Sundays. */
+function startOfWeek(date: Date): Date {
+  const start = new Date(date)
+  start.setHours(0, 0, 0, 0)
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7))
+  return start
+}
+
 function getWeekLabel(dateStr: string): string {
   const d = new Date(dateStr)
-  const now = new Date()
-  const startOfThisWeek = new Date(now)
-  startOfThisWeek.setDate(now.getDate() - now.getDay() + 1)
-  startOfThisWeek.setHours(0, 0, 0, 0)
+  const startOfThisWeek = startOfWeek(new Date())
 
   const startOfLastWeek = new Date(startOfThisWeek)
   startOfLastWeek.setDate(startOfLastWeek.getDate() - 7)
@@ -32,9 +31,7 @@ function getWeekLabel(dateStr: string): string {
   if (d >= startOfThisWeek) return 'This Week'
   if (d >= startOfLastWeek) return 'Last Week'
 
-  const weekStart = new Date(d)
-  weekStart.setDate(d.getDate() - d.getDay() + 1)
-  return weekStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' week'
+  return startOfWeek(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' week'
 }
 
 function formatRunDate(dateStr: string): string {
@@ -61,10 +58,17 @@ export default function RunHistoryPage() {
   const [runs, setRuns] = useState<RunLog[]>([])
   const [loading, setLoading] = useState(true)
   const [days, setDays] = useState(30)
+  // Tapping 30/60/90 quickly can land responses out of order — only the newest
+  // request is allowed to write.
+  const requestIdRef = useRef(0)
 
   useEffect(() => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
-    getRunHistory(days).then(setRuns).catch(() => setRuns([])).finally(() => setLoading(false))
+    getRunHistory(days)
+      .then(data => { if (requestIdRef.current === requestId) setRuns(data) })
+      .catch(() => { if (requestIdRef.current === requestId) setRuns([]) })
+      .finally(() => { if (requestIdRef.current === requestId) setLoading(false) })
   }, [days])
 
   const weeks: WeekGroup[] = []
@@ -183,7 +187,7 @@ export default function RunHistoryPage() {
                     fontFamily: 'var(--font-display)', fontSize: '11px',
                     color: 'var(--tg-theme-hint-color)',
                   }}>
-                    {formatRunDate(run.run_date)} · {formatPace(run.pace_per_km)} /km · {formatDuration(run.duration_seconds)}
+                    {formatRunDate(run.run_date)} · {formatPace(run.pace_per_km, 'min')} /km · {formatDuration(run.duration_seconds)}
                   </p>
                 </div>
                 <p style={{

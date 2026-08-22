@@ -11,6 +11,7 @@ import {
   type FitnessGoal,
 } from '@/lib/tdee'
 import { ACTIVITY_BASELINE_LABELS } from '@/lib/steps'
+import { errorMessage } from '@/lib/errors'
 
 const SEX_OPTIONS: { value: Sex; label: string }[] = [
   { value: 'male', label: 'Male' },
@@ -55,6 +56,7 @@ export default function PersonalPage() {
   const { user, updatePersonal } = useUser()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const [sex, setSex] = useState<Sex>('male')
   const [weight, setWeight] = useState('')
@@ -90,6 +92,7 @@ export default function PersonalPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setSaving(true)
+    setSaveError(null)
     try {
       await updatePersonal({
         sex,
@@ -102,6 +105,8 @@ export default function PersonalPage() {
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      setSaveError(errorMessage(err, 'Failed to save personal info'))
     } finally {
       setSaving(false)
     }
@@ -337,7 +342,17 @@ export default function PersonalPage() {
         </div>
 
         {/* Save */}
-        <div className="fade-up fade-up-5">
+        <div className="fade-up fade-up-5" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {saveError && (
+            <p style={{
+              fontFamily: 'var(--font-display)', fontSize: '12px',
+              color: 'var(--accent-calories)', padding: '10px 14px',
+              backgroundColor: 'oklch(0.94 0.02 30)',
+              borderRadius: '10px',
+            }}>
+              {saveError}
+            </p>
+          )}
           <button
             type="submit"
             disabled={saving}

@@ -1,32 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getAuthenticatedUser, getUserAICredentials } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { getUserAICredentials } from '@/lib/auth'
 import { parseWorkoutText } from '@/lib/ai'
+import { withUser, parseJsonBody, requireString } from '@/lib/api-handler'
 
-export async function POST(request: NextRequest) {
-  try {
-    const user = await getAuthenticatedUser(request)
-    const body = await request.json()
+export const POST = withUser(async (request, user) => {
+  const body = await parseJsonBody(request)
+  const text = requireString(body.text, 'text', { maxLength: 4000 })
 
-    const { text } = body
-    if (!text || typeof text !== 'string') {
-      return NextResponse.json(
-        { detail: 'text is required' },
-        { status: 422 },
-      )
-    }
+  const { provider, apiKey, model } = getUserAICredentials(user)
+  const result = await parseWorkoutText(provider, apiKey, model, text)
 
-    const { provider, apiKey, model } = getUserAICredentials(user)
-    const result = await parseWorkoutText(provider, apiKey, model, text)
-
-    return NextResponse.json(result)
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Internal error'
-    if (message.includes('initData') || message.includes('hash')) {
-      return NextResponse.json({ detail: message }, { status: 401 })
-    }
-    if (message.includes('No API key')) {
-      return NextResponse.json({ detail: message }, { status: 400 })
-    }
-    return NextResponse.json({ detail: message }, { status: 500 })
-  }
-}
+  return NextResponse.json(result)
+})

@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import MealCard from '@/components/food/MealCard'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { getFoodLogs } from '@/lib/api'
+import { useUser } from '@/context/UserContext'
 import type { FoodLog } from '@/types/api'
 
 function formatDate(date: Date): string {
@@ -25,6 +26,7 @@ function displayDate(date: Date): string {
 }
 
 export default function FoodHistoryPage() {
+  const { user } = useUser()
   const [date, setDate] = useState(() => {
     const d = new Date()
     d.setDate(d.getDate() - 1)
@@ -33,15 +35,19 @@ export default function FoodHistoryPage() {
   const [logs, setLogs] = useState<FoodLog[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Fast prev/next taps can land out of order — only the newest request writes.
+  const requestIdRef = useRef(0)
+
   const fetchLogs = useCallback(async (d: Date) => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     try {
       const data = await getFoodLogs(formatDate(d))
-      setLogs(data)
+      if (requestIdRef.current === requestId) setLogs(data)
     } catch {
-      setLogs([])
+      if (requestIdRef.current === requestId) setLogs([])
     } finally {
-      setLoading(false)
+      if (requestIdRef.current === requestId) setLoading(false)
     }
   }, [])
 
@@ -77,6 +83,10 @@ export default function FoodHistoryPage() {
   )
 
   const isToday = formatDate(date) === formatDate(new Date())
+
+  // The user's configured goals — these bars used to be scaled against
+  // hard-coded 2200 kcal / 150 / 250 / 70 g.
+  const goals = user?.goals
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -134,15 +144,20 @@ export default function FoodHistoryPage() {
           }}>
             {displayDate(date)}
           </span>
-          {displayDate(date) !== formatDate(date) && (
-            <span style={{
-              fontFamily: 'var(--font-display)', fontSize: '11px',
-              color: 'var(--tg-theme-hint-color)',
-              letterSpacing: '0.02em',
-            }}>
-              {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </span>
-          )}
+          {/*
+            Always shown: it is the only place the year appears, and the label
+            above it is either relative ("Today") or year-less ("Wed, 19 Aug").
+            It used to be guarded on `displayDate(date) !== formatDate(date)`,
+            comparing "Today" against "2026-08-19" — never equal, so the guard
+            was dead and this line rendered regardless.
+          */}
+          <span style={{
+            fontFamily: 'var(--font-display)', fontSize: '11px',
+            color: 'var(--tg-theme-hint-color)',
+            letterSpacing: '0.02em',
+          }}>
+            {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </span>
         </div>
 
         <button
@@ -192,7 +207,7 @@ export default function FoodHistoryPage() {
                 }}>
                   <div style={{
                     height: '100%', borderRadius: '99px',
-                    width: `${Math.min((totals.calories / 2200) * 100, 100)}%`,
+                    width: `${goals?.daily_calorie_goal ? Math.min((totals.calories / goals.daily_calorie_goal) * 100, 100) : 0}%`,
                     backgroundColor: 'var(--accent-calories)',
                     transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
                   }} />
@@ -201,9 +216,9 @@ export default function FoodHistoryPage() {
 
               {/* Macro breakdown */}
               {[
-                { label: 'Protein', value: Math.round(totals.protein), color: 'var(--accent-protein)' },
-                { label: 'Carbs', value: Math.round(totals.carbs), color: '#C4A55A' },
-                { label: 'Fats', value: Math.round(totals.fats), color: 'var(--tg-theme-hint-color)' },
+                { label: 'Protein', value: Math.round(totals.protein), goal: goals?.daily_protein_goal, color: 'var(--accent-protein)' },
+                { label: 'Carbs', value: Math.round(totals.carbs), goal: goals?.daily_carbs_goal, color: '#C4A55A' },
+                { label: 'Fats', value: Math.round(totals.fats), goal: goals?.daily_fats_goal, color: 'var(--tg-theme-hint-color)' },
               ].map(m => (
                 <div key={m.label}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
@@ -226,7 +241,7 @@ export default function FoodHistoryPage() {
                   }}>
                     <div style={{
                       height: '100%', borderRadius: '99px',
-                      width: `${Math.min((m.value / (m.label === 'Protein' ? 150 : m.label === 'Carbs' ? 250 : 70)) * 100, 100)}%`,
+                      width: `${m.goal ? Math.min((m.value / m.goal) * 100, 100) : 0}%`,
                       backgroundColor: m.color,
                       transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
                     }} />

@@ -1,26 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getTemplates } from '@/lib/api'
+import { useState } from 'react'
 import type { WorkoutTemplate, ExerciseSet } from '@/types/workouts'
 import WorkoutForm from './WorkoutForm'
 
 interface TemplateSelectorProps {
   onSave: (data: { name: string; exercises: { exercise_name: string; sets: ExerciseSet[]; order: number }[]; duration_minutes?: number; notes?: string; template_id?: number }) => Promise<void>
   onClose: () => void
+  /** Owned by the page so the list and the selector share one fetch. */
+  templates: WorkoutTemplate[]
+  loading: boolean
 }
 
-export default function TemplateSelector({ onSave, onClose }: TemplateSelectorProps) {
-  const [templates, setTemplates] = useState<WorkoutTemplate[]>([])
-  const [loading, setLoading] = useState(true)
+export default function TemplateSelector({ onSave, onClose, templates, loading }: TemplateSelectorProps) {
   const [selected, setSelected] = useState<WorkoutTemplate | null>(null)
-
-  useEffect(() => {
-    getTemplates()
-      .then(setTemplates)
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
 
   if (selected) {
     return (
@@ -28,9 +21,10 @@ export default function TemplateSelector({ onSave, onClose }: TemplateSelectorPr
         initialName={selected.name}
         initialExercises={selected.exercises.map(ex => ({
           exercise_name: ex.name,
+          // Prefill the template's own defaults instead of blank rows.
           sets: Array.from({ length: ex.defaultSets }, () => ({
-            reps: 0,
-            weight_kg: null,
+            reps: ex.defaultReps ?? 0,
+            weight_kg: ex.defaultWeightKg ?? null,
           })),
         }))}
         templateId={selected.id}

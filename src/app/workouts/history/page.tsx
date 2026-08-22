@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import MuscleMap from '@/components/workouts/MuscleMap'
 import { getWorkoutsByDate } from '@/lib/api'
 import { calculateMuscleIntensities } from '@/lib/muscle-intensity'
 import { useUser } from '@/context/UserContext'
+import type { MuscleZone } from '@/lib/muscle-zones'
 import type { WorkoutLog } from '@/types/workouts'
 
 function formatDate(date: Date): string {
@@ -36,15 +37,19 @@ export default function WorkoutHistoryPage() {
   const [workouts, setWorkouts] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Fast prev/next taps can land out of order — only the newest request writes.
+  const requestIdRef = useRef(0)
+
   const fetchWorkouts = useCallback(async (d: Date) => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     try {
       const data = await getWorkoutsByDate(formatDate(d))
-      setWorkouts(data)
+      if (requestIdRef.current === requestId) setWorkouts(data)
     } catch {
-      setWorkouts([])
+      if (requestIdRef.current === requestId) setWorkouts([])
     } finally {
-      setLoading(false)
+      if (requestIdRef.current === requestId) setLoading(false)
     }
   }, [])
 
@@ -74,10 +79,23 @@ export default function WorkoutHistoryPage() {
   const totalCalories = workouts.reduce((sum, w) => sum + (w.calories_burned ?? 0), 0)
   const totalDuration = workouts.reduce((sum, w) => sum + (w.duration_minutes ?? 0), 0)
 
-  const muscleIntensities = useMemo(() => {
+  // The exercise→muscle table is code-split, so intensities resolve in an
+  // effect rather than during render.
+  const [muscleIntensities, setMuscleIntensities] = useState<Record<MuscleZone, number>>(
+    {} as Record<MuscleZone, number>,
+  )
+
+  useEffect(() => {
+    let cancelled = false
     const allExercises = workouts.flatMap(w => w.exercises)
-    if (allExercises.length === 0) return {}
-    return calculateMuscleIntensities(allExercises)
+    if (allExercises.length === 0) {
+      setMuscleIntensities({} as Record<MuscleZone, number>)
+      return
+    }
+    calculateMuscleIntensities(allExercises)
+      .then(result => { if (!cancelled) setMuscleIntensities(result) })
+      .catch(err => console.error('Failed to compute muscle intensities:', err))
+    return () => { cancelled = true }
   }, [workouts])
 
   const isToday = formatDate(date) === formatDate(new Date())
@@ -138,15 +156,20 @@ export default function WorkoutHistoryPage() {
           }}>
             {displayDate(date)}
           </span>
-          {displayDate(date) !== formatDate(date) && (
-            <span style={{
-              fontFamily: 'var(--font-display)', fontSize: '11px',
-              color: 'var(--tg-theme-hint-color)',
-              letterSpacing: '0.02em',
-            }}>
-              {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </span>
-          )}
+          {/*
+            Always shown: it is the only place the year appears, and the label
+            above it is either relative ("Today") or year-less ("Wed, 19 Aug").
+            It used to be guarded on `displayDate(date) !== formatDate(date)`,
+            comparing "Today" against "2026-08-19" — never equal, so the guard
+            was dead and this line rendered regardless.
+          */}
+          <span style={{
+            fontFamily: 'var(--font-display)', fontSize: '11px',
+            color: 'var(--tg-theme-hint-color)',
+            letterSpacing: '0.02em',
+          }}>
+            {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </span>
         </div>
 
         <button
@@ -274,7 +297,7 @@ export default function WorkoutHistoryPage() {
                     }}>
                       {w.name}
                     </p>
-                    {w.duration_minutes && (
+                    {w.duration_minutes != null && (
                       <span style={{
                         fontFamily: 'var(--font-display)', fontSize: '11px',
                         color: 'var(--tg-theme-hint-color)',

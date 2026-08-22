@@ -33,7 +33,7 @@ For each (user, exercise, session) prediction point:
 | `rolling_volume_28d` | Same, 28-day window |
 | `days_since_last_session` | Calendar days since last session containing this exercise |
 | `sessions_since_improvement` | From ProgressSnapshot — stall counter |
-| `estimated_1rm_current` | Best Brzycki 1RM from most recent session |
+| `estimated_1rm_current` | Best Epley 1RM (`weight × (1 + reps/30)`) from most recent session |
 | `estimated_1rm_delta_4w` | 1RM now minus 1RM 4 weeks ago |
 | `avg_reps_last_3` | Mean reps across last 3 sessions for this exercise |
 | `avg_weight_last_3` | Mean working weight across last 3 sessions |
@@ -186,7 +186,9 @@ The `{history}` block is formatted as:
 ### UI Changes
 
 **ExerciseSuggestion component** — updated:
-- Fetches from `/api/workouts/predict` instead of `/api/workouts/progress`
+- Fetches from `/api/workouts/predict`. (This replaced an earlier
+  `/api/workouts/progress` route, which no longer exists — nothing should call
+  it.)
 - Displays the AI's prediction as a text hint (same visual style as today):
   - Line 1: "Last: 4×8 @ 80kg (Mar 10)" (unchanged)
   - Line 2: "↑ Try 4×8 @ 82.5kg" (predicted sets summarized)
@@ -230,5 +232,10 @@ After each workout is logged, compare:
 - Predicted weight vs actual weight (per set)
 - Predicted reps vs actual reps (per set)
 - Store as a new field on `ExerciseLog`: `predicted_sets` (JSON, nullable)
+
+> **Not implemented.** There is no `predicted_sets` column on `ExerciseLog` and
+> nothing writes one, so no backtest dataset is being collected yet. Adding the
+> column and persisting the prediction alongside the logged sets is still a
+> prerequisite for everything in this section.
 
 This creates the training dataset for the future ML model. Every prediction the AI makes becomes a labeled example once the user logs their actual numbers.

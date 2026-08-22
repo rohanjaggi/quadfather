@@ -1,8 +1,32 @@
+/**
+ * Every AI-coaching toggle the app knows about — the single source of truth for
+ * both the settings screen and `User.ai_coaching_prefs`.
+ *
+ * Always consumed as `Partial<CoachingPrefs>`: the column is free-form JSON, so
+ * a row written before a key existed simply won't have it. Read a missing key
+ * as "on" (`!== false`) or merge over a full defaults object; never assume the
+ * stored object is complete.
+ */
+export interface CoachingPrefs {
+  daily_coach: boolean
+  weekly_insights: boolean
+  nudge_inactivity: boolean
+  nudge_recovery: boolean
+  nudge_nutrition_gap: boolean
+  nudge_steps: boolean
+  nudge_consistency: boolean
+  pre_workout_suggestions: boolean
+  workout_analysis: boolean
+  weekly_exercise_digest: boolean
+}
+
 export interface User {
   id: number
   telegram_id: number
-  username?: string
-  first_name?: string
+  /** `null` (not absent) when the Telegram account has no @username. */
+  username?: string | null
+  /** `null` (not absent) when `initData` carried no first name. */
+  first_name?: string | null
   goals: {
     daily_calorie_goal: number
     daily_protein_goal: number
@@ -13,20 +37,17 @@ export interface User {
     daily_step_goal: number
   }
   water_bottle_size: number
-  ai_provider?: string
-  ai_model?: string
+  ai_provider?: string | null
+  ai_model?: string | null
   has_api_key: boolean
   dietary_restrictions?: string[]
   ai_features_enabled: boolean
-  ai_coaching_prefs?: {
-    daily_coach: boolean
-    weekly_insights: boolean
-    nudge_inactivity: boolean
-    nudge_recovery: boolean
-    nudge_nutrition_gap: boolean
-    nudge_steps: boolean
-    nudge_consistency: boolean
-  }
+  ai_coaching_prefs?: Partial<CoachingPrefs>
+  /**
+   * `'strength' | 'hypertrophy'`, or `null` for "general" — kept as a plain
+   * string because the route validates the enum and the column is free-form.
+   */
+  training_focus?: string | null
   personal?: {
     sex: string
     weight_kg: number
@@ -36,6 +57,8 @@ export interface User {
     fitness_goal: string
   }
   strava_connected: boolean
+  /** False when connected but the granted Strava scope lacks activity read. */
+  strava_scope_ok: boolean
   strava_last_synced_at: string | null
 }
 
@@ -96,6 +119,7 @@ export interface FoodLogCreate {
   fiber?: number
   servings?: number
   source?: string
+  saved_food_id?: number
 }
 
 export interface WaterLogCreate {
@@ -123,6 +147,41 @@ export interface GoalsUpdate {
   daily_water_goal?: number
   daily_step_goal?: number
   water_bottle_size?: number
+}
+
+/**
+ * What `PUT /users/me/goals` actually sends back — notably *not* a `User`.
+ * `personal` is omitted entirely until a sex has been recorded, and every
+ * dimension inside it is nullable.
+ *
+ * No caller reads this today (they all re-fetch the user instead); it exists so
+ * the three wrappers hitting this one route can't drift back into claiming
+ * three different, wrong shapes.
+ */
+export interface GoalsUpdateResult {
+  message: string
+  goals: {
+    daily_calorie_goal: number
+    daily_protein_goal: number
+    daily_carbs_goal: number
+    daily_fats_goal: number
+    daily_fiber_goal: number
+    daily_water_goal: number
+    daily_step_goal: number
+  }
+  personal?: {
+    sex: string
+    weight_kg: number | null
+    height_cm: number | null
+    age: number | null
+    activity_level: string | null
+    fitness_goal: string | null
+  }
+  water_bottle_size: number
+  dietary_restrictions: string[]
+  ai_features_enabled: boolean
+  ai_coaching_prefs?: Partial<CoachingPrefs>
+  training_focus: string | null
 }
 
 export interface PersonalUpdate {

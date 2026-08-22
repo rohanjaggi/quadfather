@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import BottleCounter from '@/components/water/BottleCounter'
 import Link from 'next/link'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { useUser } from '@/context/UserContext'
+import { toast, errorMessage } from '@/components/ui/Toast'
 
 function formatTime(isoString: string) {
   return new Date(isoString).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -15,22 +16,69 @@ export default function WaterPage() {
 
   const [customOpen, setCustomOpen] = useState(false)
   const [customAmount, setCustomAmount] = useState('')
+  const [pending, setPending] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  // Ref, not state: a second tap in the same tick still sees the flag set, so
+  // one tap can never turn into two POSTs (and two full context refreshes).
+  const inFlight = useRef(false)
 
   const totalLiters = summary?.water.total ?? 0
   const goal = user?.goals.daily_water_goal ?? 3
   const bottleSize = user?.water_bottle_size ?? 0.5
-  const currentBottles = Math.round(totalLiters / bottleSize)
-  const totalBottles = Math.ceil(goal / bottleSize)
+  // Whole bottles are only used for the dot row — the litre total is the truth.
+  // The epsilon keeps binary float error from eating a dot (1.8 / 0.6 = 2.9999…).
+  const currentBottles = bottleSize > 0 ? Math.floor(totalLiters / bottleSize + 1e-6) : 0
+
+  /** Runs one water mutation at a time, surfacing failures as a toast. */
+  async function guarded(action: () => Promise<void>, failMessage: string) {
+    if (inFlight.current) return
+    inFlight.current = true
+    try {
+      await action()
+    } catch (err) {
+      toast(errorMessage(err, failMessage))
+    } finally {
+      inFlight.current = false
+    }
+  }
 
   async function handleAdd() {
-    await logWater({ bottles: 1 })
+    if (inFlight.current) return
+    setPending(true)
+    await guarded(() => logWater({ bottles: 1 }), 'Could not log water')
+    setPending(false)
   }
 
   async function handleRemove() {
-    if (waterLogs.length > 0) {
-      await deleteWater(waterLogs[0].id)
-    }
+    if (inFlight.current || waterLogs.length === 0) return
+    setPending(true)
+    await guarded(() => deleteWater(waterLogs[0].id), 'Could not remove that log')
+    setPending(false)
   }
+
+  async function handleCustomAdd() {
+    const ml = parseFloat(customAmount)
+    if (inFlight.current || !(ml > 0)) return
+    setPending(true)
+    await guarded(async () => {
+      await logWater({ amount_liters: ml / 1000 })
+      setCustomAmount('')
+      setCustomOpen(false)
+    }, 'Could not log water')
+    setPending(false)
+  }
+
+  async function handleDelete(id: number) {
+    if (inFlight.current) return
+    setDeletingId(id)
+    await guarded(() => deleteWater(id), 'Could not remove that log')
+    setDeletingId(null)
+  }
+
+  // A tap during a timeline delete is swallowed by the in-flight guard, so grey
+  // the button out rather than letting it look tappable and do nothing.
+  const customAddBlocked =
+    pending || deletingId !== null || !customAmount || parseFloat(customAmount) <= 0
 
   // Build running totals for the timeline
   const logsAsc = [...waterLogs].reverse()
@@ -85,11 +133,14 @@ export default function WaterPage() {
       <div className="fade-up fade-up-1">
         <SummaryCard title="Today's Hydration">
           <BottleCounter
-            count={currentBottles}
+            liters={totalLiters}
+            bottles={currentBottles}
             goal={goal}
             bottleSize={bottleSize}
             onAdd={handleAdd}
             onRemove={handleRemove}
+            pending={pending}
+            disabled={deletingId !== null}
           />
         </SummaryCard>
       </div>
@@ -140,9 +191,14 @@ export default function WaterPage() {
               <button
                 type="button"
                 onClick={() => { setCustomOpen(false); setCustomAmount('') }}
+                aria-label="Close custom amount"
                 style={{
-                  background: 'none', border: 'none', padding: '4px',
-                  cursor: 'pointer', opacity: 0.4,
+                  background: 'none', border: 'none', padding: '5px',
+                  // 14px icon + 4px padding was a 22×22 target; 24×24 is the
+                  // floor for a thumb on a phone.
+                  minWidth: 24, minHeight: 24,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', opacity: 0.6,
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -187,21 +243,14 @@ export default function WaterPage() {
             <button
               type="button"
               className="btn-primary"
-              disabled={!customAmount || parseFloat(customAmount) <= 0}
-              onClick={async () => {
-                const ml = parseFloat(customAmount)
-                if (ml > 0) {
-                  await logWater({ amount_liters: ml / 1000 })
-                  setCustomAmount('')
-                  setCustomOpen(false)
-                }
-              }}
+              disabled={customAddBlocked}
+              onClick={handleCustomAdd}
               style={{
                 backgroundColor: 'var(--accent-water)',
-                opacity: (!customAmount || parseFloat(customAmount) <= 0) ? 0.4 : 1,
+                opacity: customAddBlocked ? 0.4 : 1,
               }}
             >
-              Add {customAmount ? `${customAmount}ml` : 'water'}
+              {pending ? 'Saving…' : `Add ${customAmount ? `${customAmount}ml` : 'water'}`}
             </button>
           </div>
         )}
@@ -303,15 +352,26 @@ export default function WaterPage() {
                       {running.toFixed(1)}L
                     </span>
 
-                    {/* Delete */}
+                    {/* Delete — the 13px glyph is centred in a 36px box so the
+                        touch target clears the 36–44px minimum without the row
+                        growing: the extra size comes from negative margin, not
+                        from layout. */}
                     <button
-                      onClick={() => deleteWater(log.id)}
+                      onClick={() => handleDelete(log.id)}
+                      disabled={pending || deletingId !== null}
+                      aria-label={`Remove ${log.amount_liters.toFixed(2)} litre entry logged at ${formatTime(log.logged_at)}`}
                       style={{
                         background: 'none',
                         border: 'none',
-                        padding: '2px',
-                        cursor: 'pointer',
-                        opacity: 0.3,
+                        padding: 0,
+                        width: '36px',
+                        height: '36px',
+                        margin: '-11px -10px -11px 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: (pending || deletingId !== null) ? 'not-allowed' : 'pointer',
+                        opacity: deletingId === log.id ? 0.15 : 0.55,
                         flexShrink: 0,
                       }}
                     >

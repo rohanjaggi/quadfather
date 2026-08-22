@@ -1,6 +1,7 @@
 import type { WorkoutLog } from '@/types/workouts'
 import { EXERCISE_MUSCLES } from './exercise-muscles'
 import { muscleToZone, type MuscleZone } from './muscle-zones'
+import { setsVolume } from './volume'
 
 export interface BalanceRatio {
   label: string
@@ -37,7 +38,7 @@ export function calculateMuscleBalance(workouts: WorkoutLog[]): BalanceRatio[] {
       const data = EXERCISE_MUSCLES[key]
       if (!data) continue
 
-      const setVol = ex.sets.reduce((sum, s) => sum + s.reps * (s.weight_kg ?? 1), 0)
+      const setVol = setsVolume(ex.sets)
 
       for (const muscle of data.primary) {
         const zone = muscleToZone(muscle)

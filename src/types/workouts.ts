@@ -37,7 +37,11 @@ export interface WorkoutLog {
   duration_minutes: number | null
   calories_burned: number | null
   notes: string | null
-  source: 'manual' | 'ai_parse'
+  /**
+   * Rows also carry `'strava'` and `'shortcut'` (and whatever a future importer
+   * writes), so this is not the two-value union the form produces.
+   */
+  source: string
   exercises: ExerciseLogEntry[]
   workout_date: string
   logged_at: string
@@ -77,9 +81,4 @@ export interface StepLog {
 export interface StepLogCreate {
   steps: number
   date?: string
-}
-
-export interface WorkoutSuggestion {
-  suggestion: string
-  template_id?: number
 }

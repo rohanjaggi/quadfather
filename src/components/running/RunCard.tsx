@@ -1,12 +1,17 @@
 'use client'
 
 import type { RunLog } from '@/types/running'
+import { formatPace } from '@/lib/format'
 
-function formatPace(pacePerKm: number | undefined | null): string {
-  if (!pacePerKm) return '--:--'
-  const mins = Math.floor(pacePerKm)
-  const secs = Math.round((pacePerKm - mins) * 60)
-  return `${mins}:${secs.toString().padStart(2, '0')}`
+/**
+ * Synced activities must not be badged "Manual". `source` is the primary
+ * signal; the activity id is checked too so runs imported before `source` was
+ * being set are still recognised.
+ */
+function sourceLabel(run: RunLog): string {
+  if (run.source === 'strava' || run.strava_activity_id != null) return 'Strava'
+  if (run.source === 'ai_parsed') return 'AI'
+  return 'Manual'
 }
 
 function formatDuration(seconds: number): string {
@@ -57,7 +62,7 @@ export default function RunCard({ run, isLast }: RunCardProps) {
             textTransform: 'uppercase',
             letterSpacing: '0.04em',
           }}>
-            {run.source === 'ai_parsed' ? 'AI' : 'Manual'}
+            {sourceLabel(run)}
           </span>
         </div>
         <div style={{
@@ -67,9 +72,9 @@ export default function RunCard({ run, isLast }: RunCardProps) {
           fontSize: '12px',
           color: 'var(--tg-theme-hint-color)',
         }}>
-          <span>{formatPace(run.pace_per_km)} /km</span>
+          <span>{formatPace(run.pace_per_km, 'min')} /km</span>
           <span>{formatDuration(run.duration_seconds)}</span>
-          {run.average_heartrate && <span>{Math.round(run.average_heartrate)} bpm</span>}
+          {run.average_heartrate != null && <span>{Math.round(run.average_heartrate)} bpm</span>}
         </div>
       </div>
 

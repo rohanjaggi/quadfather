@@ -5,13 +5,37 @@ export interface DailyVolume {
   volume: number
 }
 
+/** The shape every volume helper needs from a logged set. */
+export interface VolumeSet {
+  reps: number
+  weight_kg: number | null
+}
+
+/**
+ * Volume (kg lifted) for a single set — the ONE definition used everywhere
+ * (progress snapshots, recap, volume trends, muscle balance).
+ *
+ * `reps × weight_kg` when the set carried external load, otherwise 0. A
+ * bodyweight set is deliberately 0 rather than `reps × 1`: "1 kg per rep" is
+ * neither honest nor useful, and 3×12 pull-ups showing as "36 kg" in Volume
+ * Trends was the bug this helper exists to kill. Counting bodyweight as load
+ * (reps × bodyweight × a per-exercise factor) is a future product item.
+ */
+export function setVolume(set: VolumeSet): number {
+  const weight = set.weight_kg ?? 0
+  return weight > 0 ? set.reps * weight : 0
+}
+
+/** Sum of `setVolume` over a list of sets. */
+export function setsVolume(sets: VolumeSet[]): number {
+  return sets.reduce((sum, s) => sum + setVolume(s), 0)
+}
+
 export function calculateTotalVolume(workouts: WorkoutLog[]): number {
   let total = 0
   for (const w of workouts) {
     for (const ex of w.exercises) {
-      for (const set of ex.sets) {
-        total += set.reps * (set.weight_kg ?? 1)
-      }
+      total += setsVolume(ex.sets)
     }
   }
   return Math.round(total)
@@ -24,9 +48,7 @@ export function aggregateVolumeByDay(workouts: WorkoutLog[], period: 7 | 30): Da
     const date = w.workout_date.split('T')[0]
     if (!buckets[date]) buckets[date] = 0
     for (const ex of w.exercises) {
-      for (const set of ex.sets) {
-        buckets[date] += set.reps * (set.weight_kg ?? 1)
-      }
+      buckets[date] += setsVolume(ex.sets)
     }
   }
 
@@ -60,9 +82,7 @@ export function aggregateVolumeByWeek(workouts: WorkoutLog[]): DailyVolume[] {
       const wDate = workout.workout_date.split('T')[0]
       if (wDate >= weekStartStr && wDate <= weekEndStr) {
         for (const ex of workout.exercises) {
-          for (const set of ex.sets) {
-            volume += set.reps * (set.weight_kg ?? 1)
-          }
+          volume += setsVolume(ex.sets)
         }
       }
     }

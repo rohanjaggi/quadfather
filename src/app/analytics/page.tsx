@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { getAnalytics, getRunningAnalytics, getAnalyticsInsights, getSteps, getWorkouts } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
@@ -13,31 +13,48 @@ import VolumeTrendsChart from '@/components/workouts/VolumeTrendsChart'
 import PersonalRecords from '@/components/workouts/PersonalRecords'
 import TrainingRecap from '@/components/workouts/TrainingRecap'
 import MuscleBalance from '@/components/workouts/MuscleBalance'
-
-const ACTIVITY_BASELINE_STEPS: Record<string, number> = {
-  sedentary: 3000,
-  lightly_active: 5000,
-  moderately_active: 7000,
-  very_active: 9000,
-  extra_active: 11000,
-}
+import { calculateStepAllowance } from '@/lib/steps'
+import { errorMessage } from '@/lib/errors'
 
 type Period = 7 | 30
 
+/**
+ * `days[].date` is a bare `YYYY-MM-DD`, which `new Date()` reads as UTC
+ * midnight — so anywhere west of UTC every bar was labelled with the previous
+ * day. Parse it as UTC and format it in UTC, which keeps the label identical to
+ * the string the server sent. (Same treatment as the step Day-of-Week panel
+ * further down this file.)
+ */
+function parseIsoDay(iso: string): Date | null {
+  const d = new Date(`${iso}T00:00:00Z`)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+/** `YYYY-MM-DD` in the viewer's own calendar. */
+function localIsoDay(d: Date): string {
+  return d.toLocaleDateString('en-CA')
+}
+
 function shortDate(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  const d = parseIsoDay(iso)
+  if (!d) return iso
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
 function dayLabel(iso: string) {
-  const d = new Date(iso)
+  const d = parseIsoDay(iso)
+  if (!d) return iso
+
+  // "Today"/"Yday" are about the viewer's calendar, so they compare date
+  // strings rather than instants — `toDateString()` on a UTC-midnight Date is
+  // the previous day for most of the world.
   const today = new Date()
+  if (iso === localIsoDay(today)) return 'Today'
   const yesterday = new Date(today)
   yesterday.setDate(today.getDate() - 1)
+  if (iso === localIsoDay(yesterday)) return 'Yday'
 
-  if (d.toDateString() === today.toDateString()) return 'Today'
-  if (d.toDateString() === yesterday.toDateString()) return 'Yday'
-  return d.toLocaleDateString('en-GB', { weekday: 'short' })
+  return d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })
 }
 
 interface BarChartProps {
@@ -197,48 +214,87 @@ export default function AnalyticsPage() {
   const [workoutLoading, setWorkoutLoading] = useState(false)
   const stepGoal = user?.goals.daily_step_goal ?? 10000
 
+  // Switching 7d/30d or tabs quickly can land responses out of order — each
+  // fetch keeps a request id and only the newest one is allowed to write.
+  const analyticsReqRef = useRef(0)
+  const runningReqRef = useRef(0)
+  const stepsReqRef = useRef(0)
+  const workoutReqRef = useRef(0)
+
   useEffect(() => {
+    const requestId = ++analyticsReqRef.current
     setLoading(true)
     getAnalytics(period)
-      .then(setData)
+      .then(result => { if (analyticsReqRef.current === requestId) setData(result) })
       .catch(console.error)
-      .finally(() => setLoading(false))
+      .finally(() => { if (analyticsReqRef.current === requestId) setLoading(false) })
   }, [period])
 
   useEffect(() => {
     if (domain === 'exercise' && exerciseSub === 'runs') {
+      const requestId = ++runningReqRef.current
       setRunningLoading(true)
       getRunningAnalytics(period)
-        .then(setRunningData)
+        .then(result => { if (runningReqRef.current === requestId) setRunningData(result) })
         .catch(console.error)
-        .finally(() => setRunningLoading(false))
+        .finally(() => { if (runningReqRef.current === requestId) setRunningLoading(false) })
     }
   }, [domain, exerciseSub, period])
 
   useEffect(() => {
     if (domain === 'exercise' && exerciseSub === 'steps') {
+      const requestId = ++stepsReqRef.current
       setStepsLoading(true)
       getSteps(period)
-        .then(data => setStepsData([...data].sort((a, b) => a.date.localeCompare(b.date))))
+        .then(data => {
+          if (stepsReqRef.current !== requestId) return
+          setStepsData([...data].sort((a, b) => a.date.localeCompare(b.date)))
+        })
         .catch(console.error)
-        .finally(() => setStepsLoading(false))
+        .finally(() => { if (stepsReqRef.current === requestId) setStepsLoading(false) })
     }
   }, [domain, exerciseSub, period])
 
   useEffect(() => {
     if (domain === 'exercise' && exerciseSub === 'workouts') {
+      const requestId = ++workoutReqRef.current
       setWorkoutLoading(true)
       getWorkouts(period)
-        .then(setWorkoutData)
+        .then(result => { if (workoutReqRef.current === requestId) setWorkoutData(result) })
         .catch(console.error)
-        .finally(() => setWorkoutLoading(false))
+        .finally(() => { if (workoutReqRef.current === requestId) setWorkoutLoading(false) })
     }
   }, [domain, exerciseSub, period])
 
-  const workoutIntensities = useMemo(() => {
-    if (workoutData.length === 0) return {}
-    return calculateMuscleIntensities(workoutData.flatMap(w => w.exercises))
+  // The exercise→muscle table is code-split, so intensities resolve in an
+  // effect rather than during render.
+  const [workoutIntensities, setWorkoutIntensities] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    if (workoutData.length === 0) {
+      setWorkoutIntensities({})
+      return
+    }
+    calculateMuscleIntensities(workoutData.flatMap(w => w.exercises))
+      .then(result => { if (!cancelled) setWorkoutIntensities(result) })
+      .catch(err => console.error('Failed to compute muscle intensities:', err))
+    return () => { cancelled = true }
   }, [workoutData])
+
+  /**
+   * The distance and calorie charts have no configurable target, so the
+   * highlight threshold is the user's own average on days they actually ran —
+   * previously a hard-coded 5 km / 500 kcal that meant nothing to anyone.
+   */
+  const runDayAverages = useMemo(() => {
+    const runDays = runningData?.days.filter(d => d.run_count > 0) ?? []
+    if (runDays.length === 0) return { distanceKm: 0, calories: 0 }
+    return {
+      distanceKm: runDays.reduce((s, d) => s + d.total_distance, 0) / runDays.length / 1000,
+      calories: runDays.reduce((s, d) => s + d.total_calories, 0) / runDays.length,
+    }
+  }, [runningData])
 
   const activeZoneCount = useMemo(() => {
     return Object.values(workoutIntensities).filter((v): v is number => typeof v === 'number' && v >= 0.2).length
@@ -271,19 +327,38 @@ export default function AnalyticsPage() {
   const [insight, setInsight] = useState<string | null>(null)
   const [insightLoading, setInsightLoading] = useState(false)
   const [insightError, setInsightError] = useState<string | null>(null)
+  // The API returns `insight: null` when there is nothing logged in the window.
+  const [insightEmpty, setInsightEmpty] = useState(false)
+  // Same guard as the other fetches: flipping 7d/30d mid-request must not let
+  // the older period's insight land on the newer one.
+  const insightReqRef = useRef(0)
 
   useEffect(() => {
+    // Bumping the id orphans anything still in flight for the old period.
+    insightReqRef.current++
     setInsight(null)
     setInsightError(null)
+    setInsightEmpty(false)
+    setInsightLoading(false)
   }, [period])
 
   function handleGetInsights() {
+    const requestId = ++insightReqRef.current
     setInsightLoading(true)
     setInsightError(null)
+    setInsightEmpty(false)
     getAnalyticsInsights(period)
-      .then(data => setInsight(data.insight))
-      .catch(err => setInsightError(err instanceof Error ? err.message : 'Failed to generate insights'))
-      .finally(() => setInsightLoading(false))
+      .then(data => {
+        if (insightReqRef.current !== requestId) return
+        const text = data.insight
+        setInsight(text ?? null)
+        setInsightEmpty(!text)
+      })
+      .catch(err => {
+        if (insightReqRef.current !== requestId) return
+        setInsightError(errorMessage(err, 'Failed to generate insights'))
+      })
+      .finally(() => { if (insightReqRef.current === requestId) setInsightLoading(false) })
   }
 
   return (
@@ -567,6 +642,15 @@ export default function AnalyticsPage() {
                     Analyzing your {period}-day data...
                   </p>
                 </div>
+              ) : insightEmpty ? (
+                <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                  <p style={{
+                    fontFamily: 'var(--font-display)', fontSize: '12px',
+                    color: 'var(--tg-theme-hint-color)',
+                  }}>
+                    Log a few days of meals to unlock weekly insights
+                  </p>
+                </div>
               ) : insightError ? (
                 <div style={{ textAlign: 'center', padding: '16px 0' }}>
                   <p style={{
@@ -754,7 +838,7 @@ export default function AnalyticsPage() {
                     <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
                     <StatRow label="Total Runs" value={`${runningData.totals.run_count}`} color="var(--accent-protein)" />
                     <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                    <StatRow label="Calories Burned" value={`${runningData.totals.calories}`} sub="kcal" color="var(--accent-calories)" />
+                    <StatRow label="Calories Burned" value={`${Math.round(runningData.totals.calories)}`} sub="kcal" color="var(--accent-calories)" />
                   </div>
                 </SummaryCard>
               </div>
@@ -771,7 +855,7 @@ export default function AnalyticsPage() {
                         protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
                       }))}
                       getValue={d => d.calories}
-                      goal={5}
+                      goal={runDayAverages.distanceKm}
                       color="var(--accent-protein)"
                       unit="km"
                       period={period}
@@ -796,7 +880,7 @@ export default function AnalyticsPage() {
                         protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
                       }))}
                       getValue={d => d.calories}
-                      goal={500}
+                      goal={runDayAverages.calories}
                       color="var(--accent-calories)"
                       unit="kcal"
                       period={period}
@@ -967,9 +1051,14 @@ export default function AnalyticsPage() {
                       label="Extra Calories Earned"
                       value={`${(() => {
                         const activityLevel = user?.personal?.activity_level ?? 'moderately_active'
-                        const baseline = ACTIVITY_BASELINE_STEPS[activityLevel] ?? 7000
-                        const weight = user?.personal?.weight_kg ?? 70
-                        const total = stepsData.reduce((sum, d) => sum + Math.max(0, d.steps - baseline) * 0.04 * weight, 0)
+                        const weight = user?.personal?.weight_kg ?? null
+                        // Same per-day allowance the dashboard/API credits (src/lib/steps.ts)
+                        const total = stepsData.reduce(
+                          (sum, d) => sum + calculateStepAllowance(d.steps, activityLevel, weight),
+                          0,
+                        )
+                        // Per-day allowances are fractional; without the round
+                        // this renders as "1,234.5678901".
                         return Math.round(total).toLocaleString()
                       })()}`}
                       sub="kcal"
@@ -1013,7 +1102,13 @@ export default function AnalyticsPage() {
                       const daySums: number[] = [0, 0, 0, 0, 0, 0, 0]
                       const dayCounts: number[] = [0, 0, 0, 0, 0, 0, 0]
                       stepsData.forEach(d => {
-                        const dow = new Date(d.date + 'T00:00:00').getDay()
+                        // `d.date` is already a full ISO timestamp — appending
+                        // 'T00:00:00' produced an Invalid Date and NaN buckets,
+                        // so this panel was always empty. Bucket by UTC day to
+                        // match how the rows are stored.
+                        const parsed = new Date(d.date.includes('T') ? d.date : `${d.date}T00:00:00Z`)
+                        if (Number.isNaN(parsed.getTime())) return
+                        const dow = parsed.getUTCDay()
                         daySums[dow] += d.steps
                         dayCounts[dow]++
                       })

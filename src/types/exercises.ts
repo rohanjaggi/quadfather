@@ -7,24 +7,9 @@ export interface Exercise {
   equipment: string | null
 }
 
-export interface ProgressData {
-  last_session: {
-    date: string
-    sets: { reps: number; weight_kg: number | null }[]
-  } | null
-  suggestion: {
-    type: 'increase_weight' | 'increase_reps' | 'increase_sets' | 'deload' | 'maintain'
-    value: string
-    reason: string
-  } | null
-  status: 'progressing' | 'stalled' | 'new'
-  stall_weeks: number
-  is_pr_territory: boolean
-}
-
 export interface PredictionData {
   prediction: {
-    sets: { reps: number; weight_kg: number }[]
+    sets: { reps: number; weight_kg: number | null }[]
     reasoning: string
   } | null
   confidence: 'high' | 'medium' | 'low'

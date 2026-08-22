@@ -4,20 +4,43 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { getSteps } from '@/lib/api'
 import type { StepLog } from '@/types/workouts'
+import { useUser } from '@/context/UserContext'
+
+/**
+ * Step rows are stored at UTC midnight, so the calendar day has to be read off
+ * the ISO string. Re-parsing into local time shifts every row back a day east
+ * of UTC (in SGT yesterday's row was labelled "Today").
+ */
+function utcDateKey(value: string): string {
+  const head = value.slice(0, 10)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(head)) return head
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10)
+}
+
+function shiftUtcDays(key: string, days: number): string {
+  const d = new Date(`${key}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const diff = Math.floor((today.getTime() - d.getTime()) / 86400000)
-  if (diff === 0) return 'Today'
-  if (diff === 1) return 'Yesterday'
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  const key = utcDateKey(dateStr)
+  if (!key) return '—'
+  const today = new Date().toISOString().slice(0, 10)
+  if (key === today) return 'Today'
+  if (key === shiftUtcDays(today, -1)) return 'Yesterday'
+  return new Date(`${key}T00:00:00Z`).toLocaleDateString('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
+  })
 }
 
 export default function StepsHistoryPage() {
+  const { user } = useUser()
   const [steps, setSteps] = useState<StepLog[]>([])
   const [loading, setLoading] = useState(true)
+
+  const stepGoal = user?.goals.daily_step_goal ?? 10000
 
   useEffect(() => {
     getSteps(30).then(data => {
@@ -26,11 +49,11 @@ export default function StepsHistoryPage() {
     }).catch(() => setLoading(false))
   }, [])
 
-  const maxSteps = Math.max(...steps.map(s => s.steps), 10000)
+  const maxSteps = Math.max(...steps.map(s => s.steps), stepGoal)
   const totalSteps = steps.reduce((sum, s) => sum + s.steps, 0)
   const avgSteps = steps.length > 0 ? Math.round(totalSteps / steps.length) : 0
   const bestDay = steps.length > 0 ? Math.max(...steps.map(s => s.steps)) : 0
-  const daysAboveGoal = steps.filter(s => s.steps >= 10000).length
+  const daysAboveGoal = steps.filter(s => s.steps >= stepGoal).length
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
@@ -142,7 +165,7 @@ export default function StepsHistoryPage() {
           }}>
             {steps.map((entry, i) => {
               const progress = entry.steps / maxSteps
-              const hitGoal = entry.steps >= 10000
+              const hitGoal = entry.steps >= stepGoal
               return (
                 <div
                   key={entry.id}

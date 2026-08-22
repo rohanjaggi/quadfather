@@ -4,7 +4,51 @@ import { useState, useEffect } from 'react'
 import { getExercisePrediction } from '@/lib/api'
 import type { PredictionData } from '@/types/exercises'
 
+/**
+ * Session cache of predictions, keyed by normalised exercise name.
+ *
+ * `/api/workouts/predict` is a paid LLM call, so a name is fetched at most once
+ * per page load. A successful "no prediction" answer (`null`) is cached — asking
+ * again would only buy the same answer. A *failed* request is deliberately not
+ * cached: one 500 or offline blip used to suppress that exercise's suggestion
+ * for the rest of the session with no way back short of a reload.
+ */
+const predictionCache = new Map<string, PredictionData | null>()
+
+/** Requests in flight, so two rows with the same exercise don't both pay. */
+const inFlight = new Map<string, Promise<PredictionData | null>>()
+
+function cacheKey(name: string) {
+  return name.trim().toLowerCase()
+}
+
+function fetchPrediction(name: string): Promise<PredictionData | null> {
+  const key = cacheKey(name)
+  const existing = inFlight.get(key)
+  if (existing) return existing
+
+  const request = getExercisePrediction(name.trim())
+    .then(data => {
+      predictionCache.set(key, data)
+      return data
+    })
+    .catch(err => {
+      // No cache write — leaving the key absent is what makes a retry possible.
+      console.error('Exercise prediction failed:', err)
+      return null
+    })
+    .finally(() => { inFlight.delete(key) })
+
+  inFlight.set(key, request)
+  return request
+}
+
 interface ExerciseSuggestionProps {
+  /**
+   * The *committed* exercise name — set on catalogue selection, on blur, or
+   * when the exercise row is focused. Deliberately not the live input value:
+   * typing must never trigger a prediction.
+   */
   exerciseName: string
   enabled?: boolean
 }
@@ -15,21 +59,31 @@ export default function ExerciseSuggestion({ exerciseName, enabled = true }: Exe
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    if (!enabled || !exerciseName || exerciseName.length < 3) {
+    const name = exerciseName.trim()
+    if (!enabled || name.length < 3) {
       setData(null)
+      setLoading(false)
       return
     }
 
-    let cancelled = false
-    setLoading(true)
-    const timeout = setTimeout(() => {
-      getExercisePrediction(exerciseName)
-        .then(d => { if (!cancelled) setData(d) })
-        .catch(() => { if (!cancelled) setData(null) })
-        .finally(() => { if (!cancelled) setLoading(false) })
-    }, 800)
+    const key = cacheKey(name)
+    if (predictionCache.has(key)) {
+      setData(predictionCache.get(key) ?? null)
+      setLoading(false)
+      return
+    }
 
-    return () => { cancelled = true; clearTimeout(timeout) }
+    // Gates the state update; a response that lands after the row moved on to
+    // another exercise is ignored rather than rendered.
+    const controller = new AbortController()
+    setLoading(true)
+    fetchPrediction(name).then(result => {
+      if (controller.signal.aborted) return
+      setData(result)
+      setLoading(false)
+    })
+
+    return () => controller.abort()
   }, [exerciseName, enabled])
 
   if (!enabled) return null
@@ -63,6 +117,7 @@ export default function ExerciseSuggestion({ exerciseName, enabled = true }: Exe
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
         style={{
           width: '100%',
           padding: '10px 12px',
@@ -119,7 +174,9 @@ export default function ExerciseSuggestion({ exerciseName, enabled = true }: Exe
                 fontWeight: 500,
                 color: 'var(--tg-theme-text-color)',
               }}>
-                {set.reps} reps × {set.weight_kg}kg
+                {set.weight_kg == null
+                  ? `${set.reps} reps (bodyweight)`
+                  : `${set.reps} reps × ${set.weight_kg}kg`}
               </span>
             </div>
           ))}

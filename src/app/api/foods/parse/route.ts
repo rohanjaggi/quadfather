@@ -1,33 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthenticatedUser, getUserAICredentials } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { getUserAICredentials } from "@/lib/auth";
 import { parseFood } from "@/lib/ai";
+import {
+  callAIProvider,
+  parseJsonBody,
+  requireString,
+  withUser,
+} from "@/lib/api-handler";
 
-export async function POST(request: NextRequest) {
-  try {
-    const user = await getAuthenticatedUser(request);
-    const { provider, apiKey, model } = getUserAICredentials(user);
+/** Bounds the prompt (and so the bill) — a meal description isn't an essay. */
+const MAX_TEXT = 2000;
 
-    const { text } = await request.json();
-    if (!text || typeof text !== "string") {
-      return NextResponse.json(
-        { detail: "text is required" },
-        { status: 422 },
-      );
-    }
+export const POST = withUser(async (request, user) => {
+  const { provider, apiKey, model } = getUserAICredentials(user);
 
-    const result = await parseFood(provider, apiKey, model, text);
-    return NextResponse.json(result);
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Internal error";
-    if (message === "User not found") {
-      return NextResponse.json({ detail: message }, { status: 404 });
-    }
-    if (message.includes("initData") || message.includes("hash")) {
-      return NextResponse.json({ detail: message }, { status: 401 });
-    }
-    if (message.includes("No API key")) {
-      return NextResponse.json({ detail: message }, { status: 403 });
-    }
-    return NextResponse.json({ detail: message }, { status: 422 });
-  }
-}
+  const body = await parseJsonBody(request);
+  const text = requireString(body.text, "text", { maxLength: MAX_TEXT });
+
+  const result = await callAIProvider("foods/parse", () =>
+    parseFood(provider, apiKey, model, text),
+  );
+  return NextResponse.json(result);
+});

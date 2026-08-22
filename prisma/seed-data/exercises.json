@@ -2840,13 +2840,13 @@
     "name": "Stir the Pot",
     "category": "Core",
     "primary_muscles": [
-      "transverse abdominis",
-      "abdominals"
-    ],
-    "secondary_muscles": [
+      "rectus abdominis",
       "obliques"
     ],
-    "equipment": "other"
+    "secondary_muscles": [
+      "transverse abdominis"
+    ],
+    "equipment": "stability ball"
   },
   {
     "name": "Landmine Rotation",
@@ -4529,18 +4529,6 @@
       "obliques"
     ],
     "equipment": "bodyweight"
-  },
-  {
-    "name": "Stir The Pot",
-    "category": "Core",
-    "primary_muscles": [
-      "rectus abdominis",
-      "obliques"
-    ],
-    "secondary_muscles": [
-      "transverse abdominis"
-    ],
-    "equipment": "stability ball"
   },
   {
     "name": "Hanging Windshield Wiper",

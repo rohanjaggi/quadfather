@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
 import { setApiKey, deleteApiKey } from '@/lib/api'
 import { PROVIDER_MODELS, DEFAULT_MODELS, type AIProvider } from '@/lib/models'
+import { errorMessage } from '@/lib/errors'
 
 const PROVIDERS: { value: AIProvider; label: string; shortLabel: string }[] = [
   { value: 'gemini', label: 'Google Gemini', shortLabel: 'Google' },
@@ -14,7 +15,7 @@ const PROVIDERS: { value: AIProvider; label: string; shortLabel: string }[] = [
 ]
 
 export default function ApiKeyPage() {
-  const { user, refresh } = useUser()
+  const { user, refreshUser } = useUser()
   const [keyProvider, setKeyProvider] = useState<AIProvider>('gemini')
   const [selectedModel, setSelectedModel] = useState('')
   const [customModel, setCustomModel] = useState('')
@@ -65,10 +66,10 @@ export default function ApiKeyPage() {
       })
       setKeyValue('')
       setKeyStatus('saved')
-      await refresh()
+      await refreshUser()
       setTimeout(() => setKeyStatus('idle'), 2000)
     } catch (err) {
-      setKeyError(err instanceof Error ? err.message : 'Failed to save key')
+      setKeyError(errorMessage(err, 'Failed to save key'))
       setKeyStatus('error')
     } finally {
       setKeySaving(false)
@@ -82,10 +83,10 @@ export default function ApiKeyPage() {
     try {
       await deleteApiKey()
       setKeyStatus('removed')
-      await refresh()
+      await refreshUser()
       setTimeout(() => setKeyStatus('idle'), 2000)
     } catch (err) {
-      setKeyError(err instanceof Error ? err.message : 'Failed to remove key')
+      setKeyError(errorMessage(err, 'Failed to remove key'))
       setKeyStatus('error')
     } finally {
       setKeySaving(false)

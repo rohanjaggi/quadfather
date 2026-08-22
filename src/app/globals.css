@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+/* DM Sans is loaded by the <link rel="stylesheet"> in `layout.tsx` (behind the
+   two preconnects there). Deliberately NOT an @import here: an @import at the
+   top of the entry stylesheet is render-blocking and only starts downloading
+   once this file has itself arrived, which serialises two round trips. */
 
 @tailwind base;
 @tailwind components;
@@ -9,7 +12,11 @@
   --tg-theme-bg-color: #F5F2EF;
   --tg-theme-secondary-bg-color: #EBE8E4;
   --tg-theme-text-color: #1A1614;
-  --tg-theme-hint-color: #8C827A;
+  /* Hint text runs at 10–12px all over the app, so it has to clear WCAG AA for
+     normal text: #6F655D on #F5F2EF is 5.1:1 (the old #8C827A was only 3.4:1,
+     and ~2.2:1 wherever an extra opacity was stacked on top of it — hence the
+     opacity stacking having been removed rather than just this being darkened). */
+  --tg-theme-hint-color: #6F655D;
   --tg-theme-link-color: #8C5B53;
   --tg-theme-button-color: #3D4F44;
   --tg-theme-button-text-color: #F5F2EF;
@@ -41,10 +48,18 @@ html {
 }
 
 body {
+  /* Intentional: the Mini App ships its own fixed palette rather than adopting
+     the Telegram client's theme, so these override the `--tg-theme-*` custom
+     properties Telegram writes onto <body> at runtime (which is why they need
+     `!important` — Telegram sets them inline, and an inline declaration beats
+     any stylesheet rule that isn't important). Keeping the app's own palette
+     means one set of verified contrast ratios instead of one per client theme.
+     `TelegramProvider` tells Telegram about it via `setHeaderColor` /
+     `setBackgroundColor` so the native chrome matches these values. */
   --tg-theme-bg-color: #F5F2EF !important;
   --tg-theme-secondary-bg-color: #EBE8E4 !important;
   --tg-theme-text-color: #1A1614 !important;
-  --tg-theme-hint-color: #8C827A !important;
+  --tg-theme-hint-color: #6F655D !important;
   --tg-theme-link-color: #8C5B53 !important;
   --tg-theme-button-color: #3D4F44 !important;
   --tg-theme-button-text-color: #F5F2EF !important;
@@ -68,9 +83,11 @@ button:active:not(:disabled) {
   transform: scale(0.96);
 }
 
+/* No extra opacity — the hint token is already the lightest value that clears
+   4.5:1 on the page background, so dimming it further would fail AA. */
 textarea::placeholder {
   color: var(--tg-theme-hint-color);
-  opacity: 0.7;
+  opacity: 1;
 }
 
 /* Entrance animations */
@@ -84,6 +101,8 @@ textarea::placeholder {
 .fade-up-2 { animation-delay: 0.14s; }
 .fade-up-3 { animation-delay: 0.21s; }
 .fade-up-4 { animation-delay: 0.28s; }
+.fade-up-5 { animation-delay: 0.35s; }
+.fade-up-6 { animation-delay: 0.42s; }
 
 /* ======= Component utility classes ======= */
 
@@ -218,7 +237,7 @@ textarea::placeholder {
 }
 .input-field::placeholder {
   color: var(--tg-theme-hint-color);
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .input-field-bordered {
@@ -235,7 +254,7 @@ textarea::placeholder {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 select.input-field-bordered {
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C827A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236F655D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
 }
@@ -279,13 +298,6 @@ select.input-field-bordered {
   overflow: hidden;
 }
 
-.section-open {
-  padding: 0;
-  border-bottom: 1px solid var(--surface-border);
-  padding-bottom: 20px;
-  margin-bottom: 4px;
-}
-
 @keyframes gradientShift {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
@@ -316,4 +328,65 @@ select.input-field-bordered {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* ======= Reduced motion =======
+   Four animations run in this app: `gradientShift` loops forever on the hero
+   text, `pulse` loops on the AI-suggestion skeletons, `spin` loops on every
+   pending button, and `fadeUp` plays on nearly every section that mounts.
+   For a user who has asked the OS for less motion the looping decorative ones
+   stop, and `fadeUp` collapses to an instant appearance with no travel.
+
+   Two of them (`spin`, `pulse`) are applied as *inline* `style={{ animation }}`
+   from components, which no class-based rule can reach — hence overriding them
+   by redefining the keyframes themselves (keyframes cascade by name, and the
+   last matching definition wins) and, for `spin`, one `!important` duration
+   (an important author declaration does outrank a non-important inline one).
+
+   `spin` is slowed rather than stopped on purpose: a frozen spinner reads as a
+   hung app, and rotation in place is not the across-the-viewport travel that
+   triggers vestibular discomfort. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .text-gradient-animate {
+    animation: none;
+    background-position: 0% 50%;
+  }
+
+  .fade-up {
+    animation-duration: 0.01s;
+  }
+  .fade-up-1, .fade-up-2, .fade-up-3,
+  .fade-up-4, .fade-up-5, .fade-up-6 {
+    animation-delay: 0s;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Skeletons hold a steady dim instead of breathing. */
+  @keyframes pulse {
+    0%, 50%, 100% { opacity: 0.3; }
+  }
+
+  [style*="spin"] {
+    animation-duration: 1.6s !important;
+  }
+
+  button,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-pill {
+    transition-duration: 0.01s;
+  }
+
+  button:active:not(:disabled) {
+    transform: none;
+  }
 }

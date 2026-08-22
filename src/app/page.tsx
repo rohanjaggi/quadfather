@@ -4,6 +4,7 @@ import GoalRing from '@/components/dashboard/GoalRing'
 import BudgetBreakdown from '@/components/dashboard/BudgetBreakdown'
 import LogActions from '@/components/dashboard/LogActions'
 import RecentActivity from '@/components/dashboard/RecentActivity'
+import { formatInt } from '@/lib/format'
 import { useUser } from '@/context/UserContext'
 
 function getGreeting() {
@@ -117,7 +118,7 @@ export default function DashboardPage() {
                   {m.label}
                 </span>
                 <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-                  {m.unit === 'L' ? m.value.toFixed(1) : Math.round(m.value)} <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--tg-theme-hint-color)', opacity: 0.75 }}>/ {m.unit === 'L' ? m.goal.toFixed(1) : m.goal}{m.unit}</span>
+                  {m.unit === 'L' ? m.value.toFixed(1) : formatInt(m.value)} <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--tg-theme-hint-color)' }}>/ {m.unit === 'L' ? m.goal.toFixed(1) : formatInt(m.goal)}{m.unit}</span>
                 </span>
               </div>
               <div style={{ height: '4px', borderRadius: '99px', backgroundColor: 'var(--tg-theme-bg-color)', overflow: 'hidden' }}>

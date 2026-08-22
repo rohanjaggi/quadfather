@@ -63,7 +63,10 @@ function ProfileIcon({ active }: { active: boolean }) {
 
 const tabs = [
   { href: '/',          label: 'Today',    Icon: HomeIcon,    match: ['/']           },
-  { href: '/food',      label: 'Nutrition', Icon: FoodIcon,   match: ['/food']       },
+  // `/water` belongs to Nutrition: it is only reachable from the Food page and
+  // its own back link returns there, so leaving it unmatched made the whole nav
+  // go inactive on that route.
+  { href: '/food',      label: 'Nutrition', Icon: FoodIcon,   match: ['/food', '/water'] },
   { href: '/workouts',  label: 'Exercise',  Icon: RunIcon,    match: ['/workouts', '/running'] },
   { href: '/analytics', label: 'Trends',    Icon: TrendsIcon, match: ['/analytics']  },
   { href: '/profile',   label: 'Settings',  Icon: ProfileIcon, match: ['/profile']   },
@@ -93,6 +96,9 @@ export default function BottomNav() {
           <Link
             key={href}
             href={href}
+            // The active tab is otherwise signalled only by colour and a dot,
+            // neither of which a screen reader announces.
+            aria-current={isActive ? 'page' : undefined}
             style={{
               flex: 1,
               display: 'flex',

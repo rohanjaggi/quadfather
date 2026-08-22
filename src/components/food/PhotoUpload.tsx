@@ -1,9 +1,17 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { analyseMeal } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
 import { useHaptic } from '@/components/TelegramProvider'
+import { errorMessage } from '@/components/ui/Toast'
+import { errorStatus } from '@/lib/errors'
+import {
+  ACCEPTED_IMAGE_TYPES,
+  ACCEPT_IMAGE_ATTR,
+  UNSUPPORTED_IMAGE_MESSAGE,
+  downscaleImage,
+} from '@/lib/image'
 import type { MealAnalysis } from '@/types/api'
 
 type Phase = 'idle' | 'analysing' | 'result' | 'logging' | 'saving'
@@ -22,11 +30,41 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
   const [edited, setEdited] = useState<Partial<MealAnalysis>>({})
   const [savedConfirm, setSavedConfirm] = useState(false)
 
+  // Every object URL created here is revoked when it is replaced and when the
+  // component unmounts — otherwise each retake leaks the whole decoded image
+  // for the lifetime of the document.
+  const previewUrl = useRef<string | null>(null)
+
+  function setPreviewFrom(f: File | null) {
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
+    previewUrl.current = f ? URL.createObjectURL(f) : null
+    setPreview(previewUrl.current)
+  }
+
+  useEffect(() => () => {
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
+    previewUrl.current = null
+  }, [])
+
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
+    // Reset the input so re-picking the same file after an error still fires
+    // `change` (the browser suppresses it when the value is unchanged).
+    e.target.value = ''
     if (!f) return
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(f.type)) {
+      setFile(null)
+      setPreviewFrom(null)
+      setError(UNSUPPORTED_IMAGE_MESSAGE)
+      setPhase('idle')
+      setResult(null)
+      setSavedConfirm(false)
+      return
+    }
+
     setFile(f)
-    setPreview(URL.createObjectURL(f))
+    setPreviewFrom(f)
     setPhase('idle')
     setResult(null)
     setError(null)
@@ -34,39 +72,51 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
   }
 
   async function handleAnalyse() {
-    if (!file) return
+    if (!file || phase === 'analysing') return
     setPhase('analysing')
     setError(null)
     try {
-      const data = await analyseMeal(file, description)
+      const data = await analyseMeal(await downscaleImage(file), description)
       setResult(data)
       setEdited({})
       setPhase('result')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed')
+      setError(errorMessage(err, 'Analysis failed'))
       setPhase('idle')
     }
   }
 
   async function handleLog() {
-    if (!result) return
+    if (!result || phase === 'logging' || phase === 'saving') return
     setPhase('logging')
+    setError(null)
     const merged = { ...result, ...edited }
-    await logFood({
-      food_name: merged.food_name ?? result.food_name,
-      calories: Number(merged.calories ?? result.calories),
-      protein: Number(merged.protein ?? result.protein),
-      carbohydrates: Number(merged.carbohydrates ?? result.carbohydrates),
-      fats: Number(merged.fats ?? result.fats),
-      fiber: Number(merged.fiber ?? result.fiber),
-      source: 'ai-photo',
-    })
-    haptic.notification('success')
-    onClose()
+    let logged = false
+    try {
+      await logFood({
+        food_name: merged.food_name ?? result.food_name,
+        calories: Number(merged.calories ?? result.calories),
+        protein: Number(merged.protein ?? result.protein),
+        carbohydrates: Number(merged.carbohydrates ?? result.carbohydrates),
+        fats: Number(merged.fats ?? result.fats),
+        fiber: Number(merged.fiber ?? result.fiber),
+        source: 'ai-photo',
+      })
+      logged = true
+    } catch (err) {
+      setError(errorMessage(err, 'Could not log this meal'))
+      haptic.notification('error')
+    } finally {
+      setPhase('result')
+    }
+    if (logged) {
+      haptic.notification('success')
+      onClose()
+    }
   }
 
   async function handleSaveFavourite() {
-    if (!result) return
+    if (!result || phase === 'saving' || phase === 'logging') return
     setPhase('saving')
     setError(null)
     const merged = { ...result, ...edited }
@@ -82,17 +132,31 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
         source: 'ai-photo',
       })
       setSavedConfirm(true)
-      setPhase('result')
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Could not save'
-      setError(msg.includes('409') ? 'A favourite with this name already exists' : msg)
+      // Match on the parsed HTTP status, not a substring: `raw.includes('409')`
+      // also fired on a perfectly ordinary body like `{"calories":409}`.
+      setError(errorStatus(err) === 409
+        ? 'A favourite with this name already exists'
+        : errorMessage(err, 'Could not save'))
+    } finally {
       setPhase('result')
     }
   }
 
+  /**
+   * Every edit to the parsed macros goes through here so the "✓ Saved"
+   * confirmation is retired: once the numbers on screen differ from the
+   * favourite that was written, the button has to become tappable again —
+   * otherwise it sat disabled on "✓ Saved" and the edit could never be saved.
+   */
+  function applyEdit(update: (prev: Partial<MealAnalysis>) => Partial<MealAnalysis>) {
+    setEdited(update)
+    setSavedConfirm(false)
+  }
+
   function reset() {
     setFile(null)
-    setPreview(null)
+    setPreviewFrom(null)
     setDescription('')
     setPhase('idle')
     setResult(null)
@@ -159,7 +223,7 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
           <input
             className="input-field"
             value={val('food_name')}
-            onChange={e => setEdited(d => ({ ...d, food_name: e.target.value }))}
+            onChange={e => applyEdit(d => ({ ...d, food_name: e.target.value }))}
           />
         </div>
 
@@ -179,7 +243,7 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
                 min="0"
                 step="0.1"
                 value={val(key)}
-                onChange={e => setEdited(d => ({ ...d, [key]: e.target.value }))}
+                onChange={e => applyEdit(d => ({ ...d, [key]: e.target.value }))}
               />
             </div>
           ))}
@@ -294,7 +358,7 @@ export default function PhotoUpload({ onClose }: { onClose: () => void }) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={ACCEPT_IMAGE_ATTR}
         className="hidden"
         onChange={handleFile}
         style={{ display: 'none' }}

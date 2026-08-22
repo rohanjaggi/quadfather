@@ -1,6 +1,7 @@
 'use client'
 
 import type { BudgetBreakdown as BudgetType } from '@/types/api'
+import { formatInt } from '@/lib/format'
 
 export default function BudgetBreakdown({ budget, consumed }: { budget: BudgetType; consumed: number }) {
   const hasExercise = budget.runs_credit > 0 || budget.workouts_credit > 0 || budget.steps_credit > 0
@@ -36,7 +37,7 @@ export default function BudgetBreakdown({ budget, consumed }: { budget: BudgetTy
             label="Running"
             value={budget.runs_credit}
             prefix="+"
-            hint={`${budget.runs_raw} raw`}
+            hint={`${formatInt(budget.runs_raw)} raw`}
             color="var(--accent-calories)"
           />
         )}
@@ -45,7 +46,7 @@ export default function BudgetBreakdown({ budget, consumed }: { budget: BudgetTy
             label="Workout"
             value={budget.workouts_credit}
             prefix="+"
-            hint={`${budget.workouts_raw} raw`}
+            hint={`${formatInt(budget.workouts_raw)} raw`}
             color="var(--accent)"
           />
         )}
@@ -81,7 +82,7 @@ export default function BudgetBreakdown({ budget, consumed }: { budget: BudgetTy
           color: remaining >= 0 ? 'var(--accent-protein)' : 'var(--accent-calories)',
           letterSpacing: '-0.02em',
         }}>
-          {remaining >= 0 ? '' : '−'}{Math.abs(Math.round(remaining))}
+          {remaining >= 0 ? '' : '−'}{formatInt(Math.abs(remaining))}
           <span style={{
             fontSize: '11px',
             fontWeight: 400,
@@ -132,13 +133,12 @@ function BudgetRow({
         alignItems: 'baseline',
         gap: '4px',
       }}>
-        {prefix}{Math.round(value)}
+        {prefix}{formatInt(value)}
         {hint && (
           <span style={{
             fontSize: '10px',
             fontWeight: 400,
             color: 'var(--tg-theme-hint-color)',
-            opacity: 0.7,
           }}>
             ({hint})
           </span>

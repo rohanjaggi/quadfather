@@ -3,10 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { generateWeeklyInsights } from "@/lib/ai";
 import type { AIProvider } from "@/lib/models";
 import { decrypt } from "@/lib/crypto";
+import { escapeHtml } from "@/lib/html";
+import { clampHtml } from "@/lib/telegram-bot";
+import { checkCronAuth } from "../auth";
 import { Bot } from "grammy";
 
+const DAY_MS = 86400000;
+
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
-const CRON_SECRET = process.env.CRON_SECRET ?? "";
 
 function getAICredentials(user: { ai_provider: string | null; ai_api_key: string | null; ai_model: string | null }) {
   if (user.ai_provider && user.ai_api_key) {
@@ -20,18 +24,18 @@ function getAICredentials(user: { ai_provider: string | null; ai_api_key: string
 }
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
-  }
+  const authFailure = checkCronAuth(request);
+  if (authFailure) return authFailure;
 
   const users = await prisma.user.findMany({
     where: { ai_features_enabled: true },
   });
 
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - 7);
-  weekStart.setUTCHours(0, 0, 0, 0);
+  // The 7 *complete* previous UTC days: [day-7 00:00, today 00:00).
+  // Today is excluded — it is still in progress and would drag averages down.
+  const todayStart = new Date();
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const weekStart = new Date(todayStart.getTime() - 7 * DAY_MS);
 
   const bot = new Bot(BOT_TOKEN);
   let sent = 0;
@@ -40,25 +44,30 @@ export async function GET(request: NextRequest) {
     const coachPrefs = user.ai_coaching_prefs as Record<string, boolean> | null;
     if (coachPrefs?.weekly_insights === false) continue;
 
-    const creds = getAICredentials(user);
-    if (!creds) continue;
-
     try {
-      const [foodLogs, waterLogs, runLogs] = await Promise.all([
-        prisma.foodLog.findMany({ where: { user_id: user.id, logged_at: { gte: weekStart } } }),
-        prisma.waterLog.findMany({ where: { user_id: user.id, logged_at: { gte: weekStart } } }),
-        prisma.runLog.findMany({ where: { user_id: user.id, run_date: { gte: weekStart } } }),
+      // Inside the per-user try: `getAICredentials` calls `decrypt`, which throws
+      // on a rotated ENCRYPTION_KEY, a corrupt ciphertext, or a legacy plaintext
+      // key. Outside, that throw escaped the loop and 500'd the whole cron, so
+      // one user with an unreadable key meant *nobody* got their insights.
+      const creds = getAICredentials(user);
+      if (!creds) continue;
+
+      const [foodLogs, waterLogs, runLogs, workoutLogs] = await Promise.all([
+        prisma.foodLog.findMany({ where: { user_id: user.id, logged_at: { gte: weekStart, lt: todayStart } } }),
+        prisma.waterLog.findMany({ where: { user_id: user.id, logged_at: { gte: weekStart, lt: todayStart } } }),
+        prisma.runLog.findMany({ where: { user_id: user.id, run_date: { gte: weekStart, lt: todayStart } } }),
+        // Gym sessions count as exercise too — the prompt's "N sessions" used to
+        // be runs only, so a week of nothing but lifting read as "0 sessions".
+        prisma.workoutLog.findMany({ where: { user_id: user.id, workout_date: { gte: weekStart, lt: todayStart } } }),
       ]);
 
       if (foodLogs.length === 0) continue;
 
       const days: { date: string; calories: number; protein: number; water: number }[] = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-        const dayStart = new Date(dateStr + 'T00:00:00.000Z');
-        const dayEnd = new Date(dateStr + 'T23:59:59.999Z');
+      for (let i = 7; i >= 1; i--) {
+        const dayStart = new Date(todayStart.getTime() - i * DAY_MS);
+        const dayEnd = new Date(dayStart.getTime() + DAY_MS - 1);
+        const dateStr = dayStart.toISOString().split('T')[0];
 
         const dayFood = foodLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
         const dayWater = waterLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
@@ -71,7 +80,11 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      const exerciseTotal = runLogs.reduce((s, r) => s + r.calories_burned, 0);
+      // Runs + gym sessions, over the same [weekStart, todayStart) window.
+      const exerciseTotal =
+        runLogs.reduce((s, r) => s + r.calories_burned, 0) +
+        workoutLogs.reduce((s, w) => s + (w.calories_burned ?? 0), 0);
+      const exerciseSessions = runLogs.length + workoutLogs.length;
       const dietaryRestrictions: string[] = user.dietary_restrictions
         ? JSON.parse(user.dietary_restrictions) : [];
 
@@ -79,13 +92,15 @@ export async function GET(request: NextRequest) {
         goals: { calories: user.daily_calorie_goal, protein: user.daily_protein_goal, water: user.daily_water_goal },
         days,
         exerciseTotal,
-        exerciseSessions: runLogs.length,
+        exerciseSessions,
         dietaryRestrictions,
       });
 
+      // Telegram 400s past 4096 characters and this send has no fallback, so an
+      // over-long model reply used to mean the user simply got no digest.
       await bot.api.sendMessage(
         Number(user.telegram_id),
-        `\u{1F4CA} <b>Weekly Insights</b>\n\n${insights}`,
+        clampHtml(`\u{1F4CA} <b>Weekly Insights</b>\n\n${escapeHtml(insights)}`),
         { parse_mode: "HTML" },
       );
       sent++;

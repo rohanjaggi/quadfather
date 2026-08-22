@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { getMealSuggestions } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
+import { toast, errorMessage } from '@/components/ui/Toast'
 import type { MealSuggestion } from '@/types/api'
 
 export default function MealSuggestions() {
@@ -13,16 +14,19 @@ export default function MealSuggestions() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loggingIdx, setLoggingIdx] = useState<number | null>(null)
+  // Index of the open card. Cleared whenever the list is refetched — it used to
+  // survive "Refresh suggestions", so slot 2 of the *new* batch opened itself.
   const [expandedCard, setExpandedCard] = useState<number | null>(null)
 
   const fetchSuggestions = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setExpandedCard(null)
     try {
       const data = await getMealSuggestions()
       setSuggestions(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load suggestions')
+      setError(errorMessage(err, 'Failed to load suggestions'))
     } finally {
       setLoading(false)
     }
@@ -38,17 +42,24 @@ export default function MealSuggestions() {
   }
 
   async function handleLog(suggestion: MealSuggestion, idx: number) {
+    if (loggingIdx !== null) return
     setLoggingIdx(idx)
-    await logFood({
-      food_name: suggestion.name,
-      calories: suggestion.calories,
-      protein: suggestion.protein,
-      carbohydrates: suggestion.carbohydrates,
-      fats: suggestion.fats,
-      fiber: suggestion.fiber,
-      source: 'ai-suggest',
-    })
-    setLoggingIdx(null)
+    try {
+      await logFood({
+        food_name: suggestion.name,
+        calories: suggestion.calories,
+        protein: suggestion.protein,
+        carbohydrates: suggestion.carbohydrates,
+        fats: suggestion.fats,
+        fiber: suggestion.fiber,
+        source: 'ai-suggest',
+      })
+      toast(`${suggestion.name} logged`, { type: 'success' })
+    } catch (err) {
+      toast(errorMessage(err, `Could not log ${suggestion.name}`))
+    } finally {
+      setLoggingIdx(null)
+    }
   }
 
   return (
@@ -162,7 +173,7 @@ export default function MealSuggestions() {
                     )}
                   </div>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleLog(s, i) }}
+                    onClick={(e) => { e.stopPropagation(); void handleLog(s, i) }}
                     disabled={loggingIdx !== null}
                     className="btn-primary"
                     style={{

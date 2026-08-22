@@ -7,7 +7,8 @@ interface NudgeHistoryEntry {
   sent_at: string
 }
 
-export async function getCoachState(userId: number) {
+/** Internal — the coach state row is an implementation detail of this module. */
+async function getCoachState(userId: number) {
   return prisma.coachState.upsert({
     where: { user_id: userId },
     update: {},
@@ -33,7 +34,8 @@ export async function recordNudge(userId: number, topic: NudgeTopic) {
   })
 }
 
-export function wasNudgedRecently(state: { nudge_history: unknown }, topic: NudgeTopic, hoursAgo: number = 48): boolean {
+/** Internal — 48 h per-topic cooldown, read from `CoachState.nudge_history`. */
+function wasNudgedRecently(state: { nudge_history: unknown }, topic: NudgeTopic, hoursAgo: number = 48): boolean {
   const history: NudgeHistoryEntry[] = Array.isArray(state.nudge_history) ? state.nudge_history as NudgeHistoryEntry[] : []
   const cutoff = new Date()
   cutoff.setHours(cutoff.getHours() - hoursAgo)
@@ -53,12 +55,18 @@ export async function determineNudgeTopic(userId: number, stepGoal?: number, coa
   const sevenDaysAgo = new Date(now)
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  const [recentWorkouts, todayFood, todayRuns, stepLogs] = await Promise.all([
-    prisma.workoutLog.findMany({ where: { user_id: userId, workout_date: { gte: fiveDaysAgo } } }),
+  // Fetch the full 7-day workout window — the consistency rule below ("3+ this
+  // week") needs it. Narrower windows are derived in JS so no rule silently
+  // inherits another's cut-off (this used to be a 5-day query, which made the
+  // 7-day filter a no-op).
+  const [weekWorkouts, todayFood, todayRuns, stepLogs] = await Promise.all([
+    prisma.workoutLog.findMany({ where: { user_id: userId, workout_date: { gte: sevenDaysAgo } } }),
     prisma.foodLog.findMany({ where: { user_id: userId, logged_at: { gte: todayStart } } }),
     prisma.runLog.findMany({ where: { user_id: userId, run_date: { gte: todayStart } } }),
     prisma.stepLog.findMany({ where: { user_id: userId, date: { gte: sevenDaysAgo } }, orderBy: { date: 'desc' } }),
   ])
+
+  const recentWorkouts = weekWorkouts.filter(w => w.workout_date >= fiveDaysAgo)
 
   // Priority 1: Inactivity (no workout in 5+ days)
   if (recentWorkouts.length === 0 && !wasNudgedRecently(state, 'inactivity') && coachPrefs?.nudge_inactivity !== false) {
@@ -76,7 +84,7 @@ export async function determineNudgeTopic(userId: number, stepGoal?: number, coa
     return 'nutrition_gap'
   }
 
-  // Priority 3: Recovery warning (2+ workouts in last 2 days)
+  // Priority 3: Recovery warning (3+ workouts in last 2 days)
   const lastTwoDayWorkouts = recentWorkouts.filter(w => w.workout_date >= twoDaysAgo)
   if (lastTwoDayWorkouts.length >= 3 && !wasNudgedRecently(state, 'recovery') && coachPrefs?.nudge_recovery !== false) {
     return 'recovery'
@@ -96,7 +104,6 @@ export async function determineNudgeTopic(userId: number, stepGoal?: number, coa
   }
 
   // Priority 5: Consistency praise (3+ workouts this week)
-  const weekWorkouts = recentWorkouts.filter(w => w.workout_date >= sevenDaysAgo)
   if (weekWorkouts.length >= 3 && !wasNudgedRecently(state, 'consistency') && coachPrefs?.nudge_consistency !== false) {
     return 'consistency'
   }

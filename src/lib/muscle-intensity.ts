@@ -1,19 +1,44 @@
 import { muscleToZones, type MuscleZone } from './muscle-zones'
-import { EXERCISE_MUSCLES } from './exercise-muscles'
+
+/**
+ * `exercise-muscles.ts` is ~100 KB of static data. It is deliberately NOT
+ * imported statically here: every client page that shows a muscle map would
+ * otherwise ship it in its first-load bundle. It is pulled in on demand and
+ * memoised for the rest of the session.
+ */
+type ExerciseMuscleMap = Record<string, { primary: string[]; secondary: string[] }>
+
+let muscleMapPromise: Promise<ExerciseMuscleMap> | null = null
+
+export function loadExerciseMuscles(): Promise<ExerciseMuscleMap> {
+  if (!muscleMapPromise) {
+    // A rejected promise must not be memoised: a single flaky chunk request
+    // would otherwise leave every muscle map on the page permanently empty for
+    // the rest of the session. Clear the cache so the next caller retries.
+    muscleMapPromise = import('./exercise-muscles')
+      .then(m => m.EXERCISE_MUSCLES)
+      .catch(err => {
+        muscleMapPromise = null
+        throw err
+      })
+  }
+  return muscleMapPromise
+}
 
 interface ExerciseInput {
   exercise_name: string
   sets: { reps: number; weight_kg: number | null }[]
 }
 
-export function calculateMuscleIntensities(
-  exercises: ExerciseInput[]
+function intensitiesFrom(
+  muscleMap: ExerciseMuscleMap,
+  exercises: ExerciseInput[],
 ): Record<MuscleZone, number> {
   const rawScores: Partial<Record<MuscleZone, number>> = {}
 
   for (const exercise of exercises) {
     const key = exercise.exercise_name.toLowerCase()
-    const muscleData = EXERCISE_MUSCLES[key]
+    const muscleData = muscleMap[key]
     if (!muscleData) continue
 
     const setCount = exercise.sets.length
@@ -43,6 +68,18 @@ export function calculateMuscleIntensities(
   }
 
   return normalized as Record<MuscleZone, number>
+}
+
+/**
+ * Per-zone intensity in 0..1, normalised against the hardest-hit zone.
+ * Async because the exercise→muscle table is code-split (see above).
+ */
+export async function calculateMuscleIntensities(
+  exercises: ExerciseInput[],
+): Promise<Record<MuscleZone, number>> {
+  if (exercises.length === 0) return {} as Record<MuscleZone, number>
+  const muscleMap = await loadExerciseMuscles()
+  return intensitiesFrom(muscleMap, exercises)
 }
 
 export function intensitiesFromMuscleNames(

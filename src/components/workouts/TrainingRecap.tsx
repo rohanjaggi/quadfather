@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { getWorkoutRecap } from '@/lib/api'
+import { errorMessage } from '@/lib/errors'
 
 interface Props {
   period: 7 | 30
@@ -25,7 +26,9 @@ export default function TrainingRecap({ period, workoutCount }: Props) {
         cachedPeriod.current = period
         cachedCount.current = workoutCount
       })
-      .catch(err => setError(err instanceof Error ? err.message : 'Failed to generate recap'))
+      // `err.message` is the raw `API 500: {"detail":"…"}` thrown by `apiFetch`;
+      // `errorMessage` unwraps it to the part worth showing.
+      .catch(err => setError(errorMessage(err, 'Failed to generate recap')))
       .finally(() => setLoading(false))
   }
 

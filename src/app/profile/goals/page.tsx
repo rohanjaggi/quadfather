@@ -4,12 +4,14 @@ import { useState, useEffect, FormEvent } from 'react'
 import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
 import { calculateTargets, type Sex, type ActivityLevel, type FitnessGoal } from '@/lib/tdee'
+import { errorMessage } from '@/lib/errors'
 
 export default function GoalsPage() {
   const { user, updateGoals } = useUser()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const [calories, setCalories] = useState('')
   const [protein, setProtein] = useState('')
@@ -69,6 +71,7 @@ export default function GoalsPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setSaving(true)
+    setSaveError(null)
     try {
       await updateGoals({
         daily_calorie_goal: parseFloat(calories),
@@ -83,6 +86,8 @@ export default function GoalsPage() {
       } as Parameters<typeof updateGoals>[0] & { training_focus: string | null })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      setSaveError(errorMessage(err, 'Failed to save goals'))
     } finally {
       setSaving(false)
     }
@@ -171,10 +176,11 @@ export default function GoalsPage() {
           {/* Calories */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
-              <label style={labelStyle}>Calories</label>
+              <label htmlFor="goal-calories" style={labelStyle}>Calories</label>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>kcal</span>
             </div>
             <input
+              id="goal-calories"
               type="number"
               min="0"
               step="1"
@@ -188,10 +194,11 @@ export default function GoalsPage() {
           {/* Protein */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
-              <label style={labelStyle}>Protein</label>
+              <label htmlFor="goal-protein" style={labelStyle}>Protein</label>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
             </div>
             <input
+              id="goal-protein"
               type="number"
               min="0"
               step="1"
@@ -205,10 +212,11 @@ export default function GoalsPage() {
           {/* Carbs */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
-              <label style={labelStyle}>Carbohydrates</label>
+              <label htmlFor="goal-carbs" style={labelStyle}>Carbohydrates</label>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
             </div>
             <input
+              id="goal-carbs"
               type="number"
               min="0"
               step="1"
@@ -222,10 +230,11 @@ export default function GoalsPage() {
           {/* Fats */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
-              <label style={labelStyle}>Fats</label>
+              <label htmlFor="goal-fats" style={labelStyle}>Fats</label>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
             </div>
             <input
+              id="goal-fats"
               type="number"
               min="0"
               step="1"
@@ -239,10 +248,11 @@ export default function GoalsPage() {
           {/* Fiber */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
-              <label style={labelStyle}>Fiber</label>
+              <label htmlFor="goal-fiber" style={labelStyle}>Fiber</label>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>g</span>
             </div>
             <input
+              id="goal-fiber"
               type="number"
               min="0"
               step="1"
@@ -268,10 +278,11 @@ export default function GoalsPage() {
           {/* Water */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
-              <label style={labelStyle}>Daily Water</label>
+              <label htmlFor="goal-water" style={labelStyle}>Daily Water</label>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>L</span>
             </div>
             <input
+              id="goal-water"
               type="number"
               min="0"
               step="any"
@@ -285,10 +296,11 @@ export default function GoalsPage() {
           {/* Bottle Size */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
-              <label style={labelStyle}>Bottle Size</label>
+              <label htmlFor="goal-bottle-size" style={labelStyle}>Bottle Size</label>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>L</span>
             </div>
             <input
+              id="goal-bottle-size"
               type="number"
               min="0"
               step="any"
@@ -312,10 +324,11 @@ export default function GoalsPage() {
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px' }}>
-              <label style={labelStyle}>Daily Step Goal</label>
+              <label htmlFor="goal-steps" style={labelStyle}>Daily Step Goal</label>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>steps</span>
             </div>
             <input
+              id="goal-steps"
               type="number"
               min="0"
               step="500"
@@ -337,8 +350,9 @@ export default function GoalsPage() {
             Training
           </p>
           <div>
-            <label className="label-caps" style={{ display: 'block', marginBottom: '6px' }}>Training Focus</label>
+            <label htmlFor="goal-training-focus" className="label-caps" style={{ display: 'block', marginBottom: '6px' }}>Training Focus</label>
             <select
+              id="goal-training-focus"
               className="input-field"
               value={trainingFocus}
               onChange={e => setTrainingFocus(e.target.value)}
@@ -351,7 +365,17 @@ export default function GoalsPage() {
           </div>
         </div>
 
-        <div className="fade-up fade-up-3">
+        <div className="fade-up fade-up-3" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {saveError && (
+            <p style={{
+              fontFamily: 'var(--font-display)', fontSize: '12px',
+              color: 'var(--accent-calories)', padding: '10px 14px',
+              backgroundColor: 'oklch(0.94 0.02 30)',
+              borderRadius: '10px',
+            }}>
+              {saveError}
+            </p>
+          )}
           <button
             type="submit"
             disabled={saving}

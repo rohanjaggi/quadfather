@@ -2,14 +2,37 @@
 
 import { useEffect, useState } from 'react'
 import { getRunPRs } from '@/lib/api'
+import { useUser } from '@/context/UserContext'
 import type { RunPR } from '@/types/running'
 
+/**
+ * `/api/runs/prs` sends a bare `YYYY-MM-DD`, which was being rendered raw
+ * ("2026-08-19") next to every other PR date in the app, which is formatted.
+ * Parsed and formatted in UTC — `new Date('2026-08-19')` is UTC midnight, so
+ * formatting it locally would show the 18th anywhere west of UTC.
+ */
+function formatPrDate(iso: string): string {
+  if (!iso) return ''
+  const parsed = new Date(iso.includes('T') ? iso : `${iso}T00:00:00Z`)
+  if (Number.isNaN(parsed.getTime())) return iso
+  return parsed.toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+  })
+}
+
 export default function RunningPRs() {
+  const { runLogs } = useUser()
   const [prs, setPrs] = useState<RunPR[]>([])
 
+  // Refetch when the context's runs change — a new run can set a PB, and a
+  // deleted one can retire it.
   useEffect(() => {
-    getRunPRs().then(d => setPrs(d.prs)).catch(() => {})
-  }, [])
+    let cancelled = false
+    getRunPRs()
+      .then(d => { if (!cancelled) setPrs(d.prs) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [runLogs])
 
   if (prs.length === 0) return null
 
@@ -58,7 +81,7 @@ export default function RunningPRs() {
                 fontSize: '11px',
                 color: 'var(--tg-theme-hint-color)',
               }}>
-                {pr.date}
+                {formatPrDate(pr.date)}
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>

@@ -1,7 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import type { WorkoutLog } from '@/types/workouts'
-import { calculateMuscleBalance, type BalanceRatio } from '@/lib/muscle-balance'
+import type { BalanceRatio } from '@/lib/muscle-balance'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 
 interface Props {
@@ -15,7 +16,24 @@ const STATUS_COLORS: Record<BalanceRatio['status'], string> = {
 }
 
 export default function MuscleBalance({ workouts }: Props) {
-  const ratios = calculateMuscleBalance(workouts)
+  // `muscle-balance` pulls in the ~100 KB exercise→muscle table, so it is
+  // code-split and loaded when this card actually has workouts to score.
+  const [ratios, setRatios] = useState<BalanceRatio[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    if (workouts.length === 0) {
+      setRatios([])
+      return
+    }
+    import('@/lib/muscle-balance')
+      .then(({ calculateMuscleBalance }) => {
+        if (!cancelled) setRatios(calculateMuscleBalance(workouts))
+      })
+      .catch(err => console.error('Failed to compute muscle balance:', err))
+    return () => { cancelled = true }
+  }, [workouts])
+
   const hasData = ratios.some(r => r.left.value > 0 || r.right.value > 0)
 
   if (!hasData) {

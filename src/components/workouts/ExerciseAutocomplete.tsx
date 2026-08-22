@@ -8,17 +8,37 @@ interface ExerciseAutocompleteProps {
   value: string
   onChange: (name: string, exerciseId: number | null) => void
   placeholder?: string
+  /**
+   * Fired when the exercise is *committed* — picked from the catalogue or the
+   * field blurred with something typed. Consumers use this to avoid acting on
+   * every keystroke (e.g. the paid prediction call).
+   */
+  onCommit?: (name: string, exerciseId: number | null) => void
+  /**
+   * Reports whether the current text is a real catalogue exercise — picked from
+   * the dropdown, or typed out to an exact match of a search result. Consumers
+   * use it to keep half-typed names (`'ben'`) out of paid endpoints.
+   */
+  onResolvedChange?: (resolved: boolean) => void
 }
 
-export default function ExerciseAutocomplete({ value, onChange, placeholder }: ExerciseAutocompleteProps) {
+export default function ExerciseAutocomplete({ value, onChange, placeholder, onCommit, onResolvedChange }: ExerciseAutocompleteProps) {
   const [query, setQuery] = useState(value)
   const [results, setResults] = useState<Exercise[]>([])
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const blurTimerRef = useRef<NodeJS.Timeout | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { setQuery(value) }, [value])
+
+  // Neither a pending search nor the blur close-timer may fire after the field
+  // is gone (removing an exercise row unmounts this mid-gesture).
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (blurTimerRef.current) clearTimeout(blurTimerRef.current)
+  }, [])
 
   function handleInput(text: string) {
     setQuery(text)
@@ -29,6 +49,7 @@ export default function ExerciseAutocomplete({ value, onChange, placeholder }: E
     if (text.length < 2) {
       setResults([])
       setOpen(false)
+      onResolvedChange?.(false)
       return
     }
 
@@ -38,8 +59,13 @@ export default function ExerciseAutocomplete({ value, onChange, placeholder }: E
         const data = await searchExercises(text)
         setResults(data)
         setOpen(data.length > 0)
+        // Typing a catalogue name out in full counts as resolved, even without
+        // tapping the dropdown row.
+        const typed = text.trim().toLowerCase()
+        onResolvedChange?.(data.some(ex => ex.name.trim().toLowerCase() === typed))
       } catch {
         setResults([])
+        onResolvedChange?.(false)
       } finally {
         setLoading(false)
       }
@@ -49,7 +75,16 @@ export default function ExerciseAutocomplete({ value, onChange, placeholder }: E
   function handleSelect(exercise: Exercise) {
     setQuery(exercise.name)
     onChange(exercise.name, exercise.id)
+    onResolvedChange?.(true)
+    onCommit?.(exercise.name, exercise.id)
     setOpen(false)
+  }
+
+  function handleBlur() {
+    if (blurTimerRef.current) clearTimeout(blurTimerRef.current)
+    blurTimerRef.current = setTimeout(() => setOpen(false), 150)
+    const trimmed = query.trim()
+    if (trimmed) onCommit?.(trimmed, null)
   }
 
   return (
@@ -59,7 +94,7 @@ export default function ExerciseAutocomplete({ value, onChange, placeholder }: E
         value={query}
         onChange={e => handleInput(e.target.value)}
         onFocus={() => { if (results.length > 0) setOpen(true) }}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onBlur={handleBlur}
         placeholder={placeholder ?? 'Exercise name'}
         required
         style={{ width: '100%' }}

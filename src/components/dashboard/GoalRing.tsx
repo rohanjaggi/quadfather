@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { formatInt } from '@/lib/format'
 
 const RADIUS = 34
 const STROKE = 5.5
@@ -56,7 +57,10 @@ export default function GoalRing({
             color: 'var(--tg-theme-text-color)',
             letterSpacing: '-0.02em',
           }}>
-            {Number.isInteger(current) ? current : +current.toFixed(1)}
+            {/* Steps run to five figures, so thousands separators are not
+                optional here — `12345` was the only unseparated number on the
+                dashboard. Fractional values (water litres) keep one decimal. */}
+            {Number.isInteger(current) ? formatInt(current) : +current.toFixed(1)}
           </span>
           <span style={{
             fontSize: '9px',
@@ -85,9 +89,8 @@ export default function GoalRing({
         fontSize: '12px',
         fontWeight: 400,
         color: 'var(--tg-theme-hint-color)',
-        opacity: 0.75,
       }}>
-        / {goal}{unit}
+        / {Number.isInteger(goal) ? formatInt(goal) : goal}{unit}
       </span>
     </div>
   )

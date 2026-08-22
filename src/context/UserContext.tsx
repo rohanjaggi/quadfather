@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import * as api from '@/lib/api'
+import { errorMessage } from '@/lib/errors'
 import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, PersonalUpdate, SavedFood, SavedFoodCreate } from '@/types/api'
 import type { RunLog, RunLogCreate } from '@/types/running'
 import type { StepLog, WorkoutLog } from '@/types/workouts'
@@ -14,6 +15,12 @@ interface UserContextType {
   savedFoods: SavedFood[]
   loading: boolean
   error: string | null
+  /**
+   * Set when the last `refresh()` had at least one endpoint fail. The other
+   * endpoints still applied, so this is a "some of this may be stale" banner,
+   * not a fatal state — `error` remains the boot-gate's all-or-nothing one.
+   */
+  refreshError: string | null
   logFood: (data: FoodLogCreate) => Promise<void>
   deleteFood: (id: number) => Promise<void>
   logWater: (data: WaterLogCreate) => Promise<void>
@@ -31,6 +38,8 @@ interface UserContextType {
   deleteRun: (id: number) => Promise<void>
   toggleRunAllowance: (id: number, added: boolean) => Promise<void>
   refresh: () => Promise<void>
+  refreshUser: () => Promise<void>
+  retry: () => Promise<void>
 }
 
 const UserContext = createContext<UserContextType | null>(null)
@@ -47,47 +56,85 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshError, setRefreshError] = useState<string | null>(null)
 
+  /**
+   * Re-fetches every list. Deliberately `allSettled`, not `Promise.all`: these
+   * are eight independent endpoints, and under `all` a single transient 500
+   * threw away the seven good responses too — one bad list blanked the whole
+   * dashboard, and a food that had genuinely been logged never appeared.
+   *
+   * Each fulfilled result is applied on its own, a rejected one simply leaves
+   * that slice at its previous value (never blanked), and `refreshError`
+   * records that something is stale. Resolves rather than throwing, so the
+   * existing callers — all of which just `await refresh()` after a mutation —
+   * keep working unchanged.
+   */
   const refresh = useCallback(async () => {
-    try {
-      const [summaryData, foodData, waterData, savedData, runData, stepData, weekStepData, workoutData] = await Promise.all([
-        api.getDailySummary(),
-        api.getFoodLogs(),
-        api.getWaterLogs(),
-        api.getSavedFoods(),
-        api.getRunLogs(new Date().toLocaleDateString('en-CA')),
-        api.getSteps(1),
-        api.getSteps(7),
-        api.getWorkouts(7),
-      ])
-      setSummary(summaryData)
-      setFoodLogs(foodData)
-      setWaterLogs(waterData)
-      setSavedFoods(savedData)
-      setRunLogs(runData)
-      setTodaySteps(stepData.length > 0 ? stepData[0].steps : 0)
-      setWeeklySteps(weekStepData)
-      setWeeklyWorkouts(workoutData)
-    } catch (err) {
-      console.error('Failed to refresh data:', err)
+    const [summaryRes, foodRes, waterRes, savedRes, runRes, stepRes, weekStepRes, workoutRes] = await Promise.allSettled([
+      api.getDailySummary(),
+      api.getFoodLogs(),
+      api.getWaterLogs(),
+      api.getSavedFoods(),
+      api.getRunLogs(new Date().toLocaleDateString('en-CA')),
+      api.getSteps(1),
+      api.getSteps(7),
+      api.getWorkouts(7),
+    ])
+
+    if (summaryRes.status === 'fulfilled') setSummary(summaryRes.value)
+    if (foodRes.status === 'fulfilled') setFoodLogs(foodRes.value)
+    if (waterRes.status === 'fulfilled') setWaterLogs(waterRes.value)
+    if (savedRes.status === 'fulfilled') setSavedFoods(savedRes.value)
+    if (runRes.status === 'fulfilled') setRunLogs(runRes.value)
+    if (stepRes.status === 'fulfilled') setTodaySteps(stepRes.value.length > 0 ? stepRes.value[0].steps : 0)
+    if (weekStepRes.status === 'fulfilled') setWeeklySteps(weekStepRes.value)
+    if (workoutRes.status === 'fulfilled') setWeeklyWorkouts(workoutRes.value)
+
+    const settled: PromiseSettledResult<unknown>[] = [
+      summaryRes, foodRes, waterRes, savedRes, runRes, stepRes, weekStepRes, workoutRes,
+    ]
+    const rejected = settled.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+    if (rejected.length > 0) {
+      console.error('Failed to refresh some data:', rejected.map(r => r.reason))
+      setRefreshError(errorMessage(rejected[0].reason, 'Some data could not be refreshed'))
+    } else {
+      setRefreshError(null)
     }
   }, [])
 
-  useEffect(() => {
-    async function init() {
-      try {
-        setLoading(true)
-        const userData = await api.registerUser()
-        setUser(userData)
-        await refresh()
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load')
-      } finally {
-        setLoading(false)
-      }
+  // Re-fetches the user object only (same call used at boot). Never clears an
+  // existing user on failure, and deliberately leaves the boot-gate `error`
+  // alone — no UI surfaces it once a user exists. It rethrows instead, so a
+  // caller that just saved something can't report success against stale data.
+  const refreshUser = useCallback(async () => {
+    try {
+      const userData = await api.registerUser()
+      setUser(userData)
+    } catch (err) {
+      console.error('Failed to refresh user:', err)
+      throw err
     }
-    init()
+  }, [])
+
+  // Full boot: user + all lists. Also used by the auth gate's Retry button.
+  const bootstrap = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const userData = await api.registerUser()
+      setUser(userData)
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load')
+    } finally {
+      setLoading(false)
+    }
   }, [refresh])
+
+  useEffect(() => {
+    bootstrap()
+  }, [bootstrap])
 
   const logFood = useCallback(async (data: FoodLogCreate) => {
     await api.logFood(data)
@@ -111,16 +158,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const updateGoals = useCallback(async (data: GoalsUpdate) => {
     await api.updateGoals(data)
-    const userData = await api.registerUser()
-    setUser(userData)
+    await refreshUser()
     await refresh()
-  }, [refresh])
+  }, [refresh, refreshUser])
 
   const updatePersonal = useCallback(async (data: PersonalUpdate) => {
     await api.updatePersonal(data)
-    const userData = await api.registerUser()
-    setUser(userData)
-  }, [])
+    await refreshUser()
+  }, [refreshUser])
 
   const saveFood = useCallback(async (data: SavedFoodCreate): Promise<SavedFood> => {
     const saved = await api.saveFood(data)
@@ -155,10 +200,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   return (
     <UserContext.Provider value={{
-      user, summary, foodLogs, waterLogs, savedFoods, runLogs, todaySteps, weeklySteps, weeklyWorkouts, loading, error,
+      user, summary, foodLogs, waterLogs, savedFoods, runLogs, todaySteps, weeklySteps, weeklyWorkouts, loading, error, refreshError,
       logFood, deleteFood, logWater, deleteWater, updateGoals, updatePersonal,
       saveFood, updateSavedFood, deleteSavedFood, logRun: logRunAction, deleteRun: deleteRunAction,
-      toggleRunAllowance: toggleRunAllowanceAction, refresh,
+      toggleRunAllowance: toggleRunAllowanceAction, refresh, refreshUser, retry: bootstrap,
     }}>
       {children}
     </UserContext.Provider>

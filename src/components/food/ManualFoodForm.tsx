@@ -3,44 +3,91 @@
 import { useState, FormEvent } from 'react'
 import { useUser } from '@/context/UserContext'
 import { useHaptic } from '@/components/TelegramProvider'
-import type { FoodLogCreate } from '@/types/api'
+import { errorMessage } from '@/components/ui/Toast'
 
 interface ManualFoodFormProps {
   onClose: () => void
+}
+
+type NumericField = 'calories' | 'protein' | 'carbohydrates' | 'fats' | 'fiber' | 'servings'
+
+/**
+ * Numeric inputs keep the RAW STRING the user typed and are parsed once, on
+ * submit. Parsing on every keystroke made intermediate states unrepresentable:
+ * `parseFloat('0.') || 0` collapsed to `0`, and the field rendered `value={x || ''}`
+ * so typing "0" (on the way to "0.5") blanked the box — 0.5 servings could not
+ * be entered at all, and a cleared servings box silently POSTed `servings: 0`,
+ * which zeroes every macro on the row.
+ */
+const INITIAL_NUMERIC: Record<NumericField, string> = {
+  calories: '',
+  protein: '',
+  carbohydrates: '',
+  fats: '',
+  fiber: '',
+  servings: '1',
+}
+
+/** `''`, `'.'`, `'-'` and other partial input parse to `fallback`, not to NaN. */
+function toNumber(raw: string, fallback: number): number {
+  const parsed = parseFloat(raw)
+  return Number.isFinite(parsed) ? parsed : fallback
 }
 
 export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
   const { logFood } = useUser()
   const haptic = useHaptic()
   const [saving, setSaving] = useState(false)
-  const [fields, setFields] = useState<FoodLogCreate>({
-    food_name: '',
-    calories: 0,
-    protein: 0,
-    carbohydrates: 0,
-    fats: 0,
-    fiber: 0,
-    servings: 1,
-  })
+  const [error, setError] = useState<string | null>(null)
+  const [foodName, setFoodName] = useState('')
+  const [numeric, setNumeric] = useState<Record<NumericField, string>>(INITIAL_NUMERIC)
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleNumericChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target
-    setFields((prev) => ({
-      ...prev,
-      [name]: name === 'food_name' ? value : parseFloat(value) || 0,
-    }))
+    setNumeric((prev) => ({ ...prev, [name as NumericField]: value }))
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!fields.food_name.trim()) return
+    if (saving) return
+
+    const name = foodName.trim()
+    if (!name) {
+      setError('Give this meal a name')
+      return
+    }
+
+    // An empty servings box means "one serving", never zero. The API rejects
+    // `servings <= 0`, and a zero would scale every macro to nothing anyway.
+    const servings = toNumber(numeric.servings, 1)
+    if (!(servings > 0)) {
+      setError('Servings must be greater than 0')
+      return
+    }
+
     setSaving(true)
+    setError(null)
+    let logged = false
     try {
-      await logFood(fields)
-      haptic.notification('success')
-      onClose()
+      await logFood({
+        food_name: name,
+        calories: Math.max(toNumber(numeric.calories, 0), 0),
+        protein: Math.max(toNumber(numeric.protein, 0), 0),
+        carbohydrates: Math.max(toNumber(numeric.carbohydrates, 0), 0),
+        fats: Math.max(toNumber(numeric.fats, 0), 0),
+        fiber: Math.max(toNumber(numeric.fiber, 0), 0),
+        servings,
+      })
+      logged = true
+    } catch (err) {
+      setError(errorMessage(err, 'Could not save this meal'))
+      haptic.notification('error')
     } finally {
       setSaving(false)
+    }
+    if (logged) {
+      haptic.notification('success')
+      onClose()
     }
   }
 
@@ -52,8 +99,8 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
           id="food_name"
           name="food_name"
           type="text"
-          value={fields.food_name}
-          onChange={handleChange}
+          value={foodName}
+          onChange={(e) => setFoodName(e.target.value)}
           placeholder="e.g. Chicken breast"
           required
           className="input-field-bordered"
@@ -68,9 +115,10 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
             name="calories"
             type="number"
             min="0"
-            step="1"
-            value={fields.calories || ''}
-            onChange={handleChange}
+            step="any"
+            inputMode="decimal"
+            value={numeric.calories}
+            onChange={handleNumericChange}
             placeholder="0"
             className="input-field-bordered"
           />
@@ -82,9 +130,10 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
             name="protein"
             type="number"
             min="0"
-            step="0.1"
-            value={fields.protein || ''}
-            onChange={handleChange}
+            step="any"
+            inputMode="decimal"
+            value={numeric.protein}
+            onChange={handleNumericChange}
             placeholder="0"
             className="input-field-bordered"
           />
@@ -96,9 +145,10 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
             name="carbohydrates"
             type="number"
             min="0"
-            step="0.1"
-            value={fields.carbohydrates || ''}
-            onChange={handleChange}
+            step="any"
+            inputMode="decimal"
+            value={numeric.carbohydrates}
+            onChange={handleNumericChange}
             placeholder="0"
             className="input-field-bordered"
           />
@@ -110,9 +160,10 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
             name="fats"
             type="number"
             min="0"
-            step="0.1"
-            value={fields.fats || ''}
-            onChange={handleChange}
+            step="any"
+            inputMode="decimal"
+            value={numeric.fats}
+            onChange={handleNumericChange}
             placeholder="0"
             className="input-field-bordered"
           />
@@ -124,9 +175,10 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
             name="fiber"
             type="number"
             min="0"
-            step="0.1"
-            value={fields.fiber || ''}
-            onChange={handleChange}
+            step="any"
+            inputMode="decimal"
+            value={numeric.fiber}
+            onChange={handleNumericChange}
             placeholder="0"
             className="input-field-bordered"
           />
@@ -139,14 +191,30 @@ export default function ManualFoodForm({ onClose }: ManualFoodFormProps) {
           id="servings"
           name="servings"
           type="number"
-          min="0.5"
-          step="0.5"
-          value={fields.servings || ''}
-          onChange={handleChange}
+          min="0"
+          step="any"
+          inputMode="decimal"
+          value={numeric.servings}
+          onChange={handleNumericChange}
           placeholder="1"
           className="input-field-bordered"
         />
+        <p style={{
+          fontFamily: 'var(--font-display)', fontSize: '11px',
+          color: 'var(--tg-theme-hint-color)', marginTop: '4px',
+        }}>
+          Leave blank for one serving. Fractions like 0.5 are fine.
+        </p>
       </div>
+
+      {error && (
+        <p style={{
+          fontFamily: 'var(--font-display)', fontSize: '12px',
+          color: 'var(--accent-calories)', paddingLeft: '4px',
+        }}>
+          {error}
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
         <button type="button" onClick={onClose} className="btn-secondary" style={{ flex: 1 }}>

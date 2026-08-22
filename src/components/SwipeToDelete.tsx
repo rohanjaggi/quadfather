@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useRef } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { motion, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion'
 import { useHaptic } from '@/components/TelegramProvider'
 
@@ -29,7 +29,13 @@ export function SwipeDeleteProvider({ children }: { children: React.ReactNode })
 
 interface SwipeToDeleteProps {
   id: string
-  onDelete: () => void
+  /**
+   * Performs the delete. Return the promise (don't fire-and-forget) so the row
+   * stays on screen until the request resolves — if it rejects the row is
+   * restored. Callers are expected to surface the failure themselves (toast)
+   * and rethrow so this component knows to put the row back.
+   */
+  onDelete: () => void | Promise<void>
   children: React.ReactNode
   disabled?: boolean
   borderRadius?: string
@@ -42,6 +48,7 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
   const haptic = useHaptic()
   const { openId, setOpenId } = useContext(SwipeDeleteContext)
   const containerRef = useRef<HTMLDivElement>(null)
+  const inFlightRef = useRef(false)
   const [deleting, setDeleting] = useState(false)
 
   const x = useMotionValue(0)
@@ -61,10 +68,13 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
     if (openId === id) setOpenId(null)
   }, [x, id, openId, setOpenId])
 
-  // Close this item if another one opened
-  if (!isOpen && x.get() !== 0) {
-    animate(x, 0, { type: 'spring', stiffness: 500, damping: 30 })
-  }
+  // Close this item if another one opened. Kept in an effect — animating from
+  // the render body fires during React's render phase (and twice in StrictMode).
+  useEffect(() => {
+    if (isOpen || deleting || x.get() === 0) return
+    const controls = animate(x, 0, { type: 'spring', stiffness: 500, damping: 30 })
+    return () => controls.stop()
+  }, [isOpen, deleting, x])
 
   function handleDragEnd(_: unknown, info: { offset: { x: number }; velocity: { x: number } }) {
     const containerWidth = containerRef.current?.offsetWidth ?? 300
@@ -78,15 +88,32 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
     haptic.notification('warning')
     setDeleting(true)
     animate(x, -(containerRef.current?.offsetWidth ?? 300), {
       type: 'spring',
       stiffness: 500,
       damping: 30,
-      onComplete: () => onDelete(),
     })
+    try {
+      await onDelete()
+      // The row is gone — leaving `openId` pointing at it would keep every
+      // other row's "close because another opened" effect pinned to a ghost.
+      if (openId === id) setOpenId(null)
+    } catch (err) {
+      // The delete failed — put the row back rather than leaving a phantom gap.
+      // The caller has already shown the error, so swallow it here (throwing
+      // from an onClick handler would only become an unhandled rejection).
+      console.error('Delete failed, restoring row:', err)
+      setDeleting(false)
+      animate(x, 0, { type: 'spring', stiffness: 500, damping: 30 })
+      if (openId === id) setOpenId(null)
+    } finally {
+      inFlightRef.current = false
+    }
   }
 
   function handleContentTap() {
@@ -104,6 +131,12 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
       {!deleting && (
         <motion.div
           layout
+          // `initial={false}` keeps the row at its natural size on first paint,
+          // and the explicit `animate` gives the exit somewhere to come back
+          // *from*: without it a delete that rejects fast restored the row with
+          // the collapsed height/opacity the exit had already applied.
+          initial={false}
+          animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
           transition={{ duration: 0.2 }}
           ref={containerRef}
@@ -122,7 +155,11 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
               justifyContent: 'center',
             }}
           >
-            <motion.div
+            <motion.button
+              type="button"
+              aria-label="Delete"
+              tabIndex={isOpen ? 0 : -1}
+              onClick={handleDelete}
               style={{
                 width: '100%',
                 height: 'calc(100% - 20px)',
@@ -130,12 +167,13 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                border: 'none',
+                padding: 0,
                 borderRadius: '12px',
                 opacity: deleteOpacity,
                 scale: deleteScale,
                 cursor: 'pointer',
               }}
-              onClick={handleDelete}
             >
               <span style={{
                 color: 'white',
@@ -145,7 +183,7 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
               }}>
                 Delete
               </span>
-            </motion.div>
+            </motion.button>
           </div>
 
           {/* Draggable content */}

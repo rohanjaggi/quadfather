@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useUser } from '@/context/UserContext'
+import { errorMessage } from '@/components/ui/Toast'
+import { DEFAULT_BODYWEIGHT_KG } from '@/lib/constants'
 
 interface ManualRunFormProps {
   onClose: () => void
@@ -15,12 +17,13 @@ export default function ManualRunForm({ onClose }: ManualRunFormProps) {
   const [calories, setCalories] = useState('')
   const [caloriesManual, setCaloriesManual] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (caloriesManual) return
     const distKm = parseFloat(distance)
     if (!distKm || distKm <= 0) return
-    const weight = user?.personal?.weight_kg ?? 70
+    const weight = user?.personal?.weight_kg ?? DEFAULT_BODYWEIGHT_KG
     const estimated = Math.round(distKm * weight * 1.036)
     setCalories(String(estimated))
   }, [distance, user, caloriesManual])
@@ -32,9 +35,11 @@ export default function ManualRunForm({ onClose }: ManualRunFormProps) {
     const secs = parseInt(seconds) || 0
     const cal = parseFloat(calories)
 
-    if (!distKm || (!mins && !secs) || !cal) return
+    if (loading || !distKm || (!mins && !secs) || !cal) return
 
     setLoading(true)
+    setError(null)
+    let logged = false
     try {
       await logRun({
         distance_meters: distKm * 1000,
@@ -42,10 +47,13 @@ export default function ManualRunForm({ onClose }: ManualRunFormProps) {
         calories_burned: cal,
         source: 'manual',
       })
-      onClose()
+      logged = true
+    } catch (err) {
+      setError(errorMessage(err, 'Could not log this run'))
     } finally {
       setLoading(false)
     }
+    if (logged) onClose()
   }
 
   return (
@@ -109,10 +117,22 @@ export default function ManualRunForm({ onClose }: ManualRunFormProps) {
           type="number"
           placeholder="350"
           value={calories}
-          onChange={e => { setCalories(e.target.value); setCaloriesManual(true) }}
+          // Emptying the box hands the field back to the distance estimate.
+          // Latching `caloriesManual` on the first keystroke and never clearing
+          // it meant one stray character permanently disabled the estimate.
+          onChange={e => { setCalories(e.target.value); setCaloriesManual(e.target.value !== '') }}
           required
         />
       </div>
+
+      {error && (
+        <p style={{
+          fontFamily: 'var(--font-display)', fontSize: '12px',
+          color: 'var(--accent-calories)', paddingLeft: '4px',
+        }}>
+          {error}
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
         <button type="button" className="btn-secondary" onClick={onClose} style={{ flex: 1 }}>

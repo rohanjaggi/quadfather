@@ -2,21 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import { getRunningAnalytics } from '@/lib/api'
+import { formatPace } from '@/lib/format'
+import { EXERCISE_DAMPENING } from '@/lib/constants'
+import { useUser } from '@/context/UserContext'
 import type { RunningAnalyticsResponse } from '@/types/running'
 
-function formatPace(pace: number | undefined): string {
-  if (!pace) return '--:--'
-  const mins = Math.floor(pace)
-  const secs = Math.round((pace - mins) * 60)
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
-
 export default function WeeklyRunStats() {
+  const { runLogs } = useUser()
   const [data, setData] = useState<RunningAnalyticsResponse | null>(null)
 
+  // Refetch whenever the context's runs change (a run was logged, deleted or
+  // pulled in by a Strava sync) — otherwise these totals go stale on the page.
   useEffect(() => {
-    getRunningAnalytics(7).then(setData).catch(() => {})
-  }, [])
+    let cancelled = false
+    getRunningAnalytics(7)
+      .then(result => { if (!cancelled) setData(result) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [runLogs])
 
   if (!data || data.totals.run_count === 0) return null
 
@@ -24,11 +27,20 @@ export default function WeeklyRunStats() {
     ? (data.totals.duration / 60) / (data.totals.distance / 1000)
     : undefined
 
+  /**
+   * What actually reached the calorie allowance. The API totals now carry
+   * `credited_calories`, which respects each run's own `added_to_allowance`
+   * flag — the local dampening below counts runs the user excluded, so it is
+   * only a fallback for servers that don't send the field yet.
+   */
+  const totals = data.totals as typeof data.totals & { credited_calories?: number }
+  const credited = totals.credited_calories ?? totals.calories * EXERCISE_DAMPENING
+
   const stats = [
     { label: 'Distance', value: `${(data.totals.distance / 1000).toFixed(1)}`, unit: 'km' },
     { label: 'Runs', value: `${data.totals.run_count}`, unit: 'this week' },
-    { label: 'Avg Pace', value: formatPace(avgPace), unit: '/km' },
-    { label: 'Credited', value: `+${Math.round(data.totals.calories * 0.5)}`, unit: 'kcal' },
+    { label: 'Avg Pace', value: formatPace(avgPace, 'min'), unit: '/km' },
+    { label: 'Credited', value: `+${Math.round(credited)}`, unit: 'kcal' },
   ]
 
   return (

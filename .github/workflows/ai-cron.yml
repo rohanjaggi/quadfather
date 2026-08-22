@@ -6,6 +6,9 @@ on:
     - cron: '0 13 * * *'
     # Weekly insights at 1am UTC Monday (9am SGT Monday)
     - cron: '0 1 * * 1'
+    # Weekly training digest at 2am UTC Monday (10am SGT Monday) — offset an
+    # hour from the insights run so the two digests don't land together.
+    - cron: '0 2 * * 1'
   workflow_dispatch:
     inputs:
       endpoint:
@@ -15,6 +18,7 @@ on:
         options:
           - daily-coach
           - weekly-insights
+          - weekly-exercise
 
 jobs:
   trigger:
@@ -25,14 +29,26 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "path=${{ inputs.endpoint }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.schedule }}" = "0 13 * * *" ]; then
-            echo "path=daily-coach" >> $GITHUB_OUTPUT
-          else
-            echo "path=weekly-insights" >> $GITHUB_OUTPUT
+            exit 0
           fi
+          # Explicit per-schedule mapping: the old if/else fell through to
+          # weekly-insights for anything that wasn't the daily cron, so adding a
+          # third schedule would silently have fired the wrong endpoint.
+          case "${{ github.event.schedule }}" in
+            '0 13 * * *') echo "path=daily-coach" >> $GITHUB_OUTPUT ;;
+            '0 1 * * 1')  echo "path=weekly-insights" >> $GITHUB_OUTPUT ;;
+            '0 2 * * 1')  echo "path=weekly-exercise" >> $GITHUB_OUTPUT ;;
+            *)
+              echo "No endpoint mapped for schedule '${{ github.event.schedule }}'" >&2
+              exit 1
+              ;;
+          esac
 
       - name: Call cron endpoint
         run: |
-          curl -s -f -L -X GET \
+          # No -L: curl strips the Authorization header when a redirect crosses
+          # hosts, so following one turns a misconfigured APP_URL into a silent
+          # 401 that -f then reports as a generic failure.
+          curl -s -f -X GET \
             "${{ secrets.APP_URL }}/api/cron/${{ steps.endpoint.outputs.path }}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

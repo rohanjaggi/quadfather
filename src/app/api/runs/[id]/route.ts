@@ -1,75 +1,58 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthenticatedUser } from '@/lib/auth'
+import { withUser, parseJsonBody, requireInt, notFound, unprocessable } from '@/lib/api-handler'
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const user = await getAuthenticatedUser(request)
-    const { id } = await params
-    const numId = parseInt(id, 10)
-    if (isNaN(numId)) {
-      return NextResponse.json({ detail: 'Invalid run ID' }, { status: 400 })
-    }
-    const body = await request.json()
+type Ctx = { params: { id: string } }
 
-    if (typeof body.added_to_allowance !== 'boolean') {
-      return NextResponse.json({ detail: 'added_to_allowance must be a boolean' }, { status: 422 })
-    }
+export const PATCH = withUser<Ctx>(async (request, user, { params }) => {
+  const id = requireInt(params.id, 'id')
+  const body = await parseJsonBody(request)
 
-    const run = await prisma.runLog.findFirst({
-      where: { id: numId, user_id: user.id },
-    })
-    if (!run) {
-      return NextResponse.json({ detail: 'Run not found' }, { status: 404 })
-    }
-
-    const updated = await prisma.runLog.update({
-      where: { id: run.id },
-      data: { added_to_allowance: body.added_to_allowance },
-    })
-
-    return NextResponse.json({
-      ...updated,
-      strava_activity_id: updated.strava_activity_id?.toString() ?? null,
-    })
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Internal error'
-    if (message.includes('initData') || message.includes('hash')) {
-      return NextResponse.json({ detail: message }, { status: 401 })
-    }
-    return NextResponse.json({ detail: message }, { status: 500 })
+  if (typeof body.added_to_allowance !== 'boolean') {
+    throw unprocessable('added_to_allowance must be a boolean')
   }
-}
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const user = await getAuthenticatedUser(request)
-    const { id } = await params
-    const numId = parseInt(id, 10)
-    if (isNaN(numId)) {
-      return NextResponse.json({ detail: 'Invalid run ID' }, { status: 400 })
-    }
+  const run = await prisma.runLog.findFirst({ where: { id, user_id: user.id } })
+  if (!run) throw notFound('Run not found')
 
-    const run = await prisma.runLog.findFirst({
-      where: { id: numId, user_id: user.id },
-    })
-    if (!run) {
-      return NextResponse.json({ detail: 'Run not found' }, { status: 404 })
-    }
+  const updated = await prisma.runLog.update({
+    where: { id: run.id },
+    data: { added_to_allowance: body.added_to_allowance },
+  })
 
-    await prisma.runLog.delete({ where: { id: run.id } })
-    return new NextResponse(null, { status: 204 })
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Internal error'
-    if (message.includes('initData') || message.includes('hash')) {
-      return NextResponse.json({ detail: message }, { status: 401 })
+  return NextResponse.json({
+    ...updated,
+    strava_activity_id: updated.strava_activity_id?.toString() ?? null,
+  })
+})
+
+export const DELETE = withUser<Ctx>(async (request, user, { params }) => {
+  const id = requireInt(params.id, 'id')
+
+  const run = await prisma.runLog.findFirst({ where: { id, user_id: user.id } })
+  if (!run) throw notFound('Run not found')
+
+  await prisma.runLog.delete({ where: { id: run.id } })
+
+  // Tombstone: without it the next `POST /api/runs/sync` re-imports the very
+  // activity the user just deleted (the sync window always reaches back at
+  // least 30 days). Best-effort — a failure here must not fail the delete.
+  if (run.strava_activity_id !== null) {
+    try {
+      await prisma.stravaIgnoredActivity.upsert({
+        where: {
+          user_id_strava_activity_id: {
+            user_id: user.id,
+            strava_activity_id: run.strava_activity_id,
+          },
+        },
+        update: {},
+        create: { user_id: user.id, strava_activity_id: run.strava_activity_id },
+      })
+    } catch (err) {
+      console.error('Failed to record Strava tombstone for run', run.id, err)
     }
-    return NextResponse.json({ detail: message }, { status: 500 })
   }
-}
+
+  return new NextResponse(null, { status: 204 })
+})

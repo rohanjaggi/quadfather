@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { useHaptic } from '@/components/TelegramProvider'
 import { useUser } from '@/context/UserContext'
+import { toast, errorMessage } from '@/components/ui/Toast'
 import type { SavedFood } from '@/types/api'
 
 interface Props {
   food: SavedFood
-  onAdd: (food: SavedFood) => void
-  onDelete: (id: number) => void
+  onAdd: (food: SavedFood) => void | Promise<void>
+  onDelete: (id: number) => void | Promise<void>
   isLast: boolean
 }
 
@@ -17,6 +18,9 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
   const { updateSavedFood } = useUser()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
   const [name, setName] = useState(food.name)
   const [calories, setCalories] = useState(String(food.calories))
   const [protein, setProtein] = useState(String(food.protein))
@@ -24,12 +28,33 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
   const [fats, setFats] = useState(String(food.fats))
   const [fiber, setFiber] = useState(String(food.fiber ?? 0))
 
-  function handleAdd() {
+  async function handleAdd() {
+    if (adding) return
+    setAdding(true)
     haptic.impact('light')
-    onAdd(food)
+    try {
+      await onAdd(food)
+    } catch (err) {
+      toast(errorMessage(err, `Could not log ${food.name}`))
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      await onDelete(food.id)
+    } catch (err) {
+      toast(errorMessage(err, 'Could not delete that favourite'))
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function handleEdit() {
+    setEditError(null)
     setName(food.name)
     setCalories(String(food.calories))
     setProtein(String(food.protein))
@@ -40,7 +65,9 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
   }
 
   async function handleSave() {
+    if (saving) return
     setSaving(true)
+    setEditError(null)
     try {
       await updateSavedFood(food.id, {
         name,
@@ -51,6 +78,8 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
         fiber: Number(fiber),
       })
       setEditing(false)
+    } catch (err) {
+      setEditError(errorMessage(err, 'Could not save changes'))
     } finally {
       setSaving(false)
     }
@@ -93,8 +122,16 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
             <input className="input-field-bordered" type="number" min="0" step="0.1" value={fiber} onChange={e => setFiber(e.target.value)} style={{ fontSize: '13px', padding: '8px 10px' }} />
           </div>
         </div>
+        {editError && (
+          <p style={{
+            fontFamily: 'var(--font-display)', fontSize: '12px',
+            color: 'var(--accent-calories)', marginBottom: '8px', paddingLeft: '2px',
+          }}>
+            {editError}
+          </p>
+        )}
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn-ghost" onClick={() => setEditing(false)} style={{ flex: 1, padding: '10px' }}>
+          <button className="btn-ghost" onClick={() => { setEditError(null); setEditing(false) }} disabled={saving} style={{ flex: 1, padding: '10px' }}>
             Cancel
           </button>
           <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '10px' }}>
@@ -138,15 +175,17 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
         </p>
       </div>
 
-      {/* Edit */}
+      {/* Edit — 0.35 opacity put the glyph at 2.2:1 on the card, under the 3:1
+          WCAG minimum for a UI control; 0.55 clears it at 3.8:1. */}
       <button
         onClick={handleEdit}
+        aria-label={`Edit ${food.name}`}
         style={{
           background: 'none',
           border: 'none',
           padding: '4px',
           cursor: 'pointer',
-          opacity: 0.35,
+          opacity: 0.55,
           flexShrink: 0,
         }}
       >
@@ -159,13 +198,15 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
 
       {/* Delete */}
       <button
-        onClick={() => onDelete(food.id)}
+        onClick={handleDelete}
+        disabled={deleting}
+        aria-label={`Delete ${food.name} from favourites`}
         style={{
           background: 'none',
           border: 'none',
           padding: '4px',
-          cursor: 'pointer',
-          opacity: 0.35,
+          cursor: deleting ? 'not-allowed' : 'pointer',
+          opacity: deleting ? 0.15 : 0.55,
           flexShrink: 0,
         }}
       >
@@ -182,6 +223,7 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
       {/* Add to today */}
       <button
         onClick={handleAdd}
+        disabled={adding}
         className="btn-primary"
         style={{
           width: 'auto',
@@ -191,7 +233,7 @@ export default function SavedFoodCard({ food, onAdd, onDelete, isLast }: Props) 
           flexShrink: 0,
         }}
       >
-        + Add
+        {adding ? '…' : '+ Add'}
       </button>
 
     </div>

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { parseFood } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
 import { useHaptic } from '@/components/TelegramProvider'
+import { errorMessage } from '@/components/ui/Toast'
+import { errorStatus } from '@/lib/errors'
 import type { MealAnalysis } from '@/types/api'
 
 type Phase = 'idle' | 'analysing' | 'result' | 'logging' | 'saving'
@@ -20,7 +22,7 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
   const [savedConfirm, setSavedConfirm] = useState(false)
 
   async function handleAnalyse() {
-    if (!text.trim()) return
+    if (!text.trim() || phase === 'analysing') return
     setPhase('analysing')
     setError(null)
     try {
@@ -29,30 +31,42 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
       setEdited({})
       setPhase('result')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed')
+      setError(errorMessage(err, 'Analysis failed'))
       setPhase('idle')
     }
   }
 
   async function handleLog() {
-    if (!result) return
+    if (!result || phase === 'logging' || phase === 'saving') return
     setPhase('logging')
+    setError(null)
     const merged = { ...result, ...edited }
-    await logFood({
-      food_name: merged.food_name ?? result.food_name,
-      calories: Number(merged.calories ?? result.calories),
-      protein: Number(merged.protein ?? result.protein),
-      carbohydrates: Number(merged.carbohydrates ?? result.carbohydrates),
-      fats: Number(merged.fats ?? result.fats),
-      fiber: Number(merged.fiber ?? result.fiber),
-      source: 'ai-text',
-    })
-    haptic.notification('success')
-    onClose()
+    let logged = false
+    try {
+      await logFood({
+        food_name: merged.food_name ?? result.food_name,
+        calories: Number(merged.calories ?? result.calories),
+        protein: Number(merged.protein ?? result.protein),
+        carbohydrates: Number(merged.carbohydrates ?? result.carbohydrates),
+        fats: Number(merged.fats ?? result.fats),
+        fiber: Number(merged.fiber ?? result.fiber),
+        source: 'ai-text',
+      })
+      logged = true
+    } catch (err) {
+      setError(errorMessage(err, 'Could not log this meal'))
+      haptic.notification('error')
+    } finally {
+      setPhase('result')
+    }
+    if (logged) {
+      haptic.notification('success')
+      onClose()
+    }
   }
 
   async function handleSaveFavourite() {
-    if (!result) return
+    if (!result || phase === 'saving' || phase === 'logging') return
     setPhase('saving')
     setError(null)
     const merged = { ...result, ...edited }
@@ -68,12 +82,26 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
         source: 'ai-text',
       })
       setSavedConfirm(true)
-      setPhase('result')
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Could not save'
-      setError(msg.includes('409') ? 'A favourite with this name already exists' : msg)
+      // Match on the parsed HTTP status, not a substring: `raw.includes('409')`
+      // also fired on a perfectly ordinary body like `{"calories":409}`.
+      setError(errorStatus(err) === 409
+        ? 'A favourite with this name already exists'
+        : errorMessage(err, 'Could not save'))
+    } finally {
       setPhase('result')
     }
+  }
+
+  /**
+   * Every edit to the parsed macros goes through here so the "✓ Saved"
+   * confirmation is retired: once the numbers on screen differ from the
+   * favourite that was written, the button has to become tappable again —
+   * otherwise it sat disabled on "✓ Saved" and the edit could never be saved.
+   */
+  function applyEdit(update: (prev: Partial<MealAnalysis>) => Partial<MealAnalysis>) {
+    setEdited(update)
+    setSavedConfirm(false)
   }
 
   function reset() {
@@ -135,7 +163,7 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
           <input
             className="input-field"
             value={val('food_name')}
-            onChange={e => setEdited(d => ({ ...d, food_name: e.target.value }))}
+            onChange={e => applyEdit(d => ({ ...d, food_name: e.target.value }))}
           />
         </div>
 
@@ -155,7 +183,7 @@ export default function TextFoodInput({ onClose }: { onClose: () => void }) {
                 min="0"
                 step="0.1"
                 value={val(key)}
-                onChange={e => setEdited(d => ({ ...d, [key]: e.target.value }))}
+                onChange={e => applyEdit(d => ({ ...d, [key]: e.target.value }))}
               />
             </div>
           ))}

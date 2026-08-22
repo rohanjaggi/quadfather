@@ -3,6 +3,13 @@
 import { useState, useRef } from 'react'
 import { useUser } from '@/context/UserContext'
 import { analyseRunScreenshot } from '@/lib/api'
+import { errorMessage } from '@/lib/errors'
+import {
+  ACCEPTED_IMAGE_TYPES,
+  ACCEPT_IMAGE_ATTR,
+  UNSUPPORTED_IMAGE_MESSAGE,
+  downscaleImage,
+} from '@/lib/image'
 import type { RunAnalysis } from '@/types/running'
 
 interface RunPhotoUploadProps {
@@ -19,23 +26,37 @@ export default function RunPhotoUpload({ onClose }: RunPhotoUploadProps) {
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
+    // Reset the input so re-picking the same file after an error still fires
+    // `change` (the browser suppresses it when the value is unchanged).
+    e.target.value = ''
     if (!file) return
+
+    // HEIC gets a 422 from the vision providers, so it is caught before the
+    // round trip rather than after it.
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setError(UNSUPPORTED_IMAGE_MESSAGE)
+      return
+    }
 
     setAnalysing(true)
     setError(null)
     try {
-      const analysis = await analyseRunScreenshot(file)
+      // A 4000px screenshot is a 413 on the way up and is downsampled by the
+      // provider anyway; send the shrunk copy.
+      const analysis = await analyseRunScreenshot(await downscaleImage(file))
       setResult(analysis)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyse screenshot')
+      setError(errorMessage(err, 'Failed to analyse screenshot'))
     } finally {
       setAnalysing(false)
     }
   }
 
   async function handleConfirm() {
-    if (!result) return
+    if (!result || saving) return
     setSaving(true)
+    setError(null)
+    let logged = false
     try {
       await logRun({
         distance_meters: result.distance_meters,
@@ -45,10 +66,15 @@ export default function RunPhotoUpload({ onClose }: RunPhotoUploadProps) {
         average_heartrate: result.average_heartrate,
         source: 'ai_parsed',
       })
-      onClose()
+      logged = true
+    } catch (err) {
+      // Previously uncaught: the POST failed, the panel stayed open with no
+      // explanation, and a second tap risked logging the run twice.
+      setError(errorMessage(err, 'Could not log this run'))
     } finally {
       setSaving(false)
     }
+    if (logged) onClose()
   }
 
   return (
@@ -56,7 +82,7 @@ export default function RunPhotoUpload({ onClose }: RunPhotoUploadProps) {
       <input
         ref={fileRef}
         type="file"
-        accept="image/*"
+        accept={ACCEPT_IMAGE_ATTR}
         onChange={handleFile}
         style={{ display: 'none' }}
       />

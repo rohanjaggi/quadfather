@@ -6,18 +6,33 @@ const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID ?? ''
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET ?? ''
 const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI ?? ''
 
+/**
+ * Sign the OAuth `state` handed to Strava. Used by `/api/strava/connect` to
+ * mint it and by `/api/strava/callback` to re-derive and compare it.
+ *
+ * There is deliberately no `verifyStravaState` here: the only verifier lives in
+ * the callback route, which compares in constant time and refuses to run at all
+ * when `ENCRYPTION_KEY` is unset. The variant that used to sit here did neither,
+ * so anyone could sign a state for any Telegram id on a deployment with no key.
+ */
 export function signStravaState(telegramId: string): string {
   const key = process.env.ENCRYPTION_KEY ?? ''
   const sig = createHmac('sha256', key).update(telegramId).digest('hex').slice(0, 16)
   return `${telegramId}.${sig}`
 }
 
-export function verifyStravaState(state: string): string | null {
-  const dot = state.indexOf('.')
-  if (dot === -1) return null
-  const telegramId = state.slice(0, dot)
-  if (signStravaState(telegramId) !== state) return null
-  return telegramId
+/**
+ * Strava returns the granted scopes as a comma-separated list on the OAuth
+ * callback (e.g. `read,activity:read_all`). Reading activities requires either
+ * `activity:read` or `activity:read_all`; anything less means the athlete
+ * activity endpoints will 401.
+ */
+export function hasActivityReadScope(scope: string | null | undefined): boolean {
+  if (!scope) return false
+  return scope
+    .split(/[,\s]+/)
+    .map(s => s.trim())
+    .some(s => s === 'activity:read' || s === 'activity:read_all')
 }
 
 export function getStravaAuthUrl(state: string): string {
@@ -128,15 +143,25 @@ interface StravaActivity {
   start_date_local: string
 }
 
+const ACTIVITIES_PER_PAGE = 30
+/** Safety stop so a misbehaving API response can never spin the loop forever. */
+const MAX_ACTIVITY_PAGES = 100
+
+/**
+ * @param after epoch **seconds in real UTC** — Strava filters on the activity's
+ *   `start_date` (UTC), so never derive this from a local wall-clock value.
+ */
 export async function fetchAllStravaActivities(
   accessToken: string,
   after?: number,
 ): Promise<StravaActivity[]> {
   const all: StravaActivity[] = []
-  let page = 1
-  while (true) {
-    const params = new URLSearchParams({ per_page: '30', page: String(page) })
-    if (after) params.set('after', after.toString())
+  for (let page = 1; page <= MAX_ACTIVITY_PAGES; page++) {
+    const params = new URLSearchParams({
+      per_page: String(ACTIVITIES_PER_PAGE),
+      page: String(page),
+    })
+    if (after && after > 0) params.set('after', Math.floor(after).toString())
     const res = await fetch(
       `https://www.strava.com/api/v3/athlete/activities?${params.toString()}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -150,7 +175,8 @@ export async function fetchAllStravaActivities(
       a.type === 'Run' || a.sport_type === 'Run' ||
       a.sport_type === 'TrailRun' || a.sport_type === 'VirtualRun'
     ))
-    page++
+    // A short page is the last page — saves one round trip and guarantees exit.
+    if (activities.length < ACTIVITIES_PER_PAGE) break
   }
   return all
 }
@@ -158,15 +184,17 @@ export async function fetchAllStravaActivities(
 export function stravaActivityToRunData(activity: StravaActivity) {
   const pacePerKm = activity.distance > 0
     ? (activity.moving_time / 60) / (activity.distance / 1000)
-    : undefined
+    : null
 
+  // Explicit `null` rather than `undefined`: these rows are inserted with
+  // `createMany`, which is happiest when every row carries the same key set.
   return {
     strava_activity_id: BigInt(activity.id),
     distance_meters: activity.distance,
     duration_seconds: activity.moving_time,
     calories_burned: activity.calories || estimateCalories(activity.distance, activity.moving_time),
-    pace_per_km: pacePerKm ? Math.round(pacePerKm * 100) / 100 : undefined,
-    average_heartrate: activity.average_heartrate ?? undefined,
+    pace_per_km: pacePerKm ? Math.round(pacePerKm * 100) / 100 : null,
+    average_heartrate: activity.average_heartrate ?? null,
     elevation_gain: activity.total_elevation_gain,
     name: activity.name,
     source: 'strava' as const,

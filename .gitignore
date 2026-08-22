@@ -2,6 +2,14 @@
 node_modules/
 .next/
 out/
-.env
-.env*.local
+# Ignore every env file — Next.js auto-loads .env, .env.local, .env.production
+# and .env.development, so listing only some of them leaves the rest committable.
+.env*
+# ...except the checked-in template, which holds names only, never values.
+!.env.local.example
 *.tsbuildinfo
+
+# Dead leftovers from earlier stacks — kept on disk, never committed.
+.venv/
+fastapi/
+frontend/

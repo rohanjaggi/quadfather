@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAllWorkoutPRs, type WorkoutPR } from '@/lib/api'
-import { EXERCISE_MUSCLES } from '@/lib/exercise-muscles'
+import { loadExerciseMuscles } from '@/lib/muscle-intensity'
+import { prDisplayDate, prDisplayValue, prTypeLabel } from '@/components/workouts/pr-display'
 
 const MUSCLE_TO_GROUP: Record<string, string> = {
   'pectoralis major': 'Chest',
@@ -45,9 +46,12 @@ const MUSCLE_TO_GROUP: Record<string, string> = {
 
 const GROUP_ORDER = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Other']
 
-function getMuscleGroup(exerciseName: string): string {
+type ExerciseMuscleMap = Record<string, { primary: string[]; secondary: string[] }>
+
+function getMuscleGroup(muscleMap: ExerciseMuscleMap | null, exerciseName: string): string {
+  if (!muscleMap) return 'Other'
   const key = exerciseName.toLowerCase()
-  const entry = EXERCISE_MUSCLES[key]
+  const entry = muscleMap[key]
   if (!entry || entry.primary.length === 0) return 'Other'
   const primary = entry.primary[0]
   return MUSCLE_TO_GROUP[primary] ?? 'Other'
@@ -62,17 +66,30 @@ export default function PRHistoryPage() {
   const router = useRouter()
   const [prs, setPrs] = useState<WorkoutPR[]>([])
   const [loading, setLoading] = useState(true)
+  // ~100 KB of exercise→muscle data, fetched alongside the PRs rather than
+  // bundled into this page's first load.
+  const [muscleMap, setMuscleMap] = useState<ExerciseMuscleMap | null>(null)
 
   useEffect(() => {
-    getAllWorkoutPRs()
-      .then(data => setPrs(data.prs))
-      .catch(console.error)
-      .finally(() => setLoading(false))
+    let cancelled = false
+    // Settled, not all: the muscle chunk is a 100 KB optional nicety, and
+    // failing it used to take the whole PR list down with it. Without the map
+    // every PR simply falls into the 'Other' group.
+    Promise.allSettled([getAllWorkoutPRs(), loadExerciseMuscles()])
+      .then(([prsResult, musclesResult]) => {
+        if (cancelled) return
+        if (prsResult.status === 'fulfilled') setPrs(prsResult.value.prs)
+        else console.error('Failed to load PRs:', prsResult.reason)
+        if (musclesResult.status === 'fulfilled') setMuscleMap(musclesResult.value)
+        else console.error('Failed to load exercise muscles:', musclesResult.reason)
+        setLoading(false)
+      })
+    return () => { cancelled = true }
   }, [])
 
   const grouped: GroupedPRs[] = []
   for (const pr of prs) {
-    const group = getMuscleGroup(pr.exercise_name)
+    const group = getMuscleGroup(muscleMap, pr.exercise_name)
     const existing = grouped.find(g => g.group === group)
     if (existing) {
       existing.prs.push(pr)
@@ -87,6 +104,7 @@ export default function PRHistoryPage() {
       <div className="fade-up" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button
           onClick={() => router.back()}
+          aria-label="Go back"
           style={{
             background: 'none', border: 'none', padding: '4px',
             color: 'var(--tg-theme-text-color)', cursor: 'pointer',
@@ -148,10 +166,11 @@ export default function PRHistoryPage() {
                       borderBottom: i < section.prs.length - 1 ? '1px solid var(--surface-border)' : 'none',
                     }}
                   >
-                    <div>
+                    <div style={{ minWidth: 0, marginRight: '12px' }}>
                       <p style={{
                         fontFamily: 'var(--font-display)', fontSize: '14px',
                         fontWeight: 500, color: 'var(--tg-theme-text-color)', margin: 0,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>
                         {pr.exercise_name}
                       </p>
@@ -159,22 +178,24 @@ export default function PRHistoryPage() {
                         fontFamily: 'var(--font-display)', fontSize: '11px',
                         color: 'var(--tg-theme-hint-color)', margin: '2px 0 0 0',
                       }}>
-                        {new Date(pr.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {prDisplayDate(pr)}
                       </p>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
+                    {/* `value` is now pre-formatted ("100kg × 5"), so keep it
+                        intact and let the exercise name truncate instead. */}
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <span style={{
                         fontFamily: 'var(--font-display)', fontSize: '16px',
                         fontWeight: 600, color: 'var(--accent)',
                       }}>
-                        {pr.value}
+                        {prDisplayValue(pr)}
                       </span>
                       <span style={{
                         display: 'block', fontFamily: 'var(--font-display)', fontSize: '9px',
                         fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase',
                         color: 'var(--accent)', opacity: 0.7, marginTop: '2px',
                       }}>
-                        {pr.type} PR
+                        {prTypeLabel(pr)}
                       </span>
                     </div>
                   </div>

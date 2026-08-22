@@ -195,7 +195,6 @@ export default function RecentActivity({
               <span style={{
                 fontSize: '11px',
                 color: 'var(--tg-theme-hint-color)',
-                opacity: 0.7,
                 flexShrink: 0,
               }}>
                 {item.time}

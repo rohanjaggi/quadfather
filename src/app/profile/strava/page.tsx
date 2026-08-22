@@ -1,30 +1,91 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+// Same import style as `@/lib/api` (already in this page's module graph); every
+// use is guarded by a `typeof window` check because the SDK is browser-only.
 import { useUser } from '@/context/UserContext'
 import { getStravaConnectUrl, disconnectStrava } from '@/lib/api'
+import { errorMessage } from '@/lib/errors'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 
+const SCOPE_NOTICE = "Strava is connected without activity access — reconnect and allow 'View data about your activities'"
+
+/**
+ * Navigate the Mini App webview itself to the Strava OAuth page. We deliberately
+ * do NOT use `WebApp.openLink` here: that opens Telegram's external browser, and
+ * the OAuth callback redirects back to `/profile/strava` on this origin — outside
+ * the Mini App there is no initData, so the user would land on the auth-gate
+ * screen. In-webview navigation round-trips fine because the Telegram SDK
+ * restores its init params from sessionStorage on return.
+ */
+function openExternal(url: string) {
+  if (typeof window === 'undefined') return
+  window.location.href = url
+}
+
+// useSearchParams needs a Suspense boundary in Next 14 for statically rendered pages.
 export default function StravaSettingsPage() {
-  const { user, refresh } = useUser()
+  return (
+    <Suspense fallback={null}>
+      <StravaSettings />
+    </Suspense>
+  )
+}
+
+function StravaSettings() {
+  const { user, refreshUser } = useUser()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   const connected = !!user?.strava_connected
+
+  const errorParam = searchParams.get('error')
+  const successParam = searchParams.get('success')
+
+  // The tokens are stored even when Strava grants a scope without activity
+  // access, so this is a persistent state — not just a one-time callback banner.
+  const scopeMissing = connected && user?.strava_scope_ok === false
+  const showScopeNotice = scopeMissing || errorParam === 'insufficient_scope'
+
+  const callbackNotice: { text: string; tone: 'error' | 'success' } | null = showScopeNotice
+    ? { text: SCOPE_NOTICE, tone: 'error' }
+    : errorParam
+      ? { text: "Couldn't connect to Strava. Please try again.", tone: 'error' }
+      : successParam
+        ? { text: 'Connected', tone: 'success' }
+        : null
+
+  // Returning from the OAuth callback — pull the fresh connection state.
+  useEffect(() => {
+    if (errorParam || successParam) {
+      refreshUser().catch(err => console.error('Failed to refresh user after Strava callback:', err))
+    }
+  }, [errorParam, successParam, refreshUser])
 
   async function handleConnect() {
     setLoading(true)
+    setActionError(null)
     try {
       const { url } = await getStravaConnectUrl()
-      window.location.href = url
+      openExternal(url)
+    } catch (err) {
+      setActionError(errorMessage(err, 'Failed to start Strava connection'))
     } finally {
+      // The webview may defer or block the navigation; leaving the button stuck
+      // on "Connecting…" would give the user nothing to retry with.
       setLoading(false)
     }
   }
 
   async function handleDisconnect() {
     setLoading(true)
+    setActionError(null)
     try {
       await disconnectStrava()
-      await refresh()
+      await refreshUser()
+    } catch (err) {
+      setActionError(errorMessage(err, 'Failed to disconnect Strava'))
     } finally {
       setLoading(false)
     }
@@ -51,6 +112,39 @@ export default function StravaSettingsPage() {
           Strava
         </h1>
       </div>
+
+      {callbackNotice && (
+        <div className="fade-up" style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '10px',
+          fontFamily: 'var(--font-display)', fontSize: '12px',
+          padding: '10px 14px', borderRadius: '10px', lineHeight: 1.5,
+          color: callbackNotice.tone === 'success' ? 'oklch(0.35 0.04 155)' : 'var(--accent-calories)',
+          backgroundColor: callbackNotice.tone === 'success' ? 'oklch(0.92 0.02 155)' : 'oklch(0.94 0.02 30)',
+        }}>
+          <span>{callbackNotice.text}</span>
+          {showScopeNotice && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handleConnect}
+              disabled={loading}
+              style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--accent-calories)' }}
+            >
+              {loading ? 'Opening Strava…' : 'Reconnect with Strava'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {actionError && (
+        <p style={{
+          fontFamily: 'var(--font-display)', fontSize: '12px',
+          color: 'var(--accent-calories)', padding: '10px 14px',
+          backgroundColor: 'oklch(0.94 0.02 30)', borderRadius: '10px',
+        }}>
+          {actionError}
+        </p>
+      )}
 
       <div className="fade-up fade-up-1">
         <SummaryCard>

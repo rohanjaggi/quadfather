@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { updateProgressAfterWorkout } from '@/lib/progress'
+import { recomputeSnapshotsForExercises } from '@/lib/progress'
 import { DEFAULT_BODYWEIGHT_KG } from '@/lib/constants'
 import {
   withUser,
@@ -155,13 +155,15 @@ export const POST = withUser(async (request, user) => {
     include: { exercises: { orderBy: { order: 'asc' } } },
   })
 
-  // Single, awaited progress update — the PRs it detects are persisted on the
-  // workout row so /analyse can read them instead of recomputing (which would
-  // re-apply this session's sets to the snapshots a second time).
+  // The PRs are persisted on the workout row so /analyse can read them.
   // A failure here must not fail the request: the workout is already saved.
   let response: typeof workout = workout
   try {
-    const { prs } = await updateProgressAfterWorkout(user.id, workout.id)
+    const prs = await recomputeSnapshotsForExercises(
+      user.id,
+      exercises.map(ex => ex.exercise_name),
+      workout.id,
+    )
     response = await prisma.workoutLog.update({
       where: { id: workout.id },
       data: { prs: prs as unknown as Prisma.InputJsonValue },

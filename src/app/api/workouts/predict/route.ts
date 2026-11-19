@@ -170,7 +170,6 @@ export const GET = withUser(async (request, user) => {
       heaviest.weight,
       heaviest.reps,
       snapshot.sessions_since_improvement,
-      lastSession.sets,
     )
 
     prediction = {

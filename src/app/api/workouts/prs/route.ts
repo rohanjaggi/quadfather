@@ -27,40 +27,23 @@ export const GET = withUser(async (request, user) => {
     // Nulls last so `?all=1` rows that have never recorded a weight PR (or
     // pre-backfill rows) sort to the bottom rather than the top.
     orderBy: { best_weight_improved_at: { sort: 'desc', nulls: 'last' } },
-    take: all ? 100 : 10,
+    take: all ? 100 : 5,
   })
 
-  // Filter out snapshots for exercises that no longer have any logged data
-  const exerciseNames = snapshots.map(s => s.exercise_name)
-  const existingExercises = exerciseNames.length
-    ? await prisma.exerciseLog.findMany({
-        where: {
-          exercise_name: { in: exerciseNames },
-          workout: { user_id: user.id },
-        },
-        select: { exercise_name: true },
-        distinct: ['exercise_name'],
-      })
-    : []
-  const validNames = new Set(existingExercises.map(e => e.exercise_name))
-
-  const prs = snapshots
-    .filter(s => validNames.has(s.exercise_name))
-    .slice(0, all ? 100 : 5)
-    .map(s => ({
-      exercise_name: s.exercise_name,
-      type: 'weight' as const,
-      // `best_weight` is the genuinely heaviest set, not the best-e1RM set's
-      // weight — the old value could go *down* while claiming a new weight PR.
-      value: `${s.best_weight}kg × ${s.best_weight_reps}`,
-      volume: Math.round(s.total_volume_7d),
-      // The date the *weight* record was set, not the last time anything about
-      // this lift improved — the value above is a weight PR, so it must not be
-      // dated by an e1RM-only session that never touched `best_weight`.
-      // null (not '') when no weight PR has ever been recorded —
-      // `new Date('')` is what rendered "Invalid Date" in the PR lists.
-      date: s.best_weight_improved_at ? dayKey(s.best_weight_improved_at) : null,
-    }))
+  const prs = snapshots.map(s => ({
+    exercise_name: s.exercise_name,
+    type: 'weight' as const,
+    // `best_weight` is the genuinely heaviest set, not the best-e1RM set's
+    // weight — the old value could go *down* while claiming a new weight PR.
+    value: `${s.best_weight}kg × ${s.best_weight_reps}`,
+    volume: Math.round(s.total_volume_7d),
+    // The date the *weight* record was set, not the last time anything about
+    // this lift improved — the value above is a weight PR, so it must not be
+    // dated by an e1RM-only session that never touched `best_weight`.
+    // null (not '') when no weight PR has ever been recorded —
+    // `new Date('')` is what rendered "Invalid Date" in the PR lists.
+    date: s.best_weight_improved_at ? dayKey(s.best_weight_improved_at) : null,
+  }))
 
   return NextResponse.json({ prs })
 })

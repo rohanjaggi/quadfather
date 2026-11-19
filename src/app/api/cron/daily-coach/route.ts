@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { parseJsonStringArray } from "@/lib/api-handler";
 import { generateDailyCoach } from "@/lib/ai";
 import type { AIProvider } from "@/lib/models";
 import { decrypt } from "@/lib/crypto";
@@ -112,8 +113,7 @@ export async function GET(request: NextRequest) {
       // dampened half of it is already inside `total_goal`, and the prompt says
       // so, so the model must not add it to the goal a second time.
       const exerciseCalories = budget.runs_raw + budget.workouts_raw;
-      const dietaryRestrictions: string[] = user.dietary_restrictions
-        ? JSON.parse(user.dietary_restrictions) : [];
+      const dietaryRestrictions = parseJsonStringArray(user.dietary_restrictions);
 
       const todayStepCount = budget.steps;
       const currentStreak = stepStreakEndingYesterday(recentSteps, user.daily_step_goal);

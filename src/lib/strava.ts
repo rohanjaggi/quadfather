@@ -1,6 +1,7 @@
 import { createHmac } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { encrypt, decrypt } from '@/lib/crypto'
+import { runKcal } from '@/lib/constants'
 
 const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID ?? ''
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET ?? ''
@@ -138,7 +139,6 @@ interface StravaActivity {
   max_speed: number
   average_heartrate?: number
   max_heartrate?: number
-  calories: number
   start_date: string
   start_date_local: string
 }
@@ -181,7 +181,7 @@ export async function fetchAllStravaActivities(
   return all
 }
 
-export function stravaActivityToRunData(activity: StravaActivity) {
+export function stravaActivityToRunData(activity: StravaActivity, weightKg: number) {
   const pacePerKm = activity.distance > 0
     ? (activity.moving_time / 60) / (activity.distance / 1000)
     : null
@@ -192,7 +192,7 @@ export function stravaActivityToRunData(activity: StravaActivity) {
     strava_activity_id: BigInt(activity.id),
     distance_meters: activity.distance,
     duration_seconds: activity.moving_time,
-    calories_burned: activity.calories || estimateCalories(activity.distance, activity.moving_time),
+    calories_burned: runKcal(activity.distance / 1000, weightKg),
     pace_per_km: pacePerKm ? Math.round(pacePerKm * 100) / 100 : null,
     average_heartrate: activity.average_heartrate ?? null,
     elevation_gain: activity.total_elevation_gain,
@@ -200,11 +200,6 @@ export function stravaActivityToRunData(activity: StravaActivity) {
     source: 'strava' as const,
     run_date: new Date(activity.start_date_local),
   }
-}
-
-function estimateCalories(distanceMeters: number, durationSeconds: number): number {
-  const km = distanceMeters / 1000
-  return Math.round(km * 70)
 }
 
 export async function deauthorizeStrava(accessToken: string): Promise<void> {

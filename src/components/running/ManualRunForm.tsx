@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@/context/UserContext'
 import { errorMessage } from '@/components/ui/Toast'
-import { DEFAULT_BODYWEIGHT_KG } from '@/lib/constants'
+import { DEFAULT_BODYWEIGHT_KG, runKcal } from '@/lib/constants'
 
 interface ManualRunFormProps {
   onClose: () => void
@@ -24,7 +24,7 @@ export default function ManualRunForm({ onClose }: ManualRunFormProps) {
     const distKm = parseFloat(distance)
     if (!distKm || distKm <= 0) return
     const weight = user?.personal?.weight_kg ?? DEFAULT_BODYWEIGHT_KG
-    const estimated = Math.round(distKm * weight * 1.036)
+    const estimated = runKcal(distKm, weight)
     setCalories(String(estimated))
   }, [distance, user, caloriesManual])
 

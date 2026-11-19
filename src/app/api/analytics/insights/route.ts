@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserAICredentials } from "@/lib/auth";
 import { generateTrendsCoach } from "@/lib/ai";
-import { callAIProvider, withUser, optionalInt } from "@/lib/api-handler";
+import { callAIProvider, withUser, optionalInt, parseJsonStringArray } from "@/lib/api-handler";
 
 const DAY_MS = 86400000;
 
@@ -68,17 +68,7 @@ export const GET = withUser(async (request, user) => {
     runLogs.reduce((s, r) => s + r.calories_burned, 0) +
     workoutLogs.reduce((s, w) => s + (w.calories_burned ?? 0), 0);
   const exerciseSessions = runLogs.length + workoutLogs.length;
-  // Stored as a JSON string; a legacy/hand-edited row can hold a bare string,
-  // which must not turn an insights request into a 500.
-  let dietaryRestrictions: string[] = [];
-  if (user.dietary_restrictions) {
-    try {
-      const parsed: unknown = JSON.parse(user.dietary_restrictions);
-      if (Array.isArray(parsed)) dietaryRestrictions = parsed.filter(r => typeof r === "string");
-    } catch {
-      dietaryRestrictions = [];
-    }
-  }
+  const dietaryRestrictions = parseJsonStringArray(user.dietary_restrictions);
 
   // Wrapped so a provider failure (bad key, outage) is the same 502 "check your
   // API key" the food/run routes return, instead of an opaque 500.

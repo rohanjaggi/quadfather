@@ -53,7 +53,6 @@ export const POST = withUser(async (request, user) => {
     min: 0,
     max: 100_000,
   })
-  const pacePerKm = optionalNumber(body.pace_per_km, 'pace_per_km', { min: 0, max: 120 })
   const averageHeartrate = optionalNumber(body.average_heartrate, 'average_heartrate', {
     min: 0,
     max: 300,
@@ -77,7 +76,7 @@ export const POST = withUser(async (request, user) => {
       distance_meters: distanceMeters,
       duration_seconds: durationSeconds,
       calories_burned: caloriesBurned,
-      pace_per_km: pacePerKm ?? Math.round(((durationSeconds / 60) / (distanceMeters / 1000)) * 100) / 100,
+      pace_per_km: Math.round(((durationSeconds / 60) / (distanceMeters / 1000)) * 100) / 100,
       average_heartrate: averageHeartrate ?? null,
       elevation_gain: elevationGain ?? null,
       name: name?.trim() || 'Run',

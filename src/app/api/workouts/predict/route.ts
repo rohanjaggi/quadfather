@@ -172,7 +172,8 @@ export const GET = withUser(async (request, user) => {
       last_session: lastSessionData,
     }
     cacheSet(cacheKey, prediction)
-  } catch {
+  } catch (e) {
+    console.error('predict AI failed:', e)
     // Anchor the deterministic fallback on the *weight* record, which is what
     // the PR list shows. `best_set_weight` is the best-e1RM set's weight and can
     // be lighter (77.5×10 beats 80×8 on e1RM), so anchoring there suggested a

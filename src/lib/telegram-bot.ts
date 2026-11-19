@@ -1,5 +1,6 @@
 import { Bot, InlineKeyboard, type Context } from "grammy";
 import { prisma } from "./prisma";
+import { parseJsonStringArray } from "./api-handler";
 import { analyseMeal, parseFood } from "./ai";
 import type { MealAnalysisResult } from "./ai";
 import type { AIProvider } from "./models";
@@ -615,8 +616,7 @@ function registerHandlers(bot: Bot) {
       // Raw burn is what the coach talks about; the dampened credit is already
       // baked into `total_goal` / `remaining`.
       const exerciseCalories = budget.runs_raw + budget.workouts_raw;
-      const dietaryRestrictions: string[] = user.dietary_restrictions
-        ? JSON.parse(user.dietary_restrictions) : [];
+      const dietaryRestrictions = parseJsonStringArray(user.dietary_restrictions);
 
       const message = await generateDailyCoach(ai.provider, ai.apiKey, ai.model, {
         goals: { calories: Math.round(budget.total_goal), protein: user.daily_protein_goal },
@@ -711,8 +711,7 @@ function registerHandlers(bot: Bot) {
         runLogs.reduce((s, r) => s + r.calories_burned, 0) +
         workoutLogs.reduce((s, w) => s + (w.calories_burned ?? 0), 0);
       const exerciseSessions = runLogs.length + workoutLogs.length;
-      const dietaryRestrictions: string[] = user.dietary_restrictions
-        ? JSON.parse(user.dietary_restrictions) : [];
+      const dietaryRestrictions = parseJsonStringArray(user.dietary_restrictions);
 
       const insights = await generateWeeklyInsights(ai.provider, ai.apiKey, ai.model, {
         goals: { calories: user.daily_calorie_goal, protein: user.daily_protein_goal, water: user.daily_water_goal },

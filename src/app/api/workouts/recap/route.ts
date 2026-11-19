@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getUserAICredentials } from '@/lib/auth'
 import { generateWorkoutRecap } from '@/lib/ai'
 import { EXERCISE_MUSCLES } from '@/lib/exercise-muscles'
-import { muscleToZone, ALL_ZONES } from '@/lib/muscle-zones'
+import { muscleToZones, ALL_ZONES } from '@/lib/muscle-zones'
 import { setsVolume } from '@/lib/volume'
 import { callAIProvider, withUser } from '@/lib/api-handler'
 
@@ -66,8 +66,7 @@ export const GET = withUser(async (request, user) => {
       const data = EXERCISE_MUSCLES[key]
       if (data) {
         for (const m of data.primary) {
-          const zone = muscleToZone(m)
-          if (zone) musclesHitSet.add(zone)
+          for (const zone of muscleToZones(m)) musclesHitSet.add(zone)
         }
       }
     }

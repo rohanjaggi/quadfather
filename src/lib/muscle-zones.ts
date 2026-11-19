@@ -77,10 +77,6 @@ const MUSCLE_TO_ZONE: Record<string, MuscleZone> = {
   'subscapularis': 'rotator_cuff',
 }
 
-export function muscleToZone(muscleName: string): MuscleZone | null {
-  return MUSCLE_TO_ZONE[muscleName.toLowerCase()] ?? null
-}
-
 export function muscleToZones(muscleName: string): MuscleZone[] {
   const lower = muscleName.toLowerCase()
   if (lower === 'full body') return [...ALL_ZONES]

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { parseJsonStringArray } from "@/lib/api-handler";
 import { generateWeeklyInsights } from "@/lib/ai";
 import type { AIProvider } from "@/lib/models";
 import { decrypt } from "@/lib/crypto";
@@ -85,8 +86,7 @@ export async function GET(request: NextRequest) {
         runLogs.reduce((s, r) => s + r.calories_burned, 0) +
         workoutLogs.reduce((s, w) => s + (w.calories_burned ?? 0), 0);
       const exerciseSessions = runLogs.length + workoutLogs.length;
-      const dietaryRestrictions: string[] = user.dietary_restrictions
-        ? JSON.parse(user.dietary_restrictions) : [];
+      const dietaryRestrictions = parseJsonStringArray(user.dietary_restrictions);
 
       const insights = await generateWeeklyInsights(creds.provider, creds.apiKey, creds.model, {
         goals: { calories: user.daily_calorie_goal, protein: user.daily_protein_goal, water: user.daily_water_goal },

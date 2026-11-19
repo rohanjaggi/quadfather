@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       const creds = getAICredentials(user)
       if (!creds) continue
 
-      const [thisWeekWorkouts, lastWeekWorkouts, snapshots] = await Promise.all([
+      const [thisWeekWorkouts, lastWeekWorkouts] = await Promise.all([
         prisma.workoutLog.findMany({
           where: { user_id: user.id, workout_date: { gte: weekStart, lt: todayStart } },
           include: { exercises: true },
@@ -95,10 +95,15 @@ export async function GET(request: NextRequest) {
           where: { user_id: user.id, workout_date: { gte: prevWeekStart, lt: weekStart } },
           include: { exercises: true },
         }),
-        prisma.progressSnapshot.findMany({
-          where: { user_id: user.id },
-        }),
       ])
+
+      // Only exercises still being logged: a long-dropped lift is not "stalled".
+      const recentNames = [...new Set(
+        [...thisWeekWorkouts, ...lastWeekWorkouts].flatMap(w => w.exercises.map(e => e.exercise_name)),
+      )]
+      const snapshots = await prisma.progressSnapshot.findMany({
+        where: { user_id: user.id, exercise_name: { in: recentNames } },
+      })
 
       if (thisWeekWorkouts.length === 0) continue
 

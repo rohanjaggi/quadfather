@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withUser, badRequest, conflict } from '@/lib/api-handler'
+import { DEFAULT_BODYWEIGHT_KG } from '@/lib/constants'
 import {
   getValidStravaToken,
   fetchAllStravaActivities,
@@ -92,7 +93,7 @@ export const POST = withUser(async (request, user) => {
     newRuns.push({
       user_id: user.id,
       added_to_allowance: true,
-      ...stravaActivityToRunData(activity),
+      ...stravaActivityToRunData(activity, user.weight_kg ?? DEFAULT_BODYWEIGHT_KG),
     })
   })
 

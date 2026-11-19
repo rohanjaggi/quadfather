@@ -40,9 +40,13 @@ export const GET = withUser(async (request, user) => {
     })
   }
 
+  // Runs in the 5K/10K window differ in length by up to 300m, so rank by pace.
+  const byPace = (a: (typeof runs)[number], b: (typeof runs)[number]) =>
+    a.duration_seconds / a.distance_meters - b.duration_seconds / b.distance_meters
+
   const fiveKRuns = runs.filter(r => r.distance_meters >= 4900 && r.distance_meters <= 5200)
   if (fiveKRuns.length > 0) {
-    const fastest5k = [...fiveKRuns].sort((a, b) => a.duration_seconds - b.duration_seconds)[0]
+    const fastest5k = [...fiveKRuns].sort(byPace)[0]
     prs.push({
       label: 'Fastest 5K',
       value: formatDuration(fastest5k.duration_seconds),
@@ -53,7 +57,7 @@ export const GET = withUser(async (request, user) => {
 
   const tenKRuns = runs.filter(r => r.distance_meters >= 9800 && r.distance_meters <= 10200)
   if (tenKRuns.length > 0) {
-    const fastest10k = [...tenKRuns].sort((a, b) => a.duration_seconds - b.duration_seconds)[0]
+    const fastest10k = [...tenKRuns].sort(byPace)[0]
     prs.push({
       label: 'Fastest 10K',
       value: formatDuration(fastest10k.duration_seconds),

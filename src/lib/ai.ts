@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI, ThinkingLevel, type ThinkingConfig } from "@google/genai";
 import { getModelForProvider, type AIProvider } from "@/lib/models";
+import { ApiError } from "@/lib/api-handler";
 
 const VISION_PROMPT = `Estimate the nutritional content of the food shown.
 
@@ -278,18 +279,18 @@ export function extractJsonBlock(text: string, kind: "object" | "array"): string
  */
 export function parseJsonObject(raw: string): Record<string, unknown> {
   const cleaned = cleanJson(raw);
-  if (!cleaned) throw new Error("AI returned an empty response");
+  if (!cleaned) throw new ApiError(422, "The AI returned an empty answer — try again");
 
   const block = extractJsonBlock(cleaned, "object");
-  if (!block) throw new Error("Failed to parse AI response");
+  if (!block) throw new ApiError(422, "Failed to parse AI response");
 
   let data: unknown;
   try {
     data = JSON.parse(block);
   } catch {
-    throw new Error("Failed to parse AI response");
+    throw new ApiError(422, "Failed to parse AI response");
   }
-  if (!isRecord(data)) throw new Error("AI returned an unexpected format");
+  if (!isRecord(data)) throw new ApiError(422, "AI returned an unexpected format");
   return data;
 }
 
@@ -314,7 +315,7 @@ function parseAnalysisResponse(raw: string): MealAnalysisResult {
       ? String(data.food_name).trim()
       : "";
   if (!foodName) {
-    throw new Error("AI response missing fields: food_name");
+    throw new ApiError(422, "Couldn't read a meal from that answer — try again");
   }
 
   const requiredMacros: [string, number | null][] = [
@@ -325,7 +326,8 @@ function parseAnalysisResponse(raw: string): MealAnalysisResult {
   ];
   const invalid = requiredMacros.filter(([, v]) => v === null).map(([k]) => k);
   if (invalid.length > 0) {
-    throw new Error(
+    throw new ApiError(
+      422,
       `AI returned incomplete nutrition data: ${invalid.join(", ")}`,
     );
   }
@@ -344,9 +346,19 @@ function parseAnalysisResponse(raw: string): MealAnalysisResult {
   };
 }
 
+/** Meal-time label for a UTC hour, read on the Singapore clock (UTC+8). */
+export function sgtMealTimeLabel(utcHour: number): string {
+  const hour = (utcHour + 8) % 24;
+  return hour < 11 ? 'morning (breakfast/brunch time)'
+    : hour < 14 ? 'midday (lunch time)'
+    : hour < 17 ? 'afternoon (snack time)'
+    : hour < 21 ? 'evening (dinner time)'
+    : 'late night (light snack time)';
+}
+
 function parseSuggestionsResponse(raw: string): MealSuggestion[] {
   const cleaned = cleanJson(raw);
-  if (!cleaned) throw new Error("AI returned an empty response");
+  if (!cleaned) throw new ApiError(422, "The AI returned an empty answer — try again");
 
   let parsed: unknown;
 
@@ -385,7 +397,7 @@ function parseSuggestionsResponse(raw: string): MealSuggestion[] {
   }
 
   if (!Array.isArray(parsed)) {
-    throw new Error("AI returned an unexpected format");
+    throw new ApiError(422, "AI returned an unexpected format");
   }
 
   return parsed.filter(isRecord).map((s) => ({
@@ -738,12 +750,7 @@ export async function suggestMeals(
     ? `\nThe user exercised today, earning ~${Math.round(exerciseToday)} extra kcal (this credit is already reflected in the remaining budget above — do not add it again).`
     : '';
 
-  const hour = new Date().getUTCHours() + 8;
-  const timeOfDay = hour < 11 ? 'morning (breakfast/brunch time)'
-    : hour < 14 ? 'midday (lunch time)'
-    : hour < 17 ? 'afternoon (snack time)'
-    : hour < 21 ? 'evening (dinner time)'
-    : 'late night (light snack time)';
+  const timeOfDay = sgtMealTimeLabel(new Date().getUTCHours());
 
   const prompt = fillTemplate(SUGGEST_PROMPT, {
     calories: String(Math.round(remainingCalories)),
@@ -925,7 +932,7 @@ Convert all units to metric (meters, seconds, min/km).`
   ]
   for (const [key, value] of required) {
     if (value === null) {
-      throw new Error(`AI response missing or invalid field: ${key}`)
+      throw new ApiError(422, "Couldn't read a run from that image — try a clearer screenshot")
     }
   }
 
@@ -1087,7 +1094,7 @@ export async function parseWorkoutText(
     .filter((ex) => ex.exercise_name.length > 0 && ex.sets.length > 0);
 
   if (!data.name || exercises.length === 0) {
-    throw new Error("AI response missing name or exercises");
+    throw new ApiError(422, "Couldn't find a workout in that text — add exercises with sets and reps");
   }
 
   return {
@@ -1164,7 +1171,7 @@ export async function generateWorkoutAnalysis(
     typeof data.volume_comparison === 'string' ? data.volume_comparison.trim() : '';
   const takeaway = typeof data.takeaway === 'string' ? data.takeaway.trim() : '';
   if (!volumeComparison || !takeaway) {
-    throw new Error('AI returned an invalid analysis');
+    throw new ApiError(422, 'The AI returned an unusable analysis — try again');
   }
 
   return {

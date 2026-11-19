@@ -2,7 +2,7 @@ import type { StepLog, User } from '@prisma/client'
 import { prisma } from './prisma'
 import { generateDailyCoach, generateWeeklyInsights } from './ai'
 import { parseJsonStringArray } from './api-handler'
-import type { DailyBudgetResult } from './budget'
+import { sumMacros, type DailyBudgetResult } from './budget'
 import { addDays, dayKey, dayRange } from './day'
 import type { AICredentials } from './models'
 
@@ -170,11 +170,12 @@ export async function buildWeeklyInsights(user: User, ai: AICredentials): Promis
     const dateStr = addDays(today, -i)
     const dayFood = foodLogs.filter(l => dayKey(l.logged_at) === dateStr)
     const dayWater = waterLogs.filter(l => dayKey(l.logged_at) === dateStr)
+    const m = sumMacros(dayFood)
 
     days.push({
       date: dateStr,
-      calories: Math.round(dayFood.reduce((s, l) => s + (l.calories ?? 0), 0)),
-      protein: Math.round(dayFood.reduce((s, l) => s + (l.protein ?? 0), 0)),
+      calories: Math.round(m.calories),
+      protein: Math.round(m.protein),
       water: dayWater.reduce((s, l) => s + l.amount_liters, 0),
     })
   }

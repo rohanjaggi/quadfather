@@ -1,4 +1,4 @@
-import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, GoalsUpdateResult, PersonalUpdate, MealAnalysis, MealSuggestion, SavedFood, SavedFoodCreate, AnalyticsResponse } from '@/types/api'
+import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, PersonalUpdate, MealAnalysis, MealSuggestion, SavedFood, SavedFoodCreate, AnalyticsResponse } from '@/types/api'
 
 /**
  * The signed `initData` blob every request authenticates with, read straight
@@ -65,17 +65,14 @@ export const deleteFood = (id: number) => apiFetch<void>(`/foods/${id}`, { metho
 export const getWaterLogs = () => apiFetch<WaterLog[]>('/water')
 export const logWater = (data: WaterLogCreate) => apiFetch<WaterLog>('/water', { method: 'POST', body: JSON.stringify(data) })
 export const deleteWater = (id: number) => apiFetch<void>(`/water/${id}`, { method: 'DELETE' })
-// All three below are the same `PUT /users/me/goals` route and so must share
-// one return type — they used to claim three different ones, none of which
-// matched the body the route actually sends (it is not a `User`). No caller
-// reads the result; they all re-fetch the user instead.
-export const updateGoals = (data: GoalsUpdate) => apiFetch<GoalsUpdateResult>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
-export const updatePersonal = (data: PersonalUpdate) => apiFetch<GoalsUpdateResult>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
+// All three are the same `PUT /users/me/goals`, which answers 204.
+export const updateGoals = (data: GoalsUpdate) => apiFetch<void>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
+export const updatePersonal = (data: PersonalUpdate) => apiFetch<void>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
 
 export const updateCoachingPrefs = (data: {
   ai_features_enabled?: boolean
   ai_coaching_prefs?: Record<string, boolean>
-}) => apiFetch<GoalsUpdateResult>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
+}) => apiFetch<void>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
 
 export const getSavedFoods = () => apiFetch<SavedFood[]>('/foods/saved')
 export const saveFood = (data: SavedFoodCreate) => apiFetch<SavedFood>('/foods/saved', { method: 'POST', body: JSON.stringify(data) })

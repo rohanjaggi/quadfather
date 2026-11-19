@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withUser, optionalInt } from "@/lib/api-handler";
-import { dayKey, daysAgoStart } from "@/lib/day";
+import { sumMacros } from "@/lib/budget";
+import { addDays, dayKey, daysAgoStart } from "@/lib/day";
 
 export const GET = withUser(async (request, user) => {
   // `?days=abc` used to be NaN, which passed the `< 1 || > 90` check and then
@@ -10,7 +11,8 @@ export const GET = withUser(async (request, user) => {
     optionalInt(request.nextUrl.searchParams.get("days"), "days", { min: 1, max: 90 }) ?? 7;
 
   const start = daysAgoStart(days - 1);
-  const keys = Array.from({ length: days }, (_, i) => dayKey(daysAgoStart(days - 1 - i)));
+  const today = dayKey();
+  const keys = Array.from({ length: days }, (_, i) => addDays(today, i - (days - 1)));
 
   // Two queries for the whole range instead of two per day: `?days=90` used to
   // issue 180 round-trips to render one chart.
@@ -33,31 +35,16 @@ export const GET = withUser(async (request, user) => {
   const result = keys.map((date) => {
     const dayFood = foodByDay.get(date) ?? [];
     const dayWater = waterByDay.get(date) ?? [];
+    const m = sumMacros(dayFood);
+    const tenth = (v: number) => Math.round(v * 10) / 10;
     return {
       date,
-      calories: Math.round(
-        dayFood.reduce((s, l) => s + (l.calories ?? 0), 0),
-      ),
-      protein:
-        Math.round(
-          dayFood.reduce((s, l) => s + (l.protein ?? 0), 0) * 10,
-        ) / 10,
-      carbohydrates:
-        Math.round(
-          dayFood.reduce((s, l) => s + (l.carbohydrates ?? 0), 0) * 10,
-        ) / 10,
-      fats:
-        Math.round(
-          dayFood.reduce((s, l) => s + (l.fats ?? 0), 0) * 10,
-        ) / 10,
-      fiber:
-        Math.round(
-          dayFood.reduce((s, l) => s + (l.fiber ?? 0), 0) * 10,
-        ) / 10,
-      water:
-        Math.round(
-          dayWater.reduce((s, l) => s + l.amount_liters, 0) * 100,
-        ) / 100,
+      calories: Math.round(m.calories),
+      protein: tenth(m.protein),
+      carbohydrates: tenth(m.carbohydrates),
+      fats: tenth(m.fats),
+      fiber: tenth(m.fiber),
+      water: Math.round(dayWater.reduce((s, l) => s + l.amount_liters, 0) * 100) / 100,
       meals_logged: dayFood.length,
     };
   });

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getUserAICredentials } from '@/lib/auth'
+import { findUserAICredentials } from '@/lib/auth'
 import type { AICredentials } from '@/lib/models'
 import { generateSuggestion } from '@/lib/progress'
 import {
@@ -87,11 +87,10 @@ export const GET = withUser(async (request, user) => {
   })
 
   // Resolved before the key is built, because the prediction depends on the
-  // provider and model too. A missing key throws here; the AI block below
-  // re-raises it into the deterministic fallback.
+  // provider and model too. A key that can't be decrypted counts as no key.
   let credentials: AICredentials | null = null
   try {
-    credentials = getUserAICredentials(user)
+    credentials = findUserAICredentials(user)
   } catch {
     credentials = null
   }
@@ -148,7 +147,7 @@ export const GET = withUser(async (request, user) => {
 
   let prediction: PredictionResponse
   try {
-    if (!credentials) throw new Error('No API key configured. Set one up in Settings.')
+    if (!credentials) throw new Error('no AI credentials')
 
     const prompt = buildPredictPrompt(exerciseName, user, snapshot, history, heaviest)
     const raw = await callModel(credentials, prompt, MAX_TOKENS_JSON)

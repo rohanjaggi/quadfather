@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { computeDailyBudget, type BudgetUser } from './budget'
+import { computeDailyBudget, sumMacros, type BudgetUser } from './budget'
 
 const user = {
   id: 1,
@@ -71,4 +71,14 @@ test('steps above baseline add to the goal', () => {
   assert.equal(b.steps_credit, 120) // (10000-7000)*0.04
   assert.equal(b.total_goal, 2120)
   assert.equal(b.steps, 10_000)
+})
+
+test('sumMacros totals each macro and treats null as 0', () => {
+  const row = (calories: number | null, protein: number | null, fiber: number | null) => ({
+    calories, protein, carbohydrates: 10, fats: 1.5, fiber,
+  })
+  assert.deepEqual(sumMacros([row(100, 5, null), row(null, 2.5, 3)]), {
+    calories: 100, protein: 7.5, carbohydrates: 20, fats: 3, fiber: 3,
+  })
+  assert.deepEqual(sumMacros([]), { calories: 0, protein: 0, carbohydrates: 0, fats: 0, fiber: 0 })
 })

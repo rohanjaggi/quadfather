@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { ApiError, requireInt, parseDateParam, parseJsonStringArray, readImageUpload } from './api-handler'
+import { ApiError, nullable, requireInt, requireNumber, parseDateParam, parseJsonStringArray, readImageUpload } from './api-handler'
 
 test('requireInt accepts canonical integers', () => {
   assert.equal(requireInt('42', 'id'), 42)
@@ -58,4 +58,19 @@ test('readImageUpload rejects missing, unsupported, oversized and non-multipart 
   const big = new File([new Uint8Array(4 * 1024 * 1024 + 1)], 'big.jpg', { type: 'image/jpeg' })
   await assert.rejects(readImageUpload(upload(big)), status(413))
   await assert.rejects(readImageUpload(new Request('http://test/', { method: 'POST', body: 'nope' })), status(400))
+})
+
+test('requireNumber shares the min/max check with requireInt', () => {
+  assert.equal(requireNumber('1.5', 'w', { min: 1, max: 2 }), 1.5)
+  assert.throws(() => requireNumber(0.5, 'w', { min: 1 }), /w must be ≥ 1/)
+  assert.throws(() => requireNumber(3, 'w', { max: 2 }), /w must be ≤ 2/)
+  assert.throws(() => requireNumber('x', 'w'), /w must be a number/)
+})
+
+test('nullable distinguishes absent, cleared and supplied', () => {
+  const parse = (v: unknown) => String(v).toUpperCase()
+  assert.equal(nullable({}, 'k', parse), undefined)
+  assert.equal(nullable({ k: null }, 'k', parse), null)
+  assert.equal(nullable({ k: '' }, 'k', parse), null)
+  assert.equal(nullable({ k: 'a' }, 'k', parse), 'A')
 })

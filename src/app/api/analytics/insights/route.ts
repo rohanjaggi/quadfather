@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getUserAICredentials } from "@/lib/auth";
 import { generateTrendsCoach } from "@/lib/ai";
 import { callAIProvider, withUser, optionalInt, parseJsonStringArray } from "@/lib/api-handler";
-import { dayKey, daysAgoStart } from "@/lib/day";
+import { sumMacros } from "@/lib/budget";
+import { addDays, dayKey, daysAgoStart } from "@/lib/day";
 
 export const GET = withUser(async (request, user) => {
   const ai = getUserAICredentials(user);
@@ -19,6 +20,7 @@ export const GET = withUser(async (request, user) => {
   // The `period` *complete* previous days: [day-period 00:00, today 00:00).
   // Today is excluded (still in progress); the exercise window matches the
   // food window exactly instead of running one day longer.
+  const today = dayKey();
   const todayStart = daysAgoStart(0);
   const start = daysAgoStart(period);
 
@@ -43,17 +45,18 @@ export const GET = withUser(async (request, user) => {
 
   const days: { date: string; calories: number; protein: number; carbs: number; fats: number; fiber: number; water: number; meals_logged: number }[] = [];
   for (let i = period; i >= 1; i--) {
-    const dateStr = dayKey(daysAgoStart(i));
+    const dateStr = addDays(today, -i);
     const dayFood = foodLogs.filter(l => dayKey(l.logged_at) === dateStr);
     const dayWater = waterLogs.filter(l => dayKey(l.logged_at) === dateStr);
 
+    const m = sumMacros(dayFood);
     days.push({
       date: dateStr,
-      calories: Math.round(dayFood.reduce((s, l) => s + (l.calories ?? 0), 0)),
-      protein: Math.round(dayFood.reduce((s, l) => s + (l.protein ?? 0), 0)),
-      carbs: Math.round(dayFood.reduce((s, l) => s + (l.carbohydrates ?? 0), 0)),
-      fats: Math.round(dayFood.reduce((s, l) => s + (l.fats ?? 0), 0)),
-      fiber: Math.round(dayFood.reduce((s, l) => s + (l.fiber ?? 0), 0)),
+      calories: Math.round(m.calories),
+      protein: Math.round(m.protein),
+      carbs: Math.round(m.carbohydrates),
+      fats: Math.round(m.fats),
+      fiber: Math.round(m.fiber),
       water: dayWater.reduce((s, l) => s + l.amount_liters, 0),
       meals_logged: dayFood.length,
     });

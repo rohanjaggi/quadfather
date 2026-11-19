@@ -7,6 +7,7 @@ import {
   withUser,
 } from "@/lib/api-handler";
 import { dayRange } from "@/lib/day";
+import { WATER_LOG_SELECT } from "@/lib/selects";
 
 /** Sanity ceilings — a single log is one drink, not a day's intake. */
 const MAX_LITERS = 10;
@@ -16,17 +17,10 @@ export const GET = withUser(async (request, user) => {
   const logs = await prisma.waterLog.findMany({
     where: { user_id: user.id, logged_at: { gte: dayRange().start } },
     orderBy: { logged_at: "desc" },
+    select: WATER_LOG_SELECT,
   });
 
-  return NextResponse.json(
-    logs.map((log) => ({
-      id: log.id,
-      amount_liters: log.amount_liters,
-      bottles: log.bottles,
-      water_bottle_size: log.water_bottle_size,
-      logged_at: log.logged_at.toISOString(),
-    })),
-  );
+  return NextResponse.json(logs);
 });
 
 export const POST = withUser(async (request, user) => {
@@ -64,16 +58,8 @@ export const POST = withUser(async (request, user) => {
       bottles,
       water_bottle_size: bottleSize,
     },
+    select: WATER_LOG_SELECT,
   });
 
-  return NextResponse.json(
-    {
-      id: log.id,
-      amount_liters: log.amount_liters,
-      bottles: log.bottles,
-      water_bottle_size: log.water_bottle_size,
-      logged_at: log.logged_at.toISOString(),
-    },
-    { status: 201 },
-  );
+  return NextResponse.json(log, { status: 201 });
 });

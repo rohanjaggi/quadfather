@@ -13,6 +13,7 @@ import {
   withUser,
 } from "@/lib/api-handler";
 import { dayKey, dayRange } from "@/lib/day";
+import { FOOD_LOG_SELECT, foodLogRow } from "@/lib/selects";
 
 /** `FoodLog.food_name` is `VarChar(100)`, `source` is `VarChar(20)`. */
 const MAX_NAME = 100;
@@ -27,23 +28,10 @@ export const GET = withUser(async (request, user) => {
   const logs = await prisma.foodLog.findMany({
     where: { user_id: user.id, logged_at: { gte: start, lt: end } },
     orderBy: { logged_at: "desc" },
+    select: FOOD_LOG_SELECT,
   });
 
-  return NextResponse.json(
-    logs.map((log) => ({
-      id: log.id,
-      food_name: log.food_name,
-      servings: log.servings,
-      calories: log.calories,
-      protein: log.protein,
-      carbohydrates: log.carbohydrates,
-      fats: log.fats,
-      fiber: log.fiber ?? 0,
-      source: log.source,
-      saved_food_id: log.saved_food_id,
-      logged_at: log.logged_at.toISOString(),
-    })),
-  );
+  return NextResponse.json(logs.map(foodLogRow));
 });
 
 export const POST = withUser(async (request, user) => {
@@ -86,22 +74,8 @@ export const POST = withUser(async (request, user) => {
       source:
         optionalString(body.source, "source")?.trim().slice(0, MAX_SOURCE) || "manual",
     },
+    select: FOOD_LOG_SELECT,
   });
 
-  return NextResponse.json(
-    {
-      id: log.id,
-      food_name: log.food_name,
-      servings: log.servings,
-      calories: log.calories,
-      protein: log.protein,
-      carbohydrates: log.carbohydrates,
-      fats: log.fats,
-      fiber: log.fiber ?? 0,
-      source: log.source,
-      saved_food_id: log.saved_food_id,
-      logged_at: log.logged_at.toISOString(),
-    },
-    { status: 201 },
-  );
+  return NextResponse.json(foodLogRow(log), { status: 201 });
 });

@@ -17,6 +17,10 @@ test('dayRange is [00:00 SGT, next 00:00 SGT)', () => {
   assert.equal(dayKey(end), '2026-11-21')
 })
 
+test('dayKey reads a UTC-midnight date as that same calendar day', () => {
+  assert.equal(dayKey(new Date('2026-11-20')), '2026-11-20')
+})
+
 test('addDays crosses month and leap-day boundaries', () => {
   assert.equal(addDays('2028-02-28', 1), '2028-02-29')
   assert.equal(addDays('2026-03-01', -1), '2026-02-28')

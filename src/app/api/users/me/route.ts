@@ -15,7 +15,7 @@ export const GET = withUser(async (request, user) => {
       calories: {
         total: food.calories,
         goal: budget.total_goal,
-        remaining: Math.round(budget.remaining * 10) / 10,
+        remaining: r(budget.remaining),
       },
       protein: {
         total: food.protein,
@@ -41,7 +41,7 @@ export const GET = withUser(async (request, user) => {
     water: {
       total: totalWater,
       goal: user.daily_water_goal,
-      remaining: Math.round((user.daily_water_goal - totalWater) * 10) / 10,
+      remaining: r(user.daily_water_goal - totalWater),
     },
     steps: {
       total: budget.steps,
@@ -49,7 +49,7 @@ export const GET = withUser(async (request, user) => {
       extra_allowance: budget.steps_credit,
     },
     meals_logged: food.meals_logged,
-    exercise_burn: Math.round(budget.exercise_burn),
+    exercise_burn: budget.exercise_burn,
     budget: {
       base: budget.base,
       runs_raw: Math.round(budget.runs_raw),

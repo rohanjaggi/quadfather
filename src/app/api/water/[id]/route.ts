@@ -6,12 +6,8 @@ export const DELETE = withUser<{ params: { id: string } }>(
   async (request, user, { params }) => {
     const logId = requireInt(params.id, "id", { min: 1 });
 
-    const log = await prisma.waterLog.findFirst({
-      where: { id: logId, user_id: user.id },
-    });
-    if (!log) throw notFound("Water log not found");
-
-    await prisma.waterLog.delete({ where: { id: logId } });
+    const { count } = await prisma.waterLog.deleteMany({ where: { id: logId, user_id: user.id } });
+    if (count === 0) throw notFound("Water log not found");
     return new NextResponse(null, { status: 204 });
   },
 );

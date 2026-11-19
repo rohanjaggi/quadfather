@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
+import { ApiError } from './api-error'
 
 const TOKEN = 'test-bot-token'
 process.env.BOTFATHER_TOKEN = TOKEN
@@ -19,6 +20,9 @@ function sign(fields: Record<string, string>, token = TOKEN): string {
 const user = { id: 42, username: 'rj', first_name: 'R' }
 const fresh = () => ({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify(user) })
 
+const unauthorized = (message: RegExp) => (e: unknown) =>
+  e instanceof ApiError && e.status === 401 && message.test(e.message)
+
 async function load() {
   return (await import('./auth')).verifyTelegramAuth
 }
@@ -32,23 +36,23 @@ test('tampered hash fails', async () => {
   const verify = await load()
   const good = sign(fresh())
   const bad = good.replace(/hash=[0-9a-f]/, m => m.slice(0, -1) + (m.endsWith('0') ? '1' : '0'))
-  assert.throws(() => verify(bad), /Invalid initData signature/)
+  assert.throws(() => verify(bad), unauthorized(/Invalid initData signature/))
 })
 
-test('mismatched-length hash throws a plain error', async () => {
+test('mismatched-length hash is a 401', async () => {
   const verify = await load()
   const params = new URLSearchParams(sign(fresh()))
   params.set('hash', 'abc')
-  assert.throws(() => verify(params.toString()), /Invalid initData signature/)
+  assert.throws(() => verify(params.toString()), unauthorized(/Invalid initData signature/))
 })
 
 test('missing hash fails', async () => {
   const verify = await load()
-  assert.throws(() => verify(new URLSearchParams(fresh()).toString()), /Missing hash/)
+  assert.throws(() => verify(new URLSearchParams(fresh()).toString()), unauthorized(/Missing hash/))
 })
 
 test('auth_date older than 24h fails', async () => {
   const verify = await load()
   const old = String(Math.floor(Date.now() / 1000) - 86_400 - 60)
-  assert.throws(() => verify(sign({ ...fresh(), auth_date: old })), /expired/)
+  assert.throws(() => verify(sign({ ...fresh(), auth_date: old })), unauthorized(/expired/))
 })

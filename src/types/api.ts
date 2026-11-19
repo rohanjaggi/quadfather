@@ -149,41 +149,6 @@ export interface GoalsUpdate {
   water_bottle_size?: number
 }
 
-/**
- * What `PUT /users/me/goals` actually sends back — notably *not* a `User`.
- * `personal` is omitted entirely until a sex has been recorded, and every
- * dimension inside it is nullable.
- *
- * No caller reads this today (they all re-fetch the user instead); it exists so
- * the three wrappers hitting this one route can't drift back into claiming
- * three different, wrong shapes.
- */
-export interface GoalsUpdateResult {
-  message: string
-  goals: {
-    daily_calorie_goal: number
-    daily_protein_goal: number
-    daily_carbs_goal: number
-    daily_fats_goal: number
-    daily_fiber_goal: number
-    daily_water_goal: number
-    daily_step_goal: number
-  }
-  personal?: {
-    sex: string
-    weight_kg: number | null
-    height_cm: number | null
-    age: number | null
-    activity_level: string | null
-    fitness_goal: string | null
-  }
-  water_bottle_size: number
-  dietary_restrictions: string[]
-  ai_features_enabled: boolean
-  ai_coaching_prefs?: Partial<CoachingPrefs>
-  training_focus: string | null
-}
-
 export interface PersonalUpdate {
   sex?: string
   weight_kg?: number

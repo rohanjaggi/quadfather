@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withUser, optionalInt } from '@/lib/api-handler'
 import { EXERCISE_DAMPENING } from '@/lib/constants'
-import { dayKey, daysAgoStart } from '@/lib/day'
+import { addDays, dayKey, daysAgoStart } from '@/lib/day'
 
 export const GET = withUser(async (request, user) => {
   // `?days=abc` used to parse to NaN, which slips through `days < 1 || days > 90`
@@ -10,6 +10,7 @@ export const GET = withUser(async (request, user) => {
   const days =
     optionalInt(request.nextUrl.searchParams.get('days'), 'days', { min: 1, max: 90 }) ?? 7
 
+  const today = dayKey()
   const runs = await prisma.runLog.findMany({
     where: {
       user_id: user.id,
@@ -36,7 +37,7 @@ export const GET = withUser(async (request, user) => {
   const result = []
 
   for (let i = days - 1; i >= 0; i--) {
-    const dateKey = dayKey(daysAgoStart(i))
+    const dateKey = addDays(today, -i)
     const dayRuns = byDate.get(dateKey) ?? []
 
     const dayDistance = dayRuns.reduce((s, r) => s + r.distance_meters, 0)

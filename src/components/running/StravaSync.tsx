@@ -5,7 +5,26 @@ import { useUser } from '@/context/UserContext'
 import { syncStravaRuns } from '@/lib/api'
 import { errorMessage, errorStatus } from '@/lib/errors'
 
-export default function StravaSync() {
+export type StravaSyncResult = Awaited<ReturnType<typeof syncStravaRuns>>
+
+export interface StravaState {
+  connected: boolean
+  syncing: boolean
+  /** "5m ago", "just now", or null when it has never synced. */
+  lastSynced: string | null
+  error: string | null
+  /** Tokens stored, but the granted scope has no activity read (409). */
+  needsReconnect: boolean
+  /** Resolves to the sync result, or null when it failed or one was already running. */
+  sync: () => Promise<StravaSyncResult | null>
+}
+
+/**
+ * Strava sync state for the Runs page: syncs once on mount when connected,
+ * and exposes `sync` for the log sheet's "Sync from Strava" row. Call it once
+ * per page so the auto-sync only fires once.
+ */
+export function useStravaSync(): StravaState {
   const { user, refresh, refreshUser } = useUser()
   const [syncing, setSyncing] = useState(false)
   const [autoSynced, setAutoSynced] = useState(false)
@@ -19,8 +38,8 @@ export default function StravaSync() {
   // synchronously, so the second caller actually sees the first.
   const syncingRef = useRef(false)
 
-  const doSync = useCallback(async () => {
-    if (syncingRef.current) return
+  const sync = useCallback(async (): Promise<StravaSyncResult | null> => {
+    if (syncingRef.current) return null
     syncingRef.current = true
     setSyncing(true)
     setSyncError(null)
@@ -36,11 +55,13 @@ export default function StravaSync() {
       } catch (e) {
         console.error('Failed to refresh user after Strava sync:', e)
       }
+      return result
     } catch (e) {
       console.error('Strava sync failed:', e)
       // 409 = tokens stored, but the granted scope has no activity read.
       setNeedsReconnect(errorStatus(e) === 409)
-      setSyncError(errorMessage(e, 'Strava sync failed'))
+      setSyncError(errorMessage(e, "Couldn't sync Strava. Try again in a moment."))
+      return null
     } finally {
       syncingRef.current = false
       setSyncing(false)
@@ -50,70 +71,20 @@ export default function StravaSync() {
   useEffect(() => {
     if (user?.strava_connected && !autoSynced) {
       setAutoSynced(true)
-      doSync()
+      sync()
     }
-  }, [user?.strava_connected, autoSynced, doSync])
+  }, [user?.strava_connected, autoSynced, sync])
 
-  if (!user?.strava_connected) return null
+  const syncTime = lastSyncedAt ?? user?.strava_last_synced_at ?? null
 
-  const syncTime = lastSyncedAt ?? user.strava_last_synced_at
-  const lastSynced = syncTime
-    ? formatRelativeTime(new Date(syncTime))
-    : 'Never'
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 14px', borderRadius: '12px',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
-            width: 7, height: 7, borderRadius: '50%',
-            backgroundColor: '#FC4C02',
-          }} />
-          <span style={{
-            fontFamily: 'var(--font-display)', fontSize: '12px',
-            color: 'var(--tg-theme-hint-color)',
-          }}>
-            {syncing ? 'Syncing...' : `Synced ${lastSynced}`}
-          </span>
-        </div>
-        <button
-          onClick={doSync}
-          disabled={syncing}
-          aria-label={syncing ? 'Syncing Strava runs' : 'Sync Strava runs'}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 28, height: 28, borderRadius: '8px',
-            border: 'none', backgroundColor: 'transparent',
-            color: 'var(--tg-theme-hint-color)', cursor: 'pointer',
-            opacity: syncing ? 0.5 : 1,
-            transition: 'opacity 0.2s',
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }}>
-            <polyline points="23 4 23 10 17 10" />
-            <polyline points="1 20 1 14 7 14" />
-            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
-          </svg>
-        </button>
-      </div>
-
-      {syncError && (
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '11px', lineHeight: 1.4,
-          color: 'var(--accent-calories)', padding: '0 4px',
-        }}>
-          {syncError}
-          {needsReconnect && ' — Reconnect Strava in Settings → Strava'}
-        </p>
-      )}
-    </div>
-  )
+  return {
+    connected: !!user?.strava_connected,
+    syncing,
+    lastSynced: syncTime ? formatRelativeTime(new Date(syncTime)) : null,
+    error: syncError,
+    needsReconnect,
+    sync,
+  }
 }
 
 function formatRelativeTime(date: Date): string {

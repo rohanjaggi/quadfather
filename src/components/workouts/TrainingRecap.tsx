@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { getWorkoutRecap } from '@/lib/api'
-import { errorMessage } from '@/lib/errors'
+import { AiWorking, ErrorRetry, friendlyError } from './bits'
 
 interface Props {
   period: 7 | 30
@@ -31,7 +31,7 @@ export default function TrainingRecap({ period, workoutCount }: Props) {
       })
       // `err.message` is the raw `API 500: {"detail":"…"}` thrown by `apiFetch`;
       // `errorMessage` unwraps it to the part worth showing.
-      .catch(err => { if (requestId.current === id) setError(errorMessage(err, 'Failed to generate recap')) })
+      .catch(err => { if (requestId.current === id) setError(friendlyError(err, 'Couldn’t write your recap just now.')) })
       .finally(() => { if (requestId.current === id) setLoading(false) })
   }
 
@@ -46,80 +46,28 @@ export default function TrainingRecap({ period, workoutCount }: Props) {
 
   if (workoutCount === 0) return null
 
+  const span = period === 7 ? 'week' : '30 days'
+
   return (
-    <SummaryCard title="AI Training Recap">
-      {recap ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <p style={{
-            fontFamily: 'var(--font-display)', fontSize: '14px',
-            lineHeight: '1.6', color: 'var(--tg-theme-text-color)',
-          }}>
-            {recap}
-          </p>
-          <button
-            onClick={fetchRecap}
-            disabled={loading}
-            style={{
-              alignSelf: 'center', background: 'none',
-              border: '1px solid var(--surface-border)', padding: '8px 18px',
-              borderRadius: '99px', fontFamily: 'var(--font-display)',
-              fontSize: '11px', color: 'var(--tg-theme-hint-color)', cursor: 'pointer',
-            }}
-          >
-            Regenerate
+    <SummaryCard title="Training recap">
+      {loading ? (
+        <AiWorking label={`Reading your last ${span}…`} height={72} />
+      ) : recap ? (
+        <>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: 'var(--ink)', whiteSpace: 'pre-line' }}>{recap}</p>
+          <button type="button" className="btn-ghost" onClick={fetchRecap} style={{ marginTop: 6, marginLeft: -14 }}>
+            Write a fresh one
           </button>
-        </div>
-      ) : loading ? (
-        <div style={{ padding: '24px 0', textAlign: 'center' }}>
-          <div style={{
-            width: '20px', height: '20px', margin: '0 auto 10px',
-            border: '2px solid var(--surface-border)',
-            borderTopColor: 'var(--accent)',
-            borderRadius: '50%', animation: 'spin 0.7s linear infinite',
-          }} />
-          <p style={{
-            fontFamily: 'var(--font-display)', fontSize: '12px',
-            color: 'var(--tg-theme-hint-color)',
-          }}>
-            Analyzing your {period}-day training...
-          </p>
-        </div>
+        </>
       ) : error ? (
-        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-          <p style={{
-            fontFamily: 'var(--font-display)', fontSize: '12px',
-            color: 'var(--accent-calories)', marginBottom: '10px',
-          }}>
-            {error}
-          </p>
-          <button
-            onClick={fetchRecap}
-            style={{
-              background: 'none', border: '1px solid var(--surface-border)',
-              padding: '8px 18px', borderRadius: '99px',
-              fontFamily: 'var(--font-display)', fontSize: '11px',
-              color: 'var(--tg-theme-hint-color)', cursor: 'pointer',
-            }}
-          >
-            Try again
-          </button>
-        </div>
+        <ErrorRetry message={error} onRetry={fetchRecap} />
       ) : (
-        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-          <p style={{
-            fontFamily: 'var(--font-display)', fontSize: '12px',
-            color: 'var(--tg-theme-hint-color)', marginBottom: '12px',
-          }}>
-            Get AI-powered feedback on your {period}-day training
+        <>
+          <p style={{ margin: '0 0 12px', fontSize: 15, color: 'var(--muted)' }}>
+            A short read on your last {span} of training, written from your own sessions.
           </p>
-          <button
-            onClick={fetchRecap}
-            className="btn-primary"
-            style={{ width: 'auto', padding: '10px 24px', borderRadius: '99px', fontSize: '12px' }}
-          >
-            Get Recap
-          </button>
-        </div>
+          <button type="button" className="btn-secondary" onClick={fetchRecap}>Get my recap</button>
+        </>
       )}
     </SummaryCard>
   )

@@ -1,105 +1,155 @@
 'use client'
 
+import { useCallback, useState } from 'react'
 import Link from 'next/link'
-import SavedFoodCard from '@/components/food/SavedFoodCard'
-import SummaryCard from '@/components/dashboard/SummaryCard'
+import PageHeader from '@/components/ui/PageHeader'
+import Sheet from '@/components/ui/Sheet'
+import ManualFoodForm, { type FoodValues } from '@/components/food/ManualFoodForm'
+import { savedFoodLog } from '@/components/food/SavedFoodsCard'
+import { macroLine } from '@/components/food/meals'
 import { useUser } from '@/context/UserContext'
+import { useHaptic } from '@/components/telegram'
+import { toast } from '@/components/ui/Toast'
+import { errorMessage } from '@/lib/errors'
+import { formatInt } from '@/lib/format'
 import type { SavedFood } from '@/types/api'
 
-export default function FavouritesPage() {
-  const { savedFoods, deleteSavedFood, logFood } = useUser()
+const caption: React.CSSProperties = { margin: 0, fontSize: 13, color: 'var(--muted)' }
 
-  async function handleQuickAdd(food: SavedFood) {
-    // `saved_food_id` links the log back to the favourite it came from, which
-    // is what the heart on each meal row reads — without it the row falls back
-    // to matching on the food name, so a rename or a duplicate name gets it
-    // wrong. `POST /api/foods` accepts and stores the field; it just isn't on
-    // `FoodLogCreate` yet, hence the separate object (an inline literal would
-    // trip the excess-property check).
-    const payload = {
-      food_name: food.name,
-      calories: food.calories,
-      protein: food.protein,
-      carbohydrates: food.carbohydrates,
-      fats: food.fats,
-      fiber: food.fiber,
-      source: food.source,
-      saved_food_id: food.id,
+export default function FavouritesPage() {
+  const { savedFoods, logFood } = useUser()
+  const haptic = useHaptic()
+  const [pendingId, setPendingId] = useState<number | null>(null)
+  const [openId, setOpenId] = useState<number | null>(null)
+  const close = useCallback(() => setOpenId(null), [])
+  const selected = savedFoods.find(f => f.id === openId) ?? null
+
+  async function handleLog(food: SavedFood) {
+    if (pendingId !== null) return
+    setPendingId(food.id)
+    haptic.impact('light')
+    try {
+      await logFood(savedFoodLog(food))
+      haptic.notification('success')
+      toast(`Logged · ${formatInt(food.calories)} kcal`, { type: 'success' })
+    } catch (err) {
+      haptic.notification('error')
+      toast(errorMessage(err, `Could not log ${food.name}`))
+    } finally {
+      setPendingId(null)
     }
-    await logFood(payload)
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div>
+      <PageHeader
+        title="Saved foods"
+        subtitle={savedFoods.length > 0 ? `${savedFoods.length} saved · tap one to edit` : undefined}
+        back={{ href: '/food', label: 'Food' }}
+      />
 
-      {/* Header */}
-      <div className="fade-up">
-        <Link href="/food" style={{
-          display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
-          marginBottom: '12px',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Food
-        </Link>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '32px',
-          fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
-        }}>
-          Favourites
-        </h1>
-      </div>
-
-      {/* List */}
-      <div className="fade-up fade-up-1">
-        <SummaryCard title={
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Saved Foods</span>
-            <span style={{
-              fontFamily: 'var(--font-display)', fontSize: '11px',
-              fontWeight: 400, color: 'var(--tg-theme-hint-color)',
-              letterSpacing: '0', textTransform: 'none',
-            }}>
-              {savedFoods.length} {savedFoods.length === 1 ? 'item' : 'items'}
-            </span>
-          </div>
-        }>
-          {savedFoods.length === 0 ? (
-            <div style={{ padding: '36px 0', textAlign: 'center' }}>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '22px',
-                fontWeight: 400, color: 'var(--tg-theme-hint-color)',
-                opacity: 0.6, marginBottom: '6px',
-              }}>
-                No favourites yet
-              </p>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '12px',
-                color: 'var(--tg-theme-hint-color)',
-              }}>
-                Heart a meal to save it here
-              </p>
+      {savedFoods.length === 0 ? (
+        <section className="card">
+          <p style={{ margin: 0, fontSize: 15, color: 'var(--muted)' }}>
+            Nothing saved yet. Describe or snap a meal, then tap &ldquo;Save to favourites&rdquo; on its estimate to keep it here.
+          </p>
+          <Link href="/food?mode=describe" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 12, textDecoration: 'none' }}>
+            Describe a meal
+          </Link>
+        </section>
+      ) : (
+        <section className="card" style={{ paddingTop: 6, paddingBottom: 6 }}>
+          {savedFoods.map((food, i) => (
+            <div key={food.id} style={{ display: 'flex', alignItems: 'center', gap: 12, borderTop: i ? '1px solid var(--line)' : 'none' }}>
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-label={`Edit ${food.name}`}
+                onClick={() => setOpenId(food.id)}
+                style={{ flex: 1, minWidth: 0, minHeight: 64, padding: '10px 0', border: 'none', background: 'none', textAlign: 'left', color: 'var(--ink)' }}
+              >
+                <span style={{ display: 'block', fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{food.name}</span>
+                <span style={{ ...caption, display: 'block', marginTop: 2 }}>{formatInt(food.calories)} kcal · {macroLine(food)}</span>
+              </button>
+              <button
+                type="button"
+                className="btn-pill"
+                data-active="true"
+                onClick={() => handleLog(food)}
+                disabled={pendingId !== null}
+                aria-label={`Log ${food.name}`}
+                style={{ flexShrink: 0, minHeight: 40 }}
+              >
+                {pendingId === food.id ? 'Logging…' : 'Log'}
+              </button>
             </div>
-          ) : (
-            <div>
-              {savedFoods.map((food, i) => (
-                <SavedFoodCard
-                  key={food.id}
-                  food={food}
-                  isLast={i === savedFoods.length - 1}
-                  onAdd={handleQuickAdd}
-                  onDelete={deleteSavedFood}
-                />
-              ))}
-            </div>
-          )}
-        </SummaryCard>
-      </div>
+          ))}
+        </section>
+      )}
 
+      <Sheet open={selected != null} onClose={close} title={selected?.name ?? ''}>
+        {selected && <SavedFoodEditor key={selected.id} food={selected} onDone={close} />}
+      </Sheet>
+    </div>
+  )
+}
+
+/** Edit a saved food, or delete it after a confirm step. */
+function SavedFoodEditor({ food, onDone }: { food: SavedFood; onDone: () => void }) {
+  const { updateSavedFood, deleteSavedFood } = useUser()
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleSave(v: FoodValues) {
+    await updateSavedFood(food.id, {
+      name: v.food_name,
+      calories: v.calories,
+      protein: v.protein,
+      carbohydrates: v.carbohydrates,
+      fats: v.fats,
+      fiber: v.fiber,
+    })
+    onDone()
+  }
+
+  async function handleDelete() {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      await deleteSavedFood(food.id)
+      onDone()
+    } catch (err) {
+      toast(errorMessage(err, 'Could not delete that saved food'))
+      setDeleting(false)
+    }
+  }
+
+  if (confirming) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <p style={{ margin: '0 0 6px', fontSize: 15 }}>
+          Delete &ldquo;{food.name}&rdquo; from saved foods? Meals you&apos;ve already logged stay.
+        </p>
+        <button type="button" className="btn-secondary" onClick={handleDelete} disabled={deleting} style={{ color: 'var(--over)' }}>
+          {deleting ? 'Deleting…' : 'Delete'}
+        </button>
+        <button type="button" className="btn-ghost" onClick={() => setConfirming(false)} disabled={deleting}>
+          Keep it
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <ManualFoodForm
+        initial={{ ...food, food_name: food.name, fiber: food.fiber ?? 0 }}
+        onApply={handleSave}
+        submitLabel="Save changes"
+      />
+      <button type="button" className="btn-ghost" onClick={() => setConfirming(true)} style={{ color: 'var(--over)' }}>
+        Delete from saved foods
+      </button>
     </div>
   )
 }

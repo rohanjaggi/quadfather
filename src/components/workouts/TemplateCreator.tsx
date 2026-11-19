@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { createTemplate } from '@/lib/api'
-import { errorMessage } from '@/lib/errors'
 import type { TemplateExercise } from '@/types/workouts'
+import { PlusIcon, TrashIcon } from '@/components/ui/icons'
 import ExerciseAutocomplete from './ExerciseAutocomplete'
+import { friendlyError } from './bits'
 
 interface TemplateCreatorProps {
-  onClose: () => void
   onCreated: () => void
 }
 
@@ -23,7 +23,8 @@ function blankExercise(): TemplateExercise {
   return { name: '', defaultSets: DEFAULT_SETS, defaultReps: DEFAULT_REPS, defaultWeightKg: null }
 }
 
-export default function TemplateCreator({ onClose, onCreated }: TemplateCreatorProps) {
+/** The "New template" form; the page shows it in a sheet. */
+export default function TemplateCreator({ onCreated }: TemplateCreatorProps) {
   const [name, setName] = useState('')
   const [exercises, setExercises] = useState<TemplateExercise[]>([blankExercise()])
   const [saving, setSaving] = useState(false)
@@ -73,7 +74,7 @@ export default function TemplateCreator({ onClose, onCreated }: TemplateCreatorP
     } catch (err) {
       // Previously uncaught: a failed create left the button back on "Save
       // Template" with no indication that nothing had been saved.
-      setError(errorMessage(err, 'Could not create this template'))
+      setError(friendlyError(err, 'Couldn’t save this template. Try again.'))
     } finally {
       setSaving(false)
     }
@@ -81,63 +82,55 @@ export default function TemplateCreator({ onClose, onCreated }: TemplateCreatorP
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--tg-theme-hint-color)' }}>
-        Create Template
-      </p>
-
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div>
-        <label htmlFor="template-name" className="label-caps" style={{ display: 'block', marginBottom: '6px' }}>Template Name</label>
-        <input id="template-name" className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Push Day" required />
+        <label htmlFor="template-name" className="label-caps">Name</label>
+        <input id="template-name" className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Push day" required />
       </div>
 
       {exercises.map((ex, idx) => (
-        <div key={idx} style={{
-          padding: '12px', borderRadius: '12px', backgroundColor: 'var(--tg-theme-bg-color)',
-          display: 'flex', flexDirection: 'column', gap: '8px',
-        }}>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div key={idx} style={{ padding: '12px 14px', borderRadius: 16, background: 'var(--card)', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <ExerciseAutocomplete
               value={ex.name}
+              label={`Exercise ${idx + 1} name`}
               onChange={name => updateExerciseName(idx, name)}
             />
             {exercises.length > 1 && (
-              <button type="button" onClick={() => removeExercise(idx)} style={{
-                background: 'none', border: 'none', color: 'var(--accent-calories)', fontSize: '18px', cursor: 'pointer',
-              }}>×</button>
+              <button
+                type="button"
+                onClick={() => removeExercise(idx)}
+                aria-label={`Remove ${ex.name.trim() || `exercise ${idx + 1}`}`}
+                style={{ width: 44, height: 44, flexShrink: 0, border: 'none', background: 'transparent', color: 'var(--muted)', display: 'grid', placeItems: 'center' }}
+              >
+                <TrashIcon size={20} />
+              </button>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <div style={{ flex: 1 }}>
-              <label htmlFor={`template-sets-${idx}`} style={{ fontFamily: 'var(--font-display)', fontSize: '9px', color: 'var(--tg-theme-hint-color)' }}>Sets</label>
-              <input id={`template-sets-${idx}`} className="input-field" type="number" min="1" value={ex.defaultSets || ''} onChange={e => updateExerciseField(idx, 'defaultSets', e.target.value)} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <label htmlFor={`template-sets-${idx}`} className="label-caps">Sets</label>
+              <input id={`template-sets-${idx}`} className="input-field" type="number" inputMode="numeric" min="1" value={ex.defaultSets || ''} onChange={e => updateExerciseField(idx, 'defaultSets', e.target.value)} />
             </div>
-            <div style={{ flex: 1 }}>
-              <label htmlFor={`template-reps-${idx}`} style={{ fontFamily: 'var(--font-display)', fontSize: '9px', color: 'var(--tg-theme-hint-color)' }}>Reps</label>
-              <input id={`template-reps-${idx}`} className="input-field" type="number" min="1" value={ex.defaultReps || ''} onChange={e => updateExerciseField(idx, 'defaultReps', e.target.value)} />
+            <div>
+              <label htmlFor={`template-reps-${idx}`} className="label-caps">Reps</label>
+              <input id={`template-reps-${idx}`} className="input-field" type="number" inputMode="numeric" min="1" value={ex.defaultReps || ''} onChange={e => updateExerciseField(idx, 'defaultReps', e.target.value)} />
             </div>
           </div>
         </div>
       ))}
 
-      <button type="button" onClick={addExercise} className="btn-secondary">+ Add Exercise</button>
+      <button type="button" onClick={addExercise} className="btn-ghost" style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: -14 }}>
+        <PlusIcon size={18} /> Add exercise
+      </button>
 
       {error && (
-        <p role="alert" style={{
-          fontFamily: 'var(--font-display)', fontSize: '12px', lineHeight: 1.5,
-          color: 'var(--accent-calories)', padding: '10px 12px',
-          borderRadius: '10px', backgroundColor: 'var(--tg-theme-bg-color)',
-        }}>
-          {error}
-        </p>
+        <p role="alert" style={{ margin: 0, fontSize: 15, color: 'var(--ink)' }}>{error}</p>
       )}
 
-      <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-        <button type="button" className="btn-secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
-        <button type="submit" className="btn-primary" disabled={saving} style={{ flex: 1 }}>
-          {saving ? 'Saving…' : 'Save Template'}
-        </button>
-      </div>
+      <button type="submit" className="btn-primary" disabled={saving}>
+        {saving ? 'Saving…' : error ? 'Retry' : 'Save template'}
+      </button>
     </form>
   )
 }

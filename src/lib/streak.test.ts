@@ -26,6 +26,13 @@ test('a missing day breaks the longest streak', () => {
   assert.equal(longestStepStreak([r('2026-01-01', 9000), r('2026-01-03', 9000)], 8000), 1)
 })
 
+test('accepts the full ISO timestamps /api/steps returns', () => {
+  const iso = (d: string, steps: number) => r(`${d}T00:00:00.000Z`, steps)
+  assert.equal(currentStepStreak([iso('2026-01-03', 100), iso('2026-01-02', 9000), iso('2026-01-01', 9000)], 8000, '2026-01-03'), 2)
+  assert.equal(currentStepStreak([iso('2026-01-03', 9000), iso('2026-01-01', 9000)], 8000, '2026-01-03'), 1)
+  assert.equal(longestStepStreak([iso('2026-01-01', 9000), iso('2026-01-02', 9000), iso('2026-01-04', 9000)], 8000), 2)
+})
+
 test('a streak that ended days ago is not current', () => {
   assert.equal(currentStepStreak([r('2026-01-03', 9000), r('2026-01-02', 9000)], 8000, '2026-01-08'), 0)
   assert.equal(currentStepStreak([r('2026-01-07', 9000), r('2026-01-06', 9000)], 8000, '2026-01-08'), 2)

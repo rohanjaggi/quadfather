@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { motion, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion'
-import { useHaptic } from '@/components/TelegramProvider'
+import { useHaptic } from '@/components/telegram'
+import { TrashIcon } from '@/components/ui/icons'
 
 // --- Context: ensures only one item open at a time ---
 
@@ -39,17 +40,28 @@ interface SwipeToDeleteProps {
   children: React.ReactNode
   disabled?: boolean
   borderRadius?: string
+  /** Accessible name for the delete control, e.g. "Delete Chicken rice". Defaults to "Delete". */
+  label?: string
 }
 
 const DELETE_BUTTON_WIDTH = 80
 const SNAP_THRESHOLD = 0.4
+// Critically damped: settles without the overshoot the old spring had.
+const SNAP = { type: 'spring', stiffness: 500, damping: 45 } as const
 
-export default function SwipeToDelete({ id, onDelete, children, disabled, borderRadius }: SwipeToDeleteProps) {
+// Hidden until focused: the keyboard and screen-reader route to delete.
+const srOnly: React.CSSProperties = {
+  position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+  overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
+}
+
+export default function SwipeToDelete({ id, onDelete, children, disabled, borderRadius, label = 'Delete' }: SwipeToDeleteProps) {
   const haptic = useHaptic()
   const { openId, setOpenId } = useContext(SwipeDeleteContext)
   const containerRef = useRef<HTMLDivElement>(null)
   const inFlightRef = useRef(false)
   const [deleting, setDeleting] = useState(false)
+  const [keyFocus, setKeyFocus] = useState(false)
 
   const x = useMotionValue(0)
   const deleteOpacity = useTransform(x, [-DELETE_BUTTON_WIDTH, 0], [1, 0])
@@ -58,13 +70,13 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
   const isOpen = openId === id
 
   const snapOpen = useCallback(() => {
-    animate(x, -DELETE_BUTTON_WIDTH, { type: 'spring', stiffness: 500, damping: 30 })
+    animate(x, -DELETE_BUTTON_WIDTH, SNAP)
     setOpenId(id)
     haptic.impact('light')
   }, [x, id, setOpenId, haptic])
 
   const snapClosed = useCallback(() => {
-    animate(x, 0, { type: 'spring', stiffness: 500, damping: 30 })
+    animate(x, 0, SNAP)
     if (openId === id) setOpenId(null)
   }, [x, id, openId, setOpenId])
 
@@ -72,7 +84,7 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
   // the render body fires during React's render phase (and twice in StrictMode).
   useEffect(() => {
     if (isOpen || deleting || x.get() === 0) return
-    const controls = animate(x, 0, { type: 'spring', stiffness: 500, damping: 30 })
+    const controls = animate(x, 0, SNAP)
     return () => controls.stop()
   }, [isOpen, deleting, x])
 
@@ -93,11 +105,7 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
     inFlightRef.current = true
     haptic.notification('warning')
     setDeleting(true)
-    animate(x, -(containerRef.current?.offsetWidth ?? 300), {
-      type: 'spring',
-      stiffness: 500,
-      damping: 30,
-    })
+    animate(x, -(containerRef.current?.offsetWidth ?? 300), SNAP)
     try {
       await onDelete()
       // The row is gone — leaving `openId` pointing at it would keep every
@@ -109,7 +117,7 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
       // from an onClick handler would only become an unhandled rejection).
       console.error('Delete failed, restoring row:', err)
       setDeleting(false)
-      animate(x, 0, { type: 'spring', stiffness: 500, damping: 30 })
+      animate(x, 0, SNAP)
       if (openId === id) setOpenId(null)
     } finally {
       inFlightRef.current = false
@@ -142,7 +150,9 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
           ref={containerRef}
           style={{ position: 'relative', overflow: 'hidden', borderRadius }}
         >
-          {/* Delete button behind — wrapper centers it vertically */}
+          {/* Revealed by the swipe. Pointer-only: the hidden button below is
+              the one keyboards and screen readers reach, so there's one
+              "Delete" per row in the accessibility tree. */}
           <div
             style={{
               position: 'absolute',
@@ -153,36 +163,37 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              padding: '6px 0 6px 6px',
             }}
           >
             <motion.button
               type="button"
-              aria-label="Delete"
-              tabIndex={isOpen ? 0 : -1}
+              aria-hidden="true"
+              tabIndex={-1}
               onClick={handleDelete}
               style={{
                 width: '100%',
-                height: 'calc(100% - 20px)',
-                backgroundColor: '#dc2626',
+                height: '100%',
+                maxHeight: 72,
+                backgroundColor: 'var(--over)',
+                color: '#FFFFFF',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: 2,
                 border: 'none',
                 padding: 0,
-                borderRadius: '12px',
+                borderRadius: 14,
                 opacity: deleteOpacity,
                 scale: deleteScale,
                 cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 600,
               }}
             >
-              <span style={{
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: 600,
-                fontFamily: 'var(--font-display)',
-              }}>
-                Delete
-              </span>
+              <TrashIcon size={18} />
+              Delete
             </motion.button>
           </div>
 
@@ -194,10 +205,27 @@ export default function SwipeToDelete({ id, onDelete, children, disabled, border
             dragElastic={0.1}
             onDragEnd={handleDragEnd}
             onClick={handleContentTap}
-            style={{ x, position: 'relative', zIndex: 1, backgroundColor: 'var(--tg-theme-secondary-bg-color)' }}
+            style={{ x, position: 'relative', zIndex: 1, backgroundColor: 'var(--card)' }}
           >
             {children}
           </motion.div>
+
+          <button
+            type="button"
+            aria-label={label}
+            onClick={handleDelete}
+            onFocus={() => setKeyFocus(true)}
+            onBlur={() => setKeyFocus(false)}
+            style={keyFocus ? {
+              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 2,
+              display: 'inline-flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px',
+              border: 'none', borderRadius: 18, background: 'var(--over)', color: '#FFFFFF',
+              fontSize: 14, fontWeight: 600,
+            } : srOnly}
+          >
+            <TrashIcon size={16} />
+            Delete
+          </button>
         </motion.div>
       )}
     </AnimatePresence>

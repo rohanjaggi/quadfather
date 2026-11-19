@@ -1,147 +1,80 @@
 'use client'
 
-import { useHaptic } from '@/components/TelegramProvider'
+import Link from 'next/link'
+import { goalState } from '@/components/ui/goal'
+import { useGoalSweep } from '@/components/ui/useGoalSweep'
 
-export default function BottleCounter({
-  liters,
-  bottles,
-  goal,
-  bottleSize,
-  onAdd,
-  onRemove,
-  pending = false,
-  disabled = false,
-}: {
-  /** Real total logged today, in litres — drives the big number and the bar. */
+/** 1dp normally, 2dp when a custom amount (e.g. 0.25 L) would round away. */
+export function formatLiters(liters: number): string {
+  const tenths = liters * 10
+  return Math.abs(tenths - Math.round(tenths)) < 1e-6 ? liters.toFixed(1) : liters.toFixed(2)
+}
+
+// shortcut: past 12 bottles the row stops reading as countable bottles, so it
+// shows 12 equal shares of the goal instead; revisit if goals routinely need more.
+const MAX_BOTTLES = 12
+
+/**
+ * The water hero: one bottle per bottle-size share of the goal, the open one
+ * filling partially, and "1.8 of 3.0 L". The litres number sweeps once when
+ * the goal is reached during the session.
+ */
+export default function BottleCounter({ liters, goal, bottleSize }: {
+  /** Real total logged today, in litres. */
   liters: number
-  /** Whole bottles that total represents — drives the dot row only. */
-  bottles: number
   goal: number
   bottleSize: number
-  onAdd: () => void
-  onRemove: () => void
-  /** A bottle add/remove is in flight — blocks taps AND shows "Saving…". */
-  pending?: boolean
-  /** Blocks taps without claiming this widget is saving (e.g. another
-   *  water mutation elsewhere on the page is in flight). */
-  disabled?: boolean
 }) {
-  const haptic = useHaptic()
-  const totalBottles = bottleSize > 0 ? Math.ceil(goal / bottleSize) : 0
-  const pct = goal > 0 ? Math.min(liters / goal, 1) : 0
-  // 1dp normally, 2dp when a custom amount (e.g. 0.25L) would round away
-  const tenths = liters * 10
-  const litersLabel = Math.abs(tenths - Math.round(tenths)) < 1e-6
-    ? liters.toFixed(1)
-    : liters.toFixed(2)
-
-  const blocked = pending || disabled
-
-  function handleAdd() {
-    if (blocked) return
-    haptic.impact('light')
-    onAdd()
-  }
-
-  function handleRemove() {
-    if (blocked) return
-    haptic.impact('light')
-    onRemove()
-  }
+  const size = bottleSize > 0 ? bottleSize : 0.5
+  const needed = Math.max(1, Math.ceil(goal / size - 1e-6))
+  const count = Math.min(needed, MAX_BOTTLES)
+  const perBottle = needed > MAX_BOTTLES ? goal / count : size
+  // The epsilon keeps binary float error from eating a bottle (1.8 / 0.6 = 2.9999…).
+  const full = Math.floor(liters / size + 1e-6)
+  const sweep = useGoalSweep(goalState(liters, goal, false) === 'at')
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-      {/* Dot indicators */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
-        {Array.from({ length: totalBottles }).map((_, i) => (
-          <div
-            key={i}
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              backgroundColor: i < bottles ? 'var(--accent-water)' : 'transparent',
-              border: `1.5px solid ${i < bottles ? 'var(--accent-water)' : 'var(--surface-border)'}`,
-              transition: 'all 0.3s var(--ease-smooth)',
-            }}
-          />
-        ))}
+    <div style={{ textAlign: 'center' }}>
+      <div
+        role="img"
+        aria-label={`${full} of ${needed} bottles`}
+        style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-end', gap: 8, padding: '6px 0 22px' }}
+      >
+        {Array.from({ length: count }, (_, i) => {
+          const f = Math.max(0, Math.min(1, liters / perBottle - i + 1e-6))
+          return (
+            <span key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ width: 10, height: 5, borderRadius: '2px 2px 0 0', background: f > 0.98 ? 'var(--m-water)' : 'var(--track)' }} />
+              <span style={{ position: 'relative', width: 22, height: 52, borderRadius: 8, background: 'var(--track)', overflow: 'hidden' }}>
+                <span style={{
+                  position: 'absolute', left: 0, right: 0, bottom: 0, height: `${f * 100}%`,
+                  background: 'var(--m-water)', transition: 'height 0.6s var(--ease-out-expo)',
+                }} />
+              </span>
+            </span>
+          )
+        })}
       </div>
 
-      {/* Large display */}
-      <div style={{ textAlign: 'center' }}>
-        <span style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '48px',
-          fontWeight: 300,
-          lineHeight: 1,
-          color: 'var(--tg-theme-text-color)',
-          letterSpacing: '-0.02em',
-        }}>
-          {litersLabel}
-        </span>
-        <span style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '24px',
-          fontWeight: 300,
-          color: 'var(--tg-theme-hint-color)',
-          marginLeft: '3px',
-        }}>
-          L
-        </span>
-        <p style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '10px',
-          letterSpacing: '0.09em',
-          textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)',
-          marginTop: '6px',
-        }}>
-          of {goal}L goal
-        </p>
-      </div>
-
-      {/* Progress bar */}
-      <div style={{
-        height: '2px',
-        borderRadius: '99px',
-        backgroundColor: 'var(--tg-theme-bg-color)',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          height: '100%',
-          borderRadius: '99px',
-          width: `${pct * 100}%`,
-          backgroundColor: 'var(--accent-water)',
-          transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-        }} />
-      </div>
-
-      {/* Buttons */}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button
-          onClick={handleRemove}
-          disabled={blocked || liters <= 0}
-          className="btn-ghost"
-          style={{ flex: 1, padding: '14px' }}
+      <p style={{ margin: 0, display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 8 }}>
+        <span
+          className={sweep ? 'gradient-sweep' : undefined}
+          style={{ fontSize: 60, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1 }}
         >
-          − Remove
-        </button>
-        <button
-          onClick={handleAdd}
-          disabled={blocked}
-          className="btn-primary"
-          style={{
-            flex: 1,
-            padding: '14px',
-            backgroundColor: 'var(--accent-water)',
-          }}
+          {formatLiters(liters)}
+        </span>
+        <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--muted)' }}>of {formatLiters(goal)} L</span>
+      </p>
+      <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--muted)' }}>
+        {full} of {needed} bottles · {formatLiters(size)} L each ·{' '}
+        <Link
+          href="/profile/goals"
+          aria-label="Change bottle size"
+          style={{ display: 'inline-block', padding: '13px 6px', margin: '-13px -6px', color: 'var(--action)', fontWeight: 600, textDecoration: 'none' }}
         >
-          {pending ? 'Saving…' : '+ Add Bottle'}
-        </button>
-      </div>
-
+          Change
+        </Link>
+      </p>
     </div>
   )
 }

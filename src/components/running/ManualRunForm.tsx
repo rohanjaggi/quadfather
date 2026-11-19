@@ -5,11 +5,7 @@ import { useUser } from '@/context/UserContext'
 import { errorMessage } from '@/components/ui/Toast'
 import { DEFAULT_BODYWEIGHT_KG, runKcal } from '@/lib/constants'
 
-interface ManualRunFormProps {
-  onClose: () => void
-}
-
-export default function ManualRunForm({ onClose }: ManualRunFormProps) {
+export default function ManualRunForm({ onLogged }: { onLogged: () => void }) {
   const { user, logRun } = useUser()
   const [distance, setDistance] = useState('')
   const [minutes, setMinutes] = useState('')
@@ -28,14 +24,15 @@ export default function ManualRunForm({ onClose }: ManualRunFormProps) {
     setCalories(String(estimated))
   }, [distance, user, caloriesManual])
 
+  const distKm = parseFloat(distance)
+  const mins = parseInt(minutes) || 0
+  const secs = parseInt(seconds) || 0
+  const cal = parseFloat(calories)
+  const complete = !!distKm && (!!mins || !!secs) && !!cal
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const distKm = parseFloat(distance)
-    const mins = parseInt(minutes) || 0
-    const secs = parseInt(seconds) || 0
-    const cal = parseFloat(calories)
-
-    if (loading || !distKm || (!mins && !secs) || !cal) return
+    if (loading || !complete) return
 
     setLoading(true)
     setError(null)
@@ -53,19 +50,20 @@ export default function ManualRunForm({ onClose }: ManualRunFormProps) {
     } finally {
       setLoading(false)
     }
-    if (logged) onClose()
+    if (logged) onLogged()
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
-        <label className="label-caps" style={{ display: 'block', marginBottom: '6px' }}>
-          Distance (km)
-        </label>
+        <label htmlFor="run-distance" className="label-caps">Distance (km)</label>
         <input
+          id="run-distance"
           className="input-field"
           type="number"
+          inputMode="decimal"
           step="0.01"
+          min="0"
           placeholder="5.00"
           value={distance}
           onChange={e => setDistance(e.target.value)}
@@ -73,75 +71,67 @@ export default function ManualRunForm({ onClose }: ManualRunFormProps) {
         />
       </div>
 
-      <div>
-        <label className="label-caps" style={{ display: 'block', marginBottom: '6px' }}>
-          Duration
-        </label>
-        <div style={{ display: 'flex', gap: '8px' }}>
+      <fieldset style={{ border: 'none', margin: 0, padding: 0, minWidth: 0 }}>
+        <legend className="label-caps" style={{ padding: 0 }}>Time</legend>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input
+            aria-label="Minutes"
             className="input-field"
             type="number"
-            placeholder="mm"
+            inputMode="numeric"
+            min="0"
+            placeholder="min"
             value={minutes}
             onChange={e => setMinutes(e.target.value)}
             style={{ flex: 1 }}
           />
-          <span style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '16px',
-            color: 'var(--tg-theme-hint-color)',
-            alignSelf: 'center',
-          }}>:</span>
+          <span aria-hidden="true" style={{ fontSize: 17, color: 'var(--muted)' }}>:</span>
           <input
+            aria-label="Seconds"
             className="input-field"
             type="number"
-            placeholder="ss"
+            inputMode="numeric"
+            min="0"
             max="59"
+            placeholder="sec"
             value={seconds}
             onChange={e => setSeconds(e.target.value)}
             style={{ flex: 1 }}
           />
         </div>
-      </div>
+      </fieldset>
 
       <div>
-        <label className="label-caps" style={{ display: 'block', marginBottom: '6px' }}>
-          Calories burned {!caloriesManual && calories && (
-            <span style={{ fontWeight: 400, letterSpacing: 'normal', textTransform: 'none', opacity: 0.7 }}>
-              (estimated)
-            </span>
-          )}
-        </label>
+        <label htmlFor="run-kcal" className="label-caps">Calories burned</label>
         <input
+          id="run-kcal"
           className="input-field"
           type="number"
+          inputMode="numeric"
+          min="0"
           placeholder="350"
           value={calories}
           // Emptying the box hands the field back to the distance estimate.
           // Latching `caloriesManual` on the first keystroke and never clearing
           // it meant one stray character permanently disabled the estimate.
           onChange={e => { setCalories(e.target.value); setCaloriesManual(e.target.value !== '') }}
+          aria-describedby={!caloriesManual && calories ? 'run-kcal-hint' : undefined}
           required
         />
+        {!caloriesManual && calories && (
+          <p id="run-kcal-hint" style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--muted)' }}>
+            Estimated from the distance and your weight. Change it if your watch says otherwise.
+          </p>
+        )}
       </div>
 
       {error && (
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '12px',
-          color: 'var(--accent-calories)', paddingLeft: '4px',
-        }}>
-          {error}
-        </p>
+        <p role="alert" style={{ margin: 0, fontSize: 15, color: 'var(--over)' }}>{error}</p>
       )}
 
-      <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-        <button type="button" className="btn-secondary" onClick={onClose} style={{ flex: 1 }}>
-          Cancel
-        </button>
-        <button type="submit" className="btn-primary" disabled={loading} style={{ flex: 1 }}>
-          {loading ? 'Saving…' : 'Log Run'}
-        </button>
-      </div>
+      <button type="submit" className="btn-primary" disabled={loading || !complete} style={{ marginTop: 4 }}>
+        {loading ? 'Logging…' : 'Log run'}
+      </button>
     </form>
   )
 }

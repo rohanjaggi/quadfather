@@ -81,19 +81,22 @@ interface MuscleMapProps {
   sex?: string
 }
 
+/**
+ * A warm sand-to-terracotta ramp on a light body, so the map sits on a white
+ * card. Data marks only: never green (that means "tap me").
+ */
 function intensityToColor(intensity: number): string {
-  if (intensity < 0.2) return 'oklch(0.25 0.01 200)'
-  if (intensity < 0.35) return 'oklch(0.72 0.16 95)'
-  if (intensity < 0.5) return 'oklch(0.68 0.18 80)'
-  if (intensity < 0.65) return 'oklch(0.63 0.19 65)'
-  if (intensity < 0.8) return 'oklch(0.58 0.20 48)'
-  if (intensity < 0.9) return 'oklch(0.53 0.21 36)'
-  return 'oklch(0.48 0.22 28)'
+  if (intensity < 0.35) return '#E7D3BD'
+  if (intensity < 0.5) return '#DDBB98'
+  if (intensity < 0.65) return '#D3A27E'
+  if (intensity < 0.8) return '#C88664'
+  if (intensity < 0.9) return '#B86E50'
+  return '#A65A40'
 }
 
-const BASE_COLOR = 'oklch(0.25 0.01 200)'
-const STROKE_COLOR = 'oklch(0.35 0.02 200)'
-const HEAD_COLOR = 'oklch(0.30 0.01 200)'
+const BASE_COLOR = '#EEE8E1'
+const STROKE_COLOR = 'rgba(31, 42, 36, 0.16)'
+const HEAD_COLOR = '#E4DCD3'
 
 export default function MuscleMap({ intensities, size = 'md', sex }: MuscleMapProps) {
   const w = size === 'sm' ? 100 : 140
@@ -148,8 +151,12 @@ export default function MuscleMap({ intensities, size = 'md', sex }: MuscleMapPr
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: size === 'sm' ? 4 : 10, padding: '8px 0' }}>
-      <svg viewBox={paths.frontViewBox} width={w} xmlns="http://www.w3.org/2000/svg">
+    <div
+      role="img"
+      aria-label="Muscle map, front and back. Darker means more work."
+      style={{ display: 'flex', justifyContent: 'center', gap: size === 'sm' ? 4 : 10, padding: '8px 0' }}
+    >
+      <svg viewBox={paths.frontViewBox} width={w} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         {paths.frontHair.map((d, i) => (
           <path key={`fh-${i}`} d={d} fill={HEAD_COLOR} stroke="none" />
         ))}
@@ -161,7 +168,7 @@ export default function MuscleMap({ intensities, size = 'md', sex }: MuscleMapPr
         ))}
         {renderPaths(paths.frontPaths)}
       </svg>
-      <svg viewBox={paths.backViewBox} width={w} xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox={paths.backViewBox} width={w} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         {paths.backHair.map((d, i) => (
           <path key={`bh-${i}`} d={d} fill={HEAD_COLOR} stroke="none" />
         ))}

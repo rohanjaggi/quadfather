@@ -13,7 +13,7 @@ let timer: ReturnType<typeof setTimeout> | null = null
 
 export function toast(message: string, opts?: { type?: 'error' | 'success' }) {
   if (typeof document === 'undefined' || !message) return
-  const accent = opts?.type === 'success' ? 'var(--accent-protein)' : 'var(--accent-calories)'
+  const accent = opts?.type === 'success' ? '#8FD3AE' : '#F2A48F'  // light tints that read on the ink pill
 
   if (!node || !node.isConnected) {
     node = document.createElement('div')
@@ -27,14 +27,18 @@ export function toast(message: string, opts?: { type?: 'error' | 'success' }) {
       'margin:0 auto',
       'max-width:420px',
       'z-index:9999',
-      'padding:11px 14px',
-      'border-radius:12px',
-      'background-color:var(--tg-theme-secondary-bg-color, #EBE8E4)',
-      'color:var(--tg-theme-text-color, #1A1614)',
+      'display:flex',
+      'align-items:center',
+      'gap:10px',
+      'padding:13px 16px',
+      'border-radius:16px',
+      'background-color:var(--ink, #1F2A24)',
+      'color:#FFFFFF',
       'font-family:var(--font-display, system-ui, sans-serif)',
-      'font-size:13px',
-      'line-height:1.4',
-      'box-shadow:0 4px 20px rgba(28, 20, 16, 0.14)',
+      'font-size:15px',
+      'font-weight:500',
+      'line-height:1.35',
+      'box-shadow:0 10px 30px -10px rgba(31, 42, 36, 0.45)',
       'pointer-events:none',
       'opacity:0',
       'transform:translateY(8px)',
@@ -44,8 +48,23 @@ export function toast(message: string, opts?: { type?: 'error' | 'success' }) {
   }
 
   const el = node
-  el.textContent = message
-  el.style.borderLeft = `3px solid ${accent}`
+  // Status is carried by an icon plus the words, never by colour alone.
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  icon.setAttribute('width', '18')
+  icon.setAttribute('height', '18')
+  icon.setAttribute('viewBox', '0 0 24 24')
+  icon.setAttribute('fill', 'none')
+  icon.setAttribute('stroke', accent)
+  icon.setAttribute('stroke-width', '2.2')
+  icon.setAttribute('stroke-linecap', 'round')
+  icon.setAttribute('aria-hidden', 'true')
+  icon.style.flexShrink = '0'
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  path.setAttribute('d', opts?.type === 'success' ? 'M5 12.5l4.5 4.5L19 7.5' : 'M12 7v6M12 17h.01')
+  icon.appendChild(path)
+  const text = document.createElement('span')
+  text.textContent = message
+  el.replaceChildren(icon, text)
   requestAnimationFrame(() => {
     el.style.opacity = '1'
     el.style.transform = 'translateY(0)'

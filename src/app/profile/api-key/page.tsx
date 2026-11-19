@@ -1,29 +1,61 @@
 'use client'
 
-import { useState, useEffect, FormEvent } from 'react'
-import Link from 'next/link'
+import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { useUser } from '@/context/UserContext'
 import { setApiKey, deleteApiKey } from '@/lib/api'
 import { PROVIDER_MODELS, DEFAULT_MODELS, type AIProvider } from '@/lib/models'
 import { errorMessage } from '@/lib/errors'
+import PageHeader from '@/components/ui/PageHeader'
+import Sheet from '@/components/ui/Sheet'
+import { toast } from '@/components/ui/Toast'
+import { ChevronRightIcon } from '@/components/ui/icons'
+import { ChoiceList, ConfirmSheet, SaveBar } from '@/components/settings/ui'
 
-const PROVIDERS: { value: AIProvider; label: string; shortLabel: string }[] = [
-  { value: 'gemini', label: 'Google Gemini', shortLabel: 'Google' },
-  { value: 'openai', label: 'OpenAI', shortLabel: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic', shortLabel: 'Anthropic' },
-  { value: 'openrouter', label: 'OpenRouter', shortLabel: 'OpenRouter' },
+const PROVIDERS: { value: AIProvider; label: string }[] = [
+  { value: 'gemini', label: 'Google Gemini' },
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'openrouter', label: 'OpenRouter' },
 ]
+
+const providerLabel = (p: string) => PROVIDERS.find(x => x.value === p)?.label ?? p
+
+function modelName(provider: AIProvider, id: string): string {
+  return PROVIDER_MODELS[provider]?.find(m => m.id === id)?.label ?? id
+}
+
+/** A row in the model card that opens a chooser sheet. */
+function ChooserRow({ label, value, onClick }: { label: string; value: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-haspopup="dialog"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 52, padding: 0,
+        border: 'none', background: 'transparent', textAlign: 'left', color: 'var(--ink)', outlineOffset: -2,
+      }}
+    >
+      <span style={{ flex: 1, fontSize: 15, fontWeight: 500 }}>{label}</span>
+      <span style={{ maxWidth: '60%', fontSize: 15, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
+      <ChevronRightIcon size={18} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+    </button>
+  )
+}
 
 export default function ApiKeyPage() {
   const { user, refreshUser } = useUser()
   const hasOwnKey = !!user?.ai_provider
   const [keyProvider, setKeyProvider] = useState<AIProvider>('gemini')
-  const [selectedModel, setSelectedModel] = useState('')
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODELS.gemini)
   const [customModel, setCustomModel] = useState('')
   const [keyValue, setKeyValue] = useState('')
   const [keySaving, setKeySaving] = useState(false)
-  const [keyStatus, setKeyStatus] = useState<'idle' | 'saved' | 'removed' | 'error'>('idle')
   const [keyError, setKeyError] = useState<string | null>(null)
+  const [removeError, setRemoveError] = useState<string | null>(null)
+  const [sheet, setSheet] = useState<'provider' | 'model' | 'remove' | null>(null)
+  // Stable: Sheet re-runs its focus effect whenever onClose changes.
+  const closeSheet = useCallback(() => setSheet(null), [])
 
   useEffect(() => {
     if (user?.ai_provider) {
@@ -49,16 +81,16 @@ export default function ApiKeyPage() {
     setKeyProvider(provider)
     setSelectedModel(DEFAULT_MODELS[provider])
     setCustomModel('')
+    setSheet(null)
   }
 
   const resolvedModel = selectedModel === 'custom' ? customModel.trim() : selectedModel
 
   async function handleSaveKey(e: FormEvent) {
     e.preventDefault()
-    if (!keyValue.trim()) return
+    if (!keyValue.trim() || keySaving) return
     setKeySaving(true)
     setKeyError(null)
-    setKeyStatus('idle')
     try {
       await setApiKey({
         provider: keyProvider,
@@ -66,12 +98,10 @@ export default function ApiKeyPage() {
         model: resolvedModel || undefined,
       })
       setKeyValue('')
-      setKeyStatus('saved')
+      toast('Key saved', { type: 'success' })
       await refreshUser()
-      setTimeout(() => setKeyStatus('idle'), 2000)
     } catch (err) {
-      setKeyError(errorMessage(err, 'Failed to save key'))
-      setKeyStatus('error')
+      setKeyError(errorMessage(err, "Couldn't save your key. Check it and try again."))
     } finally {
       setKeySaving(false)
     }
@@ -79,245 +109,136 @@ export default function ApiKeyPage() {
 
   async function handleRemoveKey() {
     setKeySaving(true)
-    setKeyError(null)
-    setKeyStatus('idle')
+    setRemoveError(null)
     try {
       await deleteApiKey()
-      setKeyStatus('removed')
       await refreshUser()
-      setTimeout(() => setKeyStatus('idle'), 2000)
+      setSheet(null)
+      toast('Key removed', { type: 'success' })
     } catch (err) {
-      setKeyError(errorMessage(err, 'Failed to remove key'))
-      setKeyStatus('error')
+      setRemoveError(errorMessage(err, "Couldn't remove your key. Try again."))
     } finally {
       setKeySaving(false)
     }
   }
 
   const models = PROVIDER_MODELS[keyProvider]
-  const activeProviderLabel = PROVIDERS.find(p => p.value === keyProvider)?.label
+  const modelOptions = [
+    ...models.map(m => ({ value: m.id, label: m.label, hint: m.description })),
+    ...(keyProvider === 'openrouter' ? [{ value: 'custom', label: 'Custom model ID', hint: 'Any model OpenRouter offers' }] : []),
+  ]
+  const savedProvider = user?.ai_provider as AIProvider | undefined
+  const savedModel = savedProvider ? modelName(savedProvider, user?.ai_model || DEFAULT_MODELS[savedProvider]) : ''
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div>
+      <PageHeader title="AI model and key" back={{ href: '/profile', label: 'Settings' }} />
 
-      {/* Header */}
-      <div className="fade-up">
-        <Link href="/profile" style={{
-          display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
-          marginBottom: '12px',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Settings
-        </Link>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '32px',
-          fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
-        }}>
-          AI Provider
-        </h1>
-      </div>
-
-      {/* Status */}
-      <div className="fade-up fade-up-1" style={{
-        display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '14px 16px',
-        borderRadius: '14px',
-        backgroundColor: hasOwnKey
-          ? 'oklch(0.92 0.02 155)'
-          : 'var(--tg-theme-secondary-bg-color)',
-      }}>
-        <div style={{
-          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-          backgroundColor: hasOwnKey
-            ? 'var(--accent-protein)'
-            : 'var(--tg-theme-hint-color)',
-        }} />
-        <span style={{
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: hasOwnKey
-            ? 'oklch(0.35 0.04 155)'
-            : 'var(--tg-theme-hint-color)',
-          fontWeight: hasOwnKey ? 500 : 400,
-        }}>
-          {hasOwnKey
-            ? `${PROVIDERS.find(p => p.value === user.ai_provider)?.label ?? user.ai_provider} connected`
-            : 'No API key configured'}
-        </span>
-      </div>
-
-      {/* Form */}
-      <form
-        onSubmit={handleSaveKey}
-        className="fade-up fade-up-2"
-        style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
-      >
-
-        {/* Provider selector */}
-        <div>
-          <label style={{
-            fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: 500,
-            letterSpacing: '0.08em', textTransform: 'uppercase' as const,
-            color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '10px',
-          }}>
-            Provider
-          </label>
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px',
-          }}>
-            {PROVIDERS.map(p => (
-              <button
-                key={p.value}
-                type="button"
-                onClick={() => handleProviderChange(p.value)}
-                style={{
-                  padding: '14px 12px',
-                  borderRadius: '14px',
-                  border: keyProvider === p.value
-                    ? '1.5px solid var(--tg-theme-button-color)'
-                    : '1px solid var(--surface-border)',
-                  backgroundColor: keyProvider === p.value
-                    ? 'oklch(0.95 0.01 170)'
-                    : 'transparent',
-                  color: keyProvider === p.value
-                    ? 'var(--tg-theme-button-color)'
-                    : 'var(--tg-theme-text-color)',
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '13px',
-                  fontWeight: keyProvider === p.value ? 600 : 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  textAlign: 'center' as const,
-                }}
-              >
-                {p.shortLabel}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Model selector */}
-        <div>
-          <label style={{
-            fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: 500,
-            letterSpacing: '0.08em', textTransform: 'uppercase' as const,
-            color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '10px',
-          }}>
-            Model
-          </label>
-          {keyProvider === 'openrouter' ? (
-            <>
-              <select
-                value={selectedModel}
-                onChange={e => { setSelectedModel(e.target.value); setCustomModel('') }}
-                className="input-field-bordered"
-                style={{ appearance: 'none', paddingRight: '36px', cursor: 'pointer' }}
-              >
-                {models.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.label} — {m.description}
-                  </option>
-                ))}
-                <option value="custom">Custom model ID</option>
-              </select>
-              {selectedModel === 'custom' && (
-                <input
-                  type="text"
-                  value={customModel}
-                  onChange={e => setCustomModel(e.target.value)}
-                  placeholder="e.g. meta-llama/llama-4-scout"
-                  className="input-field-bordered"
-                  style={{ marginTop: '10px' }}
-                />
-              )}
-            </>
-          ) : (
-            <div className="option-group">
-              {models.map(m => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => { setSelectedModel(m.id); setCustomModel('') }}
-                  className="option-group-item"
-                  data-active={selectedModel === m.id ? 'true' : undefined}
-                >
-                  <span>{m.label}</span>
-                  <span style={{ fontSize: '11px', opacity: 0.55, fontWeight: 400 }}>{m.description}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* API key input */}
-        <div>
-          <label style={{
-            fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: 500,
-            letterSpacing: '0.08em', textTransform: 'uppercase' as const,
-            color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '10px',
-          }}>
-            API Key
-          </label>
-          <input
-            type="password"
-            value={keyValue}
-            onChange={e => setKeyValue(e.target.value)}
-            placeholder={hasOwnKey ? '••••••••••••••••' : `Paste your ${activeProviderLabel} key`}
-            className="input-field-bordered"
-          />
-          {hasOwnKey && (
-            <p style={{
-              fontFamily: 'var(--font-display)', fontSize: '11px',
-              color: 'var(--tg-theme-hint-color)', marginTop: '6px',
-              paddingLeft: '2px',
-            }}>
-              Enter a new key to replace the existing one
-            </p>
-          )}
-        </div>
-
-        {keyError && (
-          <p style={{
-            fontFamily: 'var(--font-display)', fontSize: '12px',
-            color: 'var(--accent-calories)', padding: '10px 14px',
-            backgroundColor: 'oklch(0.94 0.02 30)',
-            borderRadius: '10px',
-          }}>
-            {keyError}
+      <form onSubmit={handleSaveKey} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <section className="card">
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.015em' }}>
+            {hasOwnKey ? `Using your ${providerLabel(user.ai_provider!)} key` : 'No key added'}
+          </h2>
+          <p style={{ margin: '4px 0 0', fontSize: 15, color: 'var(--muted)' }}>
+            {hasOwnKey
+              ? `Model: ${savedModel}.`
+              : 'Add a key from Google, OpenAI, Anthropic or OpenRouter to choose the model Quadfather uses.'}
           </p>
-        )}
-
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '10px' }}>
           {hasOwnKey && (
             <button
               type="button"
-              onClick={handleRemoveKey}
+              className="btn-ghost"
+              onClick={() => { setRemoveError(null); setSheet('remove') }}
               disabled={keySaving}
-              className="btn-secondary"
-              style={{ flex: 1, color: 'var(--accent-calories)' }}
+              style={{ marginTop: 8, marginLeft: -14, color: 'var(--over)' }}
             >
-              {keyStatus === 'removed' ? 'Removed' : 'Remove'}
+              Remove key
             </button>
           )}
-          <button
-            type="submit"
-            disabled={keySaving || !keyValue.trim()}
-            className="btn-primary"
-            style={{
-              flex: hasOwnKey ? 2 : 1,
-              backgroundColor: keyStatus === 'saved' ? 'var(--accent-protein)' : undefined,
-            }}
-          >
-            {keySaving ? 'Saving…' : keyStatus === 'saved' ? 'Saved' : 'Save Key'}
-          </button>
-        </div>
+        </section>
 
+        <section className="card" style={{ paddingTop: 6, paddingBottom: 6 }}>
+          <ChooserRow label="Provider" value={providerLabel(keyProvider)} onClick={() => setSheet('provider')} />
+          <div aria-hidden="true" style={{ height: 1, background: 'var(--line)' }} />
+          <ChooserRow
+            label="Model"
+            value={selectedModel === 'custom' ? (customModel.trim() || 'Custom') : modelName(keyProvider, selectedModel)}
+            onClick={() => setSheet('model')}
+          />
+          {selectedModel === 'custom' && (
+            <div style={{ padding: '4px 0 12px' }}>
+              <label htmlFor="custom-model" className="label-caps">Model ID</label>
+              <input
+                id="custom-model"
+                type="text"
+                value={customModel}
+                onChange={e => setCustomModel(e.target.value)}
+                placeholder="e.g. meta-llama/llama-4-scout"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                className="input-field"
+              />
+            </div>
+          )}
+        </section>
+
+        <section className="card">
+          <label htmlFor="api-key" className="card-title" style={{ display: 'block', marginBottom: 10 }}>
+            Your {providerLabel(keyProvider)} key
+          </label>
+          <input
+            id="api-key"
+            type="password"
+            value={keyValue}
+            onChange={e => setKeyValue(e.target.value)}
+            placeholder={hasOwnKey ? '••••••••••••••••' : 'Paste your key'}
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            aria-describedby="api-key-hint"
+            className="input-field"
+          />
+          <p id="api-key-hint" style={{ margin: '8px 2px 0', fontSize: 13, color: 'var(--muted)' }}>
+            {hasOwnKey
+              ? 'To change provider or model, paste your key again. '
+              : ''}
+            It’s stored encrypted and only used for your requests.
+          </p>
+        </section>
+
+        <SaveBar dirty={!!keyValue.trim()} saving={keySaving} label="Save key" error={keyError} />
       </form>
+
+      <Sheet open={sheet === 'provider'} onClose={closeSheet} title="Choose a provider">
+        <section className="card" style={{ paddingTop: 4, paddingBottom: 4 }}>
+          <ChoiceList label="Provider" options={PROVIDERS} value={keyProvider} onChange={handleProviderChange} />
+        </section>
+      </Sheet>
+
+      <Sheet open={sheet === 'model'} onClose={closeSheet} title="Choose a model">
+        <section className="card" style={{ paddingTop: 4, paddingBottom: 4 }}>
+          <ChoiceList
+            label="Model"
+            options={modelOptions}
+            value={selectedModel}
+            onChange={id => { setSelectedModel(id); setCustomModel(''); setSheet(null) }}
+          />
+        </section>
+      </Sheet>
+
+      <ConfirmSheet
+        open={sheet === 'remove'}
+        onClose={closeSheet}
+        title="Remove your key?"
+        body={`Quadfather stops using your ${user?.ai_provider ? providerLabel(user.ai_provider) : ''} key. You can add one again any time.`}
+        confirmLabel="Remove key"
+        busyLabel="Removing…"
+        busy={keySaving}
+        error={removeError}
+        onConfirm={handleRemoveKey}
+      />
+
     </div>
   )
 }

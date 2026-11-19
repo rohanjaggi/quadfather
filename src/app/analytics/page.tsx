@@ -15,7 +15,7 @@ import TrainingRecap from '@/components/workouts/TrainingRecap'
 import MuscleBalance from '@/components/workouts/MuscleBalance'
 import { calculateStepAllowance } from '@/lib/steps'
 import { errorMessage } from '@/lib/errors'
-import { currentStepStreak } from '@/lib/streak'
+import { currentStepStreak, longestStepStreak } from '@/lib/streak'
 
 type Period = 7 | 30
 
@@ -991,18 +991,8 @@ export default function AnalyticsPage() {
                 <SummaryCard title="Streaks & Consistency">
                   {(() => {
                     const currentStreak = currentStepStreak(stepsData, stepGoal, localIsoDay(new Date()))
-                    // Longest streak
+                    const longestStreak = longestStepStreak(stepsData, stepGoal)
                     const chronological = [...stepsData].sort((a, b) => a.date.localeCompare(b.date))
-                    let longestStreak = 0
-                    let tempStreak = 0
-                    for (const d of chronological) {
-                      if (d.steps >= stepGoal) {
-                        tempStreak++
-                        if (tempStreak > longestStreak) longestStreak = tempStreak
-                      } else {
-                        tempStreak = 0
-                      }
-                    }
                     const goalHitDays = stepsData.filter(d => d.steps >= stepGoal).length
                     // Last 14 days dots
                     const last14 = chronological.slice(-14)

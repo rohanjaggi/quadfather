@@ -1,5 +1,24 @@
 const DAY_MS = 86_400_000
 
+const dayGap = (later: string, earlier: string) =>
+  (Date.parse(`${later}T00:00:00Z`) - Date.parse(`${earlier}T00:00:00Z`)) / DAY_MS
+
+/** Longest run of consecutive calendar days meeting the goal. */
+export function longestStepStreak(rows: { date: string; steps: number }[], goal: number): number {
+  let longest = 0
+  let run = 0
+  let prev: string | null = null
+  for (const r of [...rows].sort((a, b) => a.date.localeCompare(b.date))) {
+    if (r.steps < goal) run = 0
+    else {
+      run = prev && dayGap(r.date, prev) === 1 ? run + 1 : 1
+      longest = Math.max(longest, run)
+    }
+    prev = r.steps >= goal ? r.date : null
+  }
+  return longest
+}
+
 /**
  * Consecutive goal-hit days ending at the latest row. `rows` are one per
  * logged day (`YYYY-MM-DD`); a gap of more than one calendar day ends the
@@ -16,7 +35,7 @@ export function currentStepStreak(
   let prev: string | null = null
   for (const r of sorted) {
     if (r.steps < goal) break
-    if (prev && (Date.parse(`${prev}T00:00:00Z`) - Date.parse(`${r.date}T00:00:00Z`)) / DAY_MS > 1) break
+    if (prev && dayGap(prev, r.date) > 1) break
     streak++
     prev = r.date
   }

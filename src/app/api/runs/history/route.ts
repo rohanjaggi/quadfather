@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withUser, optionalInt } from '@/lib/api-handler'
 import { daysAgoStart } from '@/lib/day'
+import { serializeRun } from '@/lib/strava'
 
 export const GET = withUser(async (request, user) => {
   const days = optionalInt(request.nextUrl.searchParams.get('days'), 'days', {
@@ -20,8 +21,5 @@ export const GET = withUser(async (request, user) => {
     orderBy: { run_date: 'desc' },
   })
 
-  return NextResponse.json(runs.map(r => ({
-    ...r,
-    strava_activity_id: r.strava_activity_id?.toString() ?? null,
-  })))
+  return NextResponse.json(runs.map(serializeRun))
 })

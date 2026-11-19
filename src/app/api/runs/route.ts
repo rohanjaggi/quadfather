@@ -11,6 +11,7 @@ import {
   unprocessable,
 } from '@/lib/api-handler'
 import { dayKey, dayRange } from '@/lib/day'
+import { serializeRun } from '@/lib/strava'
 
 export const GET = withUser(async (request, user) => {
   const { start, end } = dayRange(dayKey(parseDateParam(request.nextUrl.searchParams.get('date'), 'date')))
@@ -23,10 +24,7 @@ export const GET = withUser(async (request, user) => {
     orderBy: { run_date: 'desc' },
   })
 
-  return NextResponse.json(runs.map(r => ({
-    ...r,
-    strava_activity_id: r.strava_activity_id?.toString() ?? null,
-  })))
+  return NextResponse.json(runs.map(serializeRun))
 })
 
 export const POST = withUser(async (request, user) => {
@@ -81,8 +79,5 @@ export const POST = withUser(async (request, user) => {
     },
   })
 
-  return NextResponse.json({
-    ...run,
-    strava_activity_id: run.strava_activity_id?.toString() ?? null,
-  }, { status: 201 })
+  return NextResponse.json(serializeRun(run), { status: 201 })
 })

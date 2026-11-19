@@ -4,7 +4,7 @@ import { getUserAICredentials } from '@/lib/auth'
 import { generateWorkoutRecap } from '@/lib/ai'
 import { EXERCISE_MUSCLES } from '@/lib/exercise-muscles'
 import { muscleToZones, ALL_ZONES } from '@/lib/muscle-zones'
-import { setsVolume } from '@/lib/volume'
+import { calculateTotalVolume } from '@/lib/volume'
 import { callAIProvider, withUser } from '@/lib/api-handler'
 import { daysAgoStart } from '@/lib/day'
 
@@ -44,15 +44,8 @@ export const GET = withUser(async (request, user) => {
     }),
   ])
 
-  const calcVolume = (wks: typeof workouts) =>
-    wks.reduce((sum, w) =>
-      sum + w.exercises.reduce((es, e) => {
-        const sets = e.sets as unknown as { reps: number; weight_kg: number | null }[]
-        return es + setsVolume(sets)
-      }, 0), 0)
-
-  const totalVolume = Math.round(calcVolume(workouts))
-  const prevVolume = Math.round(calcVolume(prevWorkouts))
+  const totalVolume = calculateTotalVolume(workouts)
+  const prevVolume = calculateTotalVolume(prevWorkouts)
 
   const musclesHitSet = new Set<string>()
   const exerciseCounts: Record<string, number> = {}

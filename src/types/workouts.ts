@@ -77,8 +77,3 @@ export interface StepLog {
   source: string
   logged_at: string
 }
-
-export interface StepLogCreate {
-  steps: number
-  date?: string
-}

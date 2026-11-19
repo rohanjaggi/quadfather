@@ -175,8 +175,8 @@ export const deleteAccessToken = () =>
 
 import type { Exercise, PredictionData, WorkoutAnalysis } from '@/types/exercises'
 
-export const searchExercises = (q: string, category?: string) =>
-  apiFetch<Exercise[]>(`/exercises?q=${encodeURIComponent(q)}${category ? `&category=${category}` : ''}`)
+export const searchExercises = (q: string) =>
+  apiFetch<Exercise[]>(`/exercises?q=${encodeURIComponent(q)}`)
 
 export const getExercisePrediction = (exerciseName: string) =>
   apiFetch<PredictionData>(`/workouts/predict?exercise_name=${encodeURIComponent(exerciseName)}`)

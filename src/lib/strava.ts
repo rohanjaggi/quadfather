@@ -1,4 +1,5 @@
 import { createHmac } from 'crypto'
+import type { RunLog } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { encrypt, decrypt } from '@/lib/crypto'
 import { runKcal } from '@/lib/constants'
@@ -133,12 +134,8 @@ interface StravaActivity {
   sport_type: string
   distance: number
   moving_time: number
-  elapsed_time: number
   total_elevation_gain: number
-  average_speed: number
-  max_speed: number
   average_heartrate?: number
-  max_heartrate?: number
   start_date: string
 }
 
@@ -199,6 +196,11 @@ export function stravaActivityToRunData(activity: StravaActivity, weightKg: numb
     source: 'strava' as const,
     run_date: new Date(activity.start_date),
   }
+}
+
+/** A run row ready for `NextResponse.json`, which throws on the BigInt Strava id. */
+export function serializeRun(run: RunLog) {
+  return { ...run, strava_activity_id: run.strava_activity_id?.toString() ?? null }
 }
 
 export async function deauthorizeStrava(accessToken: string): Promise<void> {

@@ -32,11 +32,12 @@ export function setsVolume(sets: VolumeSet[]): number {
   return sets.reduce((sum, s) => sum + setVolume(s), 0)
 }
 
-export function calculateTotalVolume(workouts: WorkoutLog[]): number {
+/** Rounded volume of every set in `workouts`; `sets` may be a Prisma row's unchecked JSON. */
+export function calculateTotalVolume(workouts: { exercises: { sets: unknown }[] }[]): number {
   let total = 0
   for (const w of workouts) {
     for (const ex of w.exercises) {
-      total += setsVolume(ex.sets)
+      total += setsVolume(ex.sets as VolumeSet[])
     }
   }
   return Math.round(total)

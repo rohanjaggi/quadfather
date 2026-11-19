@@ -25,7 +25,7 @@ interface BestSets {
  * "weight PR" the UI shows). They are different sets more often than you'd
  * think — 77.5×10 beats 80×8 on e1RM but is not a weight PR.
  */
-function findBestSets(sets: SetData[], seed?: BestSets): BestSets {
+export function findBestSets(sets: SetData[], seed?: BestSets): BestSets {
   const out: BestSets = seed
     ? { ...seed }
     : { best1RM: 0, e1rmSet: null, bestWeight: 0, bestWeightReps: 0 }

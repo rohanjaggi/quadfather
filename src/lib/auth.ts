@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { NextRequest } from "next/server";
 import { prisma } from "./prisma";
 import { decrypt } from "./crypto";
-import type { AIProvider } from "./models";
+import type { AICredentials, AIProvider } from "./models";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
 const SKIP_TELEGRAM_AUTH =
@@ -141,11 +141,12 @@ export async function getAuthenticatedUserFlexible(request: NextRequest) {
   return getAuthenticatedUserByToken(request);
 }
 
-export function getUserAICredentials(user: {
+/** The user's own key, else this deployment's shared key, else null. Throws if the stored key can't be decrypted. */
+export function findUserAICredentials(user: {
   ai_provider: string | null;
   ai_api_key: string | null;
   ai_model: string | null;
-}): { provider: AIProvider; apiKey: string; model: string | null } {
+}): AICredentials | null {
   if (user.ai_provider && user.ai_api_key) {
     return {
       provider: user.ai_provider as AIProvider,
@@ -164,5 +165,13 @@ export function getUserAICredentials(user: {
     return { provider: "openrouter", apiKey: openrouterKey, model: null };
   }
 
-  throw new Error("No API key configured. Set one up in Settings.");
+  return null;
+}
+
+export function getUserAICredentials(
+  user: Parameters<typeof findUserAICredentials>[0],
+): AICredentials {
+  const credentials = findUserAICredentials(user);
+  if (!credentials) throw new Error("No API key configured. Set one up in Settings.");
+  return credentials;
 }

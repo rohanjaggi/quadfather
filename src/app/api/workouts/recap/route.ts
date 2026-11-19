@@ -9,7 +9,7 @@ import { callAIProvider, withUser } from '@/lib/api-handler'
 import { daysAgoStart } from '@/lib/day'
 
 export const GET = withUser(async (request, user) => {
-  const { provider, apiKey, model } = getUserAICredentials(user)
+  const ai = getUserAICredentials(user)
 
   const daysParam = request.nextUrl.searchParams.get('days')
   const period = daysParam === '30' ? 30 : 7
@@ -86,7 +86,7 @@ export const GET = withUser(async (request, user) => {
   // Wrapped so a provider failure (bad key, outage) is the same 502 "check your
   // API key" the food/run routes return, instead of an opaque 500.
   const recap = await callAIProvider('workouts/recap', () =>
-    generateWorkoutRecap(provider, apiKey, model, {
+    generateWorkoutRecap(ai, {
       period,
       workoutCount: workouts.length,
       totalVolume,

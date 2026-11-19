@@ -6,7 +6,7 @@ import { callAIProvider, withUser, optionalInt, parseJsonStringArray } from "@/l
 import { dayKey, daysAgoStart } from "@/lib/day";
 
 export const GET = withUser(async (request, user) => {
-  const { provider, apiKey, model } = getUserAICredentials(user);
+  const ai = getUserAICredentials(user);
 
   // Only 7 and 30 are offered by the UI; anything else falls back to 7, but a
   // non-integer is now rejected rather than silently treated as "7".
@@ -68,7 +68,7 @@ export const GET = withUser(async (request, user) => {
   // Wrapped so a provider failure (bad key, outage) is the same 502 "check your
   // API key" the food/run routes return, instead of an opaque 500.
   const insight = await callAIProvider("analytics/insights", () =>
-    generateTrendsCoach(provider, apiKey, model, {
+    generateTrendsCoach(ai, {
       period,
       goals: {
         calories: user.daily_calorie_goal,

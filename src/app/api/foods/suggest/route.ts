@@ -6,7 +6,7 @@ import { getDailyBudget } from "@/lib/budget";
 import { callAIProvider, parseJsonStringArray, withUser } from "@/lib/api-handler";
 
 export const GET = withUser(async (request, user) => {
-  const { provider, apiKey, model } = getUserAICredentials(user);
+  const ai = getUserAICredentials(user);
 
   // Same budget the dashboard shows: goal + exercise credit + step credit.
   const budget = await getDailyBudget(user);
@@ -37,9 +37,7 @@ export const GET = withUser(async (request, user) => {
 
   const suggestions = await callAIProvider("foods/suggest", () =>
     suggestMeals(
-      provider,
-      apiKey,
-      model,
+      ai,
       remainingCalories,
       remainingProtein,
       mealNames,

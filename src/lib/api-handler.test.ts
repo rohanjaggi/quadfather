@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { requireInt, parseDateParam, parseJsonStringArray } from './api-handler'
+import { ApiError, requireInt, parseDateParam, parseJsonStringArray, readImageUpload } from './api-handler'
 
 test('requireInt accepts canonical integers', () => {
   assert.equal(requireInt('42', 'id'), 42)
@@ -36,4 +36,26 @@ test('parseJsonStringArray', () => {
   assert.deepEqual(parseJsonStringArray('{not json'), [])
   assert.deepEqual(parseJsonStringArray('["a",1,null,"b"]'), ['a', 'b'])
   assert.deepEqual(parseJsonStringArray(null), [])
+})
+
+function upload(image?: File | string): Request {
+  const form = new FormData()
+  if (image !== undefined) form.append('image', image)
+  return new Request('http://test/', { method: 'POST', body: form })
+}
+
+test('readImageUpload returns the accepted image as base64', async () => {
+  const file = new File([new Uint8Array([1, 2, 3])], 'a.png', { type: 'image/png' })
+  const { image } = await readImageUpload(upload(file))
+  assert.deepEqual(image, { base64: 'AQID', mimeType: 'image/png' })
+})
+
+test('readImageUpload rejects missing, unsupported, oversized and non-multipart uploads', async () => {
+  const status = (n: number) => (e: unknown) => e instanceof ApiError && e.status === n
+  await assert.rejects(readImageUpload(upload()), status(422))
+  await assert.rejects(readImageUpload(upload('not a file')), status(422))
+  await assert.rejects(readImageUpload(upload(new File(['x'], 'a.heic', { type: 'image/heic' }))), status(422))
+  const big = new File([new Uint8Array(4 * 1024 * 1024 + 1)], 'big.jpg', { type: 'image/jpeg' })
+  await assert.rejects(readImageUpload(upload(big)), status(413))
+  await assert.rejects(readImageUpload(new Request('http://test/', { method: 'POST', body: 'nope' })), status(400))
 })

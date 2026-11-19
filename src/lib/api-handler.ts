@@ -5,6 +5,7 @@ import {
   getAuthenticatedUser,
   getAuthenticatedUserFlexible,
 } from '@/lib/auth'
+import { ACCEPTED_IMAGE_TYPES } from '@/lib/image'
 
 /**
  * Shared plumbing for API route handlers.
@@ -18,6 +19,7 @@ import {
  *  - `withFlexibleUser(handler)` — same, but also accepts the Shortcut bearer
  *    token (`Authorization: Bearer …`).
  *  - `parseJsonBody(request)` — 400 on malformed JSON instead of 500.
+ *  - `readImageUpload(request)` — the multipart `image` file, type- and size-checked.
  *  - `requireInt`, `optionalInt`, `optionalNumber`, `requireString`,
  *    `optionalBoolean`, `optionalEnum`, `parseDateParam` — small validators
  *    that throw ApiError(422).
@@ -178,6 +180,46 @@ export async function parseJsonBody<T = Record<string, unknown>>(
     throw unprocessable('Request body must be a JSON object')
   }
   return body as T
+}
+
+/** An uploaded image as the vision models take it. */
+export interface ImageInput {
+  base64: string
+  mimeType: string
+}
+
+/** Under Vercel's 4.5 MB request-body limit, so an oversized photo gets this 413 rather than the platform's. */
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024
+
+/**
+ * Read the multipart `image` field. Every provider rejects formats outside
+ * `ACCEPTED_IMAGE_TYPES` (HEIC, BMP, TIFF…) with an opaque error of its own, so
+ * they are caught here where we can say what went wrong. `form` is returned for
+ * any other fields the route reads.
+ */
+export async function readImageUpload(
+  request: Request,
+): Promise<{ image: ImageInput; form: FormData }> {
+  let form: FormData
+  try {
+    form = await request.formData()
+  } catch {
+    throw badRequest('Malformed multipart form data')
+  }
+
+  const file = form.get('image')
+  if (!file || typeof file === 'string') {
+    throw unprocessable('An image file is required')
+  }
+  if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+    throw unprocessable('Image must be a JPEG, PNG, WebP or GIF')
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    throw new ApiError(413, 'Image must be smaller than 4 MB')
+  }
+
+  const base64 = Buffer.from(await file.arrayBuffer()).toString('base64')
+  return { image: { base64, mimeType: file.type }, form }
 }
 
 /** Integer from a route param / query string / body value; 422 otherwise. */

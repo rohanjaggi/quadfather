@@ -1,3 +1,4 @@
+import type { ProgressSnapshot, User } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { calculateEstimated1RM, type ProgressSuggestion } from '@/lib/progress'
 import { coerceNumber, fillTemplate, parseJsonObject } from '@/lib/ai'
@@ -44,7 +45,7 @@ Return ONLY valid JSON:
   "reasoning": "<one sentence explaining your prediction>"
 }`
 
-export function formatHistory(
+function formatHistory(
   logs: { workout_date: Date; sets: SetData[] }[],
 ): string {
   return logs
@@ -71,43 +72,36 @@ export function formatHistory(
     .join('\n')
 }
 
-export function buildPredictPrompt(params: {
-  exerciseName: string
-  fitnessGoal: string | null
-  trainingFocus: string | null
-  weightKg: number | null
-  history: string
-  estimated1rm: number
-  bestSetWeight: number
-  bestSetReps: number
-  /** Heaviest set ever logged — see `best_weight` on `ProgressSnapshot`. */
-  bestWeight: number
-  bestWeightReps: number
-  sessionsSinceImprovement: number
-  totalVolume7d: number
-}): string {
+export function buildPredictPrompt(
+  exerciseName: string,
+  user: Pick<User, 'fitness_goal' | 'training_focus' | 'weight_kg'>,
+  snapshot: Pick<
+    ProgressSnapshot,
+    'estimated_1rm' | 'best_set_weight' | 'best_set_reps' | 'sessions_since_improvement' | 'total_volume_7d'
+  >,
+  history: { workout_date: Date; sets: SetData[] }[],
+  heaviest: { weight: number; reps: number },
+): string {
   // `fillTemplate` (not chained `String.replace`): the exercise name and the
   // history block are user-controlled text, and `replace` interprets `$&`, `$'`
   // and `$1` in the *replacement*, so an exercise called `$'` used to splice a
   // copy of the rest of the prompt into the prompt. It also substitutes in one
   // pass, so an injected value can never be treated as a placeholder itself.
   return fillTemplate(PREDICT_PROMPT, {
-    exercise_name: params.exerciseName,
-    fitness_goal: params.fitnessGoal || 'general fitness',
-    training_focus: params.trainingFocus || 'balanced',
-    weight_kg: String(params.weightKg ?? 'unknown'),
-    history: params.history || 'No previous sessions recorded.',
-    estimated_1rm: String(params.estimated1rm),
-    best_set_weight: String(params.bestSetWeight),
-    best_set_reps: String(params.bestSetReps),
-    // The AI path used to see only the best-*e1RM* set, which can be lighter
-    // than a weight the user has already lifted (77.5×10 beats 80×8 on e1RM) —
-    // the exact defect the deterministic fallback anchors on `best_weight` to
-    // avoid. Give the model both.
-    best_weight: String(params.bestWeight),
-    best_weight_reps: String(params.bestWeightReps),
-    sessions_since_improvement: String(params.sessionsSinceImprovement),
-    total_volume_7d: String(params.totalVolume7d),
+    exercise_name: exerciseName,
+    fitness_goal: user.fitness_goal || 'general fitness',
+    training_focus: user.training_focus || 'balanced',
+    weight_kg: String(user.weight_kg || 'unknown'),
+    history: formatHistory(history) || 'No previous sessions recorded.',
+    estimated_1rm: String(snapshot.estimated_1rm),
+    best_set_weight: String(snapshot.best_set_weight),
+    best_set_reps: String(snapshot.best_set_reps),
+    // The best-*e1RM* set can be lighter than a weight the user has already
+    // lifted (77.5×10 beats 80×8 on e1RM), so give the model the heaviest set too.
+    best_weight: String(heaviest.weight),
+    best_weight_reps: String(heaviest.reps),
+    sessions_since_improvement: String(snapshot.sessions_since_improvement),
+    total_volume_7d: String(snapshot.total_volume_7d),
   })
 }
 

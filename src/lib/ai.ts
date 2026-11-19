@@ -1,8 +1,8 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI, ThinkingLevel, type ThinkingConfig } from "@google/genai";
-import { getModelForProvider, type AIProvider } from "@/lib/models";
-import { ApiError } from "@/lib/api-handler";
+import { getModelForProvider, type AICredentials } from "@/lib/models";
+import { ApiError, type ImageInput } from "@/lib/api-handler";
 import { UTC_OFFSET_HOURS } from "@/lib/day";
 
 const VISION_PROMPT = `Estimate the nutritional content of the food shown.
@@ -163,32 +163,8 @@ const MAX_RETRIES = 0;
  * return an empty string. Thinking is minimised per-provider below; the JSON
  * budget carries extra headroom on top of that for providers that ignore the hint.
  */
-const MAX_TOKENS_JSON = 2048;
+export const MAX_TOKENS_JSON = 2048;
 const MAX_TOKENS_TEXT = 1500;
-
-const SUPPORTED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-] as const;
-
-type SupportedImageType = (typeof SUPPORTED_IMAGE_TYPES)[number];
-
-/**
- * Every provider rejects anything outside this set (HEIC/HEIF/BMP/TIFF come back
- * as an opaque 422), so fail early with a message the user can act on.
- */
-function assertSupportedImageType(mimeType: string): SupportedImageType {
-  const normalised = (mimeType ?? "").split(";")[0].trim().toLowerCase();
-  const candidate = normalised === "image/jpg" ? "image/jpeg" : normalised;
-  if (!(SUPPORTED_IMAGE_TYPES as readonly string[]).includes(candidate)) {
-    throw new Error(
-      `Unsupported image type "${mimeType || "unknown"}" — use JPEG, PNG, WebP or GIF`,
-    );
-  }
-  return candidate as SupportedImageType;
-}
 
 // --- Prompt templating ---
 
@@ -413,43 +389,7 @@ function parseSuggestionsResponse(raw: string): MealSuggestion[] {
   }));
 }
 
-// --- OpenAI-compatible (OpenAI + OpenRouter) ---
-
-interface OpenAICompatTarget {
-  baseURL?: string;
-  /**
-   * OpenAI's current chat models reject the deprecated `max_tokens`;
-   * OpenRouter normalises `max_tokens` across every upstream provider.
-   */
-  maxTokensParam: "max_tokens" | "max_completion_tokens";
-}
-
-const OPENAI_TARGET: OpenAICompatTarget = {
-  maxTokensParam: "max_completion_tokens",
-};
-
-const OPENROUTER_TARGET: OpenAICompatTarget = {
-  baseURL: "https://openrouter.ai/api/v1",
-  maxTokensParam: "max_tokens",
-};
-
-function openaiCompat(apiKey: string, baseURL?: string): OpenAI {
-  return new OpenAI({
-    apiKey,
-    baseURL,
-    timeout: REQUEST_TIMEOUT_MS,
-    maxRetries: MAX_RETRIES,
-  });
-}
-
-function tokenLimit(
-  target: OpenAICompatTarget,
-  maxTokens: number,
-): { max_tokens: number } | { max_completion_tokens: number } {
-  return target.maxTokensParam === "max_tokens"
-    ? { max_tokens: maxTokens }
-    : { max_completion_tokens: maxTokens };
-}
+// --- Model call ---
 
 /**
  * The output-token cap covers reasoning tokens as well as the visible reply, so
@@ -462,114 +402,6 @@ function tokenLimit(
  * models that have no reasoning mode, so the same hint is safe on both targets.
  */
 const REASONING_EFFORT = { reasoning_effort: "low" } as const;
-
-async function openaiCompatVision(
-  target: OpenAICompatTarget,
-  apiKey: string,
-  model: string,
-  imageBase64: string,
-  mimeType: SupportedImageType,
-  prompt: string,
-  maxTokens: number,
-): Promise<string> {
-  const client = openaiCompat(apiKey, target.baseURL);
-  const response = await client.chat.completions.create({
-    model,
-    ...tokenLimit(target, maxTokens),
-    ...REASONING_EFFORT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image_url",
-            image_url: { url: `data:${mimeType};base64,${imageBase64}` },
-          },
-          { type: "text", text: prompt },
-        ],
-      },
-    ],
-  });
-  return response.choices[0]?.message?.content ?? "";
-}
-
-async function openaiCompatText(
-  target: OpenAICompatTarget,
-  apiKey: string,
-  model: string,
-  prompt: string,
-  maxTokens: number,
-): Promise<string> {
-  const client = openaiCompat(apiKey, target.baseURL);
-  const response = await client.chat.completions.create({
-    model,
-    ...tokenLimit(target, maxTokens),
-    ...REASONING_EFFORT,
-    messages: [{ role: "user", content: prompt }],
-  });
-  return response.choices[0]?.message?.content ?? "";
-}
-
-// --- Anthropic ---
-
-function anthropicClient(apiKey: string): Anthropic {
-  return new Anthropic({
-    apiKey,
-    timeout: REQUEST_TIMEOUT_MS,
-    maxRetries: MAX_RETRIES,
-  });
-}
-
-async function anthropicVision(
-  apiKey: string,
-  model: string,
-  imageBase64: string,
-  mimeType: SupportedImageType,
-  prompt: string,
-  maxTokens: number,
-): Promise<string> {
-  const client = anthropicClient(apiKey);
-  const response = await client.messages.create({
-    model,
-    max_tokens: maxTokens,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: mimeType,
-              data: imageBase64,
-            },
-          },
-          { type: "text", text: prompt },
-        ],
-      },
-    ],
-  });
-  const block = response.content[0];
-  return block?.type === "text" ? block.text : "";
-}
-
-async function anthropicText(
-  apiKey: string,
-  model: string,
-  prompt: string,
-  maxTokens: number,
-): Promise<string> {
-  const client = anthropicClient(apiKey);
-  const response = await client.messages.create({
-    model,
-    max_tokens: maxTokens,
-    messages: [{ role: "user", content: prompt }],
-  });
-  const block = response.content[0];
-  return block?.type === "text" ? block.text : "";
-}
-
-// --- Gemini ---
 
 /**
  * Keep Gemini's thinking budget at the floor, for the same reason as
@@ -590,147 +422,133 @@ function geminiThinkingConfig(model: string): ThinkingConfig | undefined {
   return { thinkingBudget: 0 };
 }
 
-function geminiClient(apiKey: string): GoogleGenAI {
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      timeout: REQUEST_TIMEOUT_MS,
-      // `attempts` counts the original request, so this is 1 attempt, no retry.
-      retryOptions: { attempts: MAX_RETRIES + 1 },
-    },
-  });
-}
-
-async function geminiVision(
-  apiKey: string,
-  model: string,
-  imageBase64: string,
-  mimeType: SupportedImageType,
+/** One prompt (plus an optional image) to the user's provider; returns the raw reply text. */
+export async function callModel(
+  ai: AICredentials,
   prompt: string,
   maxTokens: number,
+  image?: ImageInput,
 ): Promise<string> {
-  const ai = geminiClient(apiKey);
-  const response = await ai.models.generateContent({
-    model,
-    config: { maxOutputTokens: maxTokens, thinkingConfig: geminiThinkingConfig(model) },
-    contents: [
-      {
-        role: "user",
-        parts: [
+  const model = getModelForProvider(ai.provider, ai.model);
+  switch (ai.provider) {
+    case "openai":
+    case "openrouter": {
+      const openrouter = ai.provider === "openrouter";
+      const client = new OpenAI({
+        apiKey: ai.apiKey,
+        baseURL: openrouter ? "https://openrouter.ai/api/v1" : undefined,
+        timeout: REQUEST_TIMEOUT_MS,
+        maxRetries: MAX_RETRIES,
+      });
+      const response = await client.chat.completions.create({
+        model,
+        // OpenAI's current chat models reject the deprecated `max_tokens`;
+        // OpenRouter normalises `max_tokens` across every upstream provider.
+        ...(openrouter ? { max_tokens: maxTokens } : { max_completion_tokens: maxTokens }),
+        ...REASONING_EFFORT,
+        messages: [
           {
-            inlineData: {
-              mimeType,
-              data: imageBase64,
-            },
+            role: "user",
+            content: image
+              ? [
+                  {
+                    type: "image_url",
+                    image_url: { url: `data:${image.mimeType};base64,${image.base64}` },
+                  },
+                  { type: "text", text: prompt },
+                ]
+              : prompt,
           },
-          { text: prompt },
         ],
-      },
-    ],
-  });
-  return response.text ?? "";
-}
-
-async function geminiText(
-  apiKey: string,
-  model: string,
-  prompt: string,
-  maxTokens: number,
-): Promise<string> {
-  const ai = geminiClient(apiKey);
-  const response = await ai.models.generateContent({
-    model,
-    config: { maxOutputTokens: maxTokens, thinkingConfig: geminiThinkingConfig(model) },
-    contents: prompt,
-  });
-  return response.text ?? "";
-}
-
-// --- Routing ---
-
-async function callVision(
-  provider: AIProvider,
-  apiKey: string,
-  model: string,
-  imageBase64: string,
-  mimeType: string,
-  prompt: string,
-  maxTokens: number = MAX_TOKENS_JSON,
-): Promise<string> {
-  const imageType = assertSupportedImageType(mimeType);
-  switch (provider) {
-    case "openai":
-      return openaiCompatVision(OPENAI_TARGET, apiKey, model, imageBase64, imageType, prompt, maxTokens);
-    case "anthropic":
-      return anthropicVision(apiKey, model, imageBase64, imageType, prompt, maxTokens);
-    case "gemini":
-      return geminiVision(apiKey, model, imageBase64, imageType, prompt, maxTokens);
-    case "openrouter":
-      return openaiCompatVision(OPENROUTER_TARGET, apiKey, model, imageBase64, imageType, prompt, maxTokens);
-  }
-}
-
-async function callText(
-  provider: AIProvider,
-  apiKey: string,
-  model: string,
-  prompt: string,
-  maxTokens: number = MAX_TOKENS_JSON,
-): Promise<string> {
-  switch (provider) {
-    case "openai":
-      return openaiCompatText(OPENAI_TARGET, apiKey, model, prompt, maxTokens);
-    case "anthropic":
-      return anthropicText(apiKey, model, prompt, maxTokens);
-    case "gemini":
-      return geminiText(apiKey, model, prompt, maxTokens);
-    case "openrouter":
-      return openaiCompatText(OPENROUTER_TARGET, apiKey, model, prompt, maxTokens);
+      });
+      return response.choices[0]?.message?.content ?? "";
+    }
+    case "anthropic": {
+      const client = new Anthropic({
+        apiKey: ai.apiKey,
+        timeout: REQUEST_TIMEOUT_MS,
+        maxRetries: MAX_RETRIES,
+      });
+      const response = await client.messages.create({
+        model,
+        max_tokens: maxTokens,
+        messages: [
+          {
+            role: "user",
+            content: image
+              ? [
+                  {
+                    type: "image",
+                    source: {
+                      type: "base64",
+                      // `readImageUpload` only lets these four through; the bot always sends JPEG.
+                      media_type: image.mimeType as Anthropic.Base64ImageSource["media_type"],
+                      data: image.base64,
+                    },
+                  },
+                  { type: "text", text: prompt },
+                ]
+              : prompt,
+          },
+        ],
+      });
+      const block = response.content[0];
+      return block?.type === "text" ? block.text : "";
+    }
+    case "gemini": {
+      const client = new GoogleGenAI({
+        apiKey: ai.apiKey,
+        httpOptions: {
+          timeout: REQUEST_TIMEOUT_MS,
+          // `attempts` counts the original request, so this is 1 attempt, no retry.
+          retryOptions: { attempts: MAX_RETRIES + 1 },
+        },
+      });
+      const response = await client.models.generateContent({
+        model,
+        config: { maxOutputTokens: maxTokens, thinkingConfig: geminiThinkingConfig(model) },
+        contents: image
+          ? [
+              {
+                role: "user",
+                parts: [
+                  { inlineData: { mimeType: image.mimeType, data: image.base64 } },
+                  { text: prompt },
+                ],
+              },
+            ]
+          : prompt,
+      });
+      return response.text ?? "";
+    }
   }
 }
 
 // --- Public API ---
 
 export async function analyseMeal(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
-  imageBytes: Buffer,
-  mimeType: string,
+  ai: AICredentials,
+  image: ImageInput,
   description: string = "",
 ): Promise<MealAnalysisResult> {
-  const resolvedModel = getModelForProvider(provider, model);
   const prompt = fillTemplate(VISION_PROMPT, {
     description: description || "No additional context provided.",
   });
-  const raw = await callVision(
-    provider,
-    apiKey,
-    resolvedModel,
-    imageBytes.toString("base64"),
-    mimeType,
-    prompt,
-    MAX_TOKENS_JSON,
-  );
-  return parseAnalysisResult(raw);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON, image);
+  return parseAnalysisResponse(raw);
 }
 
 export async function parseFood(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   text: string,
 ): Promise<MealAnalysisResult> {
-  const resolvedModel = getModelForProvider(provider, model);
   const prompt = fillTemplate(TEXT_PROMPT, { text });
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_JSON);
-  return parseAnalysisResult(raw);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON);
+  return parseAnalysisResponse(raw);
 }
 
 export async function suggestMeals(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   remainingCalories: number,
   remainingProtein: number,
   mealsLogged: string[],
@@ -738,7 +556,6 @@ export async function suggestMeals(
   savedFoodNames: string[] = [],
   exerciseToday: number = 0,
 ): Promise<MealSuggestion[]> {
-  const resolvedModel = getModelForProvider(provider, model);
   const restrictionsBlock = dietaryRestrictions.length > 0
     ? `\nDietary restrictions (MUST respect — do not suggest meals that violate these): ${dietaryRestrictions.join(', ')}`
     : '';
@@ -763,12 +580,8 @@ export async function suggestMeals(
     exercise_block: exerciseBlock,
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_JSON);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON);
   return parseSuggestionsResponse(raw);
-}
-
-function parseAnalysisResult(raw: string): MealAnalysisResult {
-  return parseAnalysisResponse(raw);
 }
 
 const DAILY_COACH_PROMPT = `You are a friendly nutrition coach reviewing a user's day. Here's their data:
@@ -784,9 +597,7 @@ Exercise: {exercise}
 Give a short, encouraging coaching message (2-3 sentences max). Be specific about what they did well and give ONE actionable tip for tomorrow. Keep it warm but direct — no bullet points, no headers, just natural conversational text.`;
 
 export async function generateDailyCoach(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     goals: { calories: number; protein: number };
     consumed: { calories: number; protein: number; carbs: number; fats: number };
@@ -798,7 +609,6 @@ export async function generateDailyCoach(
     steps?: { today: number; goal: number; streak: number; extraAllowance: number };
   },
 ): Promise<string> {
-  const resolvedModel = getModelForProvider(provider, model);
   const restrictionsBlock = context.dietaryRestrictions.length > 0
     ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
     : '';
@@ -826,7 +636,7 @@ export async function generateDailyCoach(
     restrictions_block: restrictionsBlock,
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_TEXT);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_TEXT);
   return raw.trim();
 }
 
@@ -844,9 +654,7 @@ Exercise: {exercise_total} kcal across {exercise_sessions} sessions
 Give exactly 3 short insights about patterns (1 sentence each). Be specific with numbers. Focus on: consistency, weak spots, and positive trends. Format as plain text with each insight on a new line starting with a bullet "•".`;
 
 export async function generateWeeklyInsights(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     goals: { calories: number; protein: number; water: number };
     days: { date: string; calories: number; protein: number; water: number }[];
@@ -855,7 +663,6 @@ export async function generateWeeklyInsights(
     dietaryRestrictions: string[];
   },
 ): Promise<string> {
-  const resolvedModel = getModelForProvider(provider, model);
   const restrictionsBlock = context.dietaryRestrictions.length > 0
     ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
     : '';
@@ -876,16 +683,13 @@ export async function generateWeeklyInsights(
     restrictions_block: restrictionsBlock,
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_TEXT);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_TEXT);
   return raw.trim();
 }
 
 export async function analyseRunScreenshot(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
-  imageBase64: string,
-  mimeType: string,
+  ai: AICredentials,
+  image: ImageInput,
 ): Promise<{
   distance_meters: number
   duration_seconds: number
@@ -895,7 +699,6 @@ export async function analyseRunScreenshot(
   confidence: 'high' | 'medium' | 'low'
   notes: string
 }> {
-  const resolvedModel = getModelForProvider(provider, model);
   const prompt = `Analyze this running/exercise screenshot and extract the following data.
 Return ONLY valid JSON with these fields:
 - distance_meters: total distance in meters (convert from km/miles if needed)
@@ -909,16 +712,7 @@ Return ONLY valid JSON with these fields:
 If the image is not a running/exercise screenshot, return confidence "low" with notes explaining why.
 Convert all units to metric (meters, seconds, min/km).`
 
-  // The caller already base64-encoded the upload; pass it straight through.
-  const raw = await callVision(
-    provider,
-    apiKey,
-    resolvedModel,
-    imageBase64,
-    mimeType,
-    prompt,
-    MAX_TOKENS_JSON,
-  )
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON, image)
 
   const data = parseJsonObject(raw)
 
@@ -980,9 +774,7 @@ Guidelines for your response:
 - Keep it conversational — like texting a friend who happens to be a nutritionist`;
 
 export async function generateTrendsCoach(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     period: number;
     goals: { calories: number; protein: number; carbs: number; fats: number; fiber: number; water: number };
@@ -992,8 +784,6 @@ export async function generateTrendsCoach(
     dietaryRestrictions: string[];
   },
 ): Promise<string> {
-  const resolvedModel = getModelForProvider(provider, model);
-
   const restrictionsBlock = context.dietaryRestrictions.length > 0
     ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
     : 'No dietary restrictions noted.';
@@ -1027,7 +817,7 @@ export async function generateTrendsCoach(
     exercise_sessions: String(context.exerciseSessions),
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_TEXT);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_TEXT);
   return raw.trim();
 }
 
@@ -1061,9 +851,7 @@ If no weight mentioned, use null for weight_kg (bodyweight exercise).
 Confidence is "high" if all exercises clearly specified, "medium" if some interpretation needed, "low" if very ambiguous.`;
 
 export async function parseWorkoutText(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   text: string,
 ): Promise<{
   name: string
@@ -1071,9 +859,8 @@ export async function parseWorkoutText(
   confidence: string
   notes: string
 }> {
-  const resolvedModel = getModelForProvider(provider, model);
   const prompt = fillTemplate(WORKOUT_PARSE_PROMPT, { text });
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_JSON);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON);
   const data = parseJsonObject(raw);
 
   // Filter *before* the emptiness check. The old order counted raw entries, so a
@@ -1086,7 +873,7 @@ export async function parseWorkoutText(
       exercise_name: String(ex.exercise_name ?? ""),
       sets: (Array.isArray(ex.sets) ? ex.sets : []).filter(isRecord).map((s) => ({
         reps: toInt(s.reps),
-        weight_kg: s.weight_kg != null ? toNullableDecimal(s.weight_kg) : null,
+        weight_kg: toNullableDecimal(s.weight_kg),
       })),
       order: toInt(ex.order, index + 1),
     }))
@@ -1129,9 +916,7 @@ PRs to include: {prs}
 Keep the takeaway specific and actionable. No fluff.`;
 
 export async function generateWorkoutAnalysis(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     workoutName: string
     exercises: { name: string; sets: { reps: number; weight_kg: number | null }[] }[]
@@ -1145,8 +930,6 @@ export async function generateWorkoutAnalysis(
   volume_comparison: string
   takeaway: string
 }> {
-  const resolvedModel = getModelForProvider(provider, model);
-
   const exercisesStr = context.exercises.map(ex =>
     `${ex.name}: ${ex.sets.map(s => `${s.reps}${s.weight_kg ? ` @ ${s.weight_kg}kg` : ''}`).join(', ')}`
   ).join('\n');
@@ -1163,7 +946,7 @@ export async function generateWorkoutAnalysis(
     prs: prsStr,
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_JSON);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON);
   const data = parseJsonObject(raw);
 
   // This object is persisted on the workout and served from cache forever,
@@ -1212,9 +995,7 @@ Line 4: One forward-looking sentence — what to prioritize next week based on t
 Keep it under 100 words total. Be specific with numbers. Warm but direct.`;
 
 export async function generateWeeklyExerciseDigest(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     trainingFocus: string
     sessionCount: number
@@ -1223,8 +1004,6 @@ export async function generateWeeklyExerciseDigest(
     stallAlerts: string
   },
 ): Promise<string> {
-  const resolvedModel = getModelForProvider(provider, model);
-
   const prompt = fillTemplate(WEEKLY_EXERCISE_PROMPT, {
     training_focus: context.trainingFocus,
     session_count: String(context.sessionCount),
@@ -1233,7 +1012,7 @@ export async function generateWeeklyExerciseDigest(
     stall_alerts: context.stallAlerts || 'None',
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_TEXT);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_TEXT);
   return raw.trim();
 }
 
@@ -1253,9 +1032,7 @@ Exercises performed:
 Write a 2-4 sentence training recap. Cover: frequency, volume trend vs previous period, any muscle coverage gaps. End with one specific, actionable suggestion. Be factual and coach-like — no motivational fluff, no greetings, no sign-offs.`;
 
 export async function generateWorkoutRecap(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     period: number
     workoutCount: number
@@ -1267,8 +1044,6 @@ export async function generateWorkoutRecap(
     exerciseSummary: string
   },
 ): Promise<string> {
-  const resolvedModel = getModelForProvider(provider, model)
-
   const prompt = fillTemplate(WORKOUT_RECAP_PROMPT, {
     period: String(context.period),
     workout_count: String(context.workoutCount),
@@ -1280,8 +1055,6 @@ export async function generateWorkoutRecap(
     exercise_summary: context.exerciseSummary,
   })
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_TEXT)
+  const raw = await callModel(ai, prompt, MAX_TOKENS_TEXT)
   return raw.trim()
 }
-
-export { callText as callTextDirect }

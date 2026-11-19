@@ -12,13 +12,13 @@ import {
 const MAX_TEXT = 2000;
 
 export const POST = withUser(async (request, user) => {
-  const { provider, apiKey, model } = getUserAICredentials(user);
+  const ai = getUserAICredentials(user);
 
   const body = await parseJsonBody(request);
   const text = requireString(body.text, "text", { maxLength: MAX_TEXT });
 
   const result = await callAIProvider("foods/parse", () =>
-    parseFood(provider, apiKey, model, text),
+    parseFood(ai, text),
   );
   return NextResponse.json(result);
 });

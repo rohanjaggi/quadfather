@@ -5,10 +5,8 @@ import { getUserAICredentials } from '@/lib/auth'
 import { generateWorkoutAnalysis } from '@/lib/ai'
 import { escapeHtml } from '@/lib/html'
 import { withUser, requireInt, notFound, ApiError, callAIProvider } from '@/lib/api-handler'
-import { Bot } from 'grammy'
+import { sendHtml } from '@/lib/telegram-bot'
 import type { WorkoutAnalysis } from '@/types/exercises'
-
-const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? ''
 
 type Ctx = { params: { id: string } }
 
@@ -61,7 +59,7 @@ export const POST = withUser<Ctx>(async (request, user, { params }) => {
     return NextResponse.json(workout.analysis)
   }
 
-  const { provider, apiKey, model } = getUserAICredentials(user)
+  const ai = getUserAICredentials(user)
 
   // PRs are computed once, when the workout is logged (POST /api/workouts), and
   // persisted on the row. This route is read-only w.r.t. progress snapshots.
@@ -84,7 +82,7 @@ export const POST = withUser<Ctx>(async (request, user, { params }) => {
   // API key" the food/run routes return, instead of an opaque 500. `ApiError`
   // passes through untouched, so the 502 thrown below still reads as itself.
   const analysis = await callAIProvider('workouts/analyse', () =>
-    generateWorkoutAnalysis(provider, apiKey, model, {
+    generateWorkoutAnalysis(ai, {
       workoutName: workout.name,
       exercises: workout.exercises.map(e => ({
         name: e.exercise_name,
@@ -99,9 +97,7 @@ export const POST = withUser<Ctx>(async (request, user, { params }) => {
   // The persisted `workout.prs` is the authoritative list — the model only ever
   // echoes it back and can drop or invent entries. Overwrite before anything
   // (validation, stored analysis, Telegram message) reads `analysis.prs`.
-  if (analysis && typeof analysis === 'object') {
-    analysis.prs = prs.map(p => ({ exercise: p.exercise, type: p.type, value: p.value }))
-  }
+  analysis.prs = prs.map(p => ({ exercise: p.exercise, type: p.type, value: p.value }))
 
   // Belt and braces on top of whatever `ai.ts` validates: nothing malformed
   // reaches the database.
@@ -116,14 +112,13 @@ export const POST = withUser<Ctx>(async (request, user, { params }) => {
   })
 
   const coachPrefs = user.ai_coaching_prefs as Record<string, boolean> | null
-  if (coachPrefs?.workout_analysis !== false && BOT_TOKEN) {
+  if (coachPrefs?.workout_analysis !== false) {
     try {
-      const bot = new Bot(BOT_TOKEN)
       const prsText = analysis.prs.length > 0
         ? `\n🏆 ${analysis.prs.map(p => `${escapeHtml(p.exercise)}: ${escapeHtml(p.value)}`).join(', ')}`
         : ''
       const msg = `💪 <b>${escapeHtml(workout.name)}</b>\n\n${escapeHtml(analysis.volume_comparison)}${prsText}\n\n${escapeHtml(analysis.takeaway)}`
-      await bot.api.sendMessage(Number(user.telegram_id), msg, { parse_mode: 'HTML' })
+      await sendHtml(user.telegram_id, msg)
     } catch (err) {
       console.error('Failed to send workout analysis via Telegram:', err)
     }

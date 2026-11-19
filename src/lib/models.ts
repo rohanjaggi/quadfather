@@ -1,5 +1,12 @@
 export type AIProvider = "openai" | "anthropic" | "gemini" | "openrouter";
 
+export interface AICredentials {
+  provider: AIProvider;
+  apiKey: string;
+  /** null = the provider's default model. */
+  model: string | null;
+}
+
 export interface ModelOption {
   id: string;
   label: string;

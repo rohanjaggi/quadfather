@@ -7,9 +7,9 @@ export const POST = withUser(async (request, user) => {
   const body = await parseJsonBody(request)
   const text = requireString(body.text, 'text', { maxLength: 4000 })
 
-  const { provider, apiKey, model } = getUserAICredentials(user)
+  const ai = getUserAICredentials(user)
   const result = await callAIProvider('workouts/parse', () =>
-    parseWorkoutText(provider, apiKey, model, text),
+    parseWorkoutText(ai, text),
   )
 
   return NextResponse.json(result)

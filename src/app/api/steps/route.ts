@@ -11,7 +11,7 @@ import {
   withUser,
 } from '@/lib/api-handler'
 
-/** `StepLog.steps` is an Int column. */
+/** Plausibility cap on one day's steps. */
 const MAX_STEPS = 200_000
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
 const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})[T ]/

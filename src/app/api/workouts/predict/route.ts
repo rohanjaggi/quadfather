@@ -141,7 +141,7 @@ export const GET = withUser(async (request, user) => {
     }
     cacheSet(cacheKey, prediction)
   } catch (e) {
-    console.error('predict AI failed:', e)
+    if (credentials) console.error('predict AI failed:', e)
     const fallbackSuggestion = generateSuggestion(
       user.training_focus ?? null,
       heaviest.weight,

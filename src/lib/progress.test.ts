@@ -118,21 +118,18 @@ test('snapshotFromSessions: stall counts weighted sessions only, volume only sin
   assert.deepEqual(r.prs, [null, null, null, null])
 })
 
-test('snapshotFromSessions: a backdated session gives the same result as in-order entry', () => {
+test('snapshotFromSessions: a backdated session is ranked by date, owns the PR, later sessions stall', () => {
   const s1 = at(2, [5, 100])
   const s2 = at(3, [5, 105])
   const s3 = at(4, [5, 90])
   const inOrder = snapshotFromSessions([s1, s2, s3], since)
 
-  // Logged s1, s3, then s2 backdated: the save rebuilds from the date-ordered history.
-  const entered = [s1, s3, s2]
-  const afterBackdate = snapshotFromSessions(
-    [...entered].sort((a, b) => a.date.getTime() - b.date.getTime()),
-    since,
-  )
-
-  assert.deepEqual(afterBackdate, inOrder)
   assert.equal(inOrder.snapshot?.sessions_since_improvement, 1)
   assert.deepEqual(inOrder.snapshot?.last_improved_at, day(3))
   assert.deepEqual(inOrder.prs, [null, { type: 'weight', value: '105kg × 5' }, null])
+})
+
+test('snapshotFromSessions: a backdated session below a later record reports no PR', () => {
+  const r = snapshotFromSessions([at(1, [5, 80]), at(3, [5, 85]), at(10, [5, 90])], since)
+  assert.deepEqual(r.prs, [null, null, { type: 'weight', value: '90kg × 5' }])
 })

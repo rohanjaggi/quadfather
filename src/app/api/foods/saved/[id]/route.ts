@@ -34,7 +34,6 @@ export const PATCH = withUser<{ params: { id: string } }>(
       const value = optionalNumber(body[key], key, { min: 0, max: MAX_MACRO });
       if (value !== undefined) data[key] = value;
     }
-    // Notes and serving size must be written, not dropped.
     const description = nullable(body, "description", (v) => optionalString(v, "description")!);
     if (description !== undefined) data.description = description;
     const servingLabel = nullable(body, "serving_label", (v) => optionalString(v, "serving_label")!.slice(0, MAX_LABEL));

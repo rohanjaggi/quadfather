@@ -141,6 +141,7 @@ export function snapshotFromSessions(sessions: Session[], volumeSince: Date) {
   let sinceRecord = 0
   let volume7d = 0
   const prs: (Omit<PrEntry, 'exercise'> | null)[] = []
+  const heldAfter: BestSets[] = []
 
   for (const { date, sets } of sessions) {
     if (date >= volumeSince) volume7d += setsVolume(sets)
@@ -165,7 +166,16 @@ export function snapshotFromSessions(sessions: Session[], volumeSince: Date) {
       }
     }
     prs.push(pr)
+    heldAfter.push(best)
   }
+
+  // A backdated session's PR only stands if no later session beat it.
+  prs.forEach((pr, i) => {
+    if (!pr) return
+    const h = heldAfter[i]
+    const holds = h.bestWeight === best.bestWeight && (pr.type === 'weight' || h.bestWeightReps === best.bestWeightReps)
+    if (!holds) prs[i] = null
+  })
 
   if (!best.e1rmSet) return { snapshot: null, prs }
   return {

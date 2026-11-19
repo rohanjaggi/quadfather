@@ -49,11 +49,11 @@ export async function GET(request: NextRequest) {
     const recentNames = [...new Set(
       [...thisWeekWorkouts, ...lastWeekWorkouts].flatMap(w => w.exercises.map(e => e.exercise_name)),
     )]
+    if (thisWeekWorkouts.length === 0) return false
+
     const snapshots = await prisma.progressSnapshot.findMany({
       where: { user_id: user.id, exercise_name: { in: recentNames } },
     })
-
-    if (thisWeekWorkouts.length === 0) return false
 
     // Get exercises for muscle mapping
     const exerciseIds = [...new Set(

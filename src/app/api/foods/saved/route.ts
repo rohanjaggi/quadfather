@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
+  conflict,
   optionalNumber,
   optionalString,
   parseJsonBody,
@@ -32,7 +34,6 @@ export const POST = withUser(async (request, user) => {
   const name = requireString(body.name, "name").slice(0, MAX_NAME);
   const macro = (key: string) => requireNumber(body[key], key, { min: 0, max: MAX_MACRO });
 
-  // A duplicate name hits `uq_user_food_name`; the wrapper maps that P2002 to 409.
   const food = await prisma.savedFood.create({
     data: {
       user_id: user.id,
@@ -49,6 +50,11 @@ export const POST = withUser(async (request, user) => {
         optionalString(body.source, "source")?.trim().slice(0, MAX_SOURCE) || "manual",
     },
     select: SAVED_FOOD_SELECT,
+  }).catch((e) => {
+    // A duplicate name hits the `uq_user_food_name` unique index.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")
+      throw conflict("A saved food with this name already exists");
+    throw e;
   });
 
   return NextResponse.json(food, { status: 201 });

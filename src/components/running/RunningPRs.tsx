@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getRunPRs } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
+import SummaryCard from '@/components/dashboard/SummaryCard'
 import type { RunPR } from '@/types/running'
 
 /**
@@ -20,93 +21,82 @@ function formatPrDate(iso: string): string {
   })
 }
 
+/** The API sends Title Case ("Fastest Pace"); the app speaks sentence case. "5K" stays. */
+const sentenceCase = (label: string) => label.replace(/ ([A-Z])([a-z]+)/g, (_, a: string, b: string) => ` ${a.toLowerCase()}${b}`)
+
+// The landing wash on the new run's row runs for 1.8s; the PR sweep waits for
+// it so only one moving gradient is ever on screen.
+const SWEEP_DELAY_MS = 1900
+const SWEEP_MS = 1700
+
 export default function RunningPRs() {
   const { runLogs } = useUser()
   const [prs, setPrs] = useState<RunPR[]>([])
+  const seen = useRef<Map<string, RunPR> | null>(null)
+  const [newPr, setNewPr] = useState<string | null>(null)
+  const [sweep, setSweep] = useState<string | null>(null)
 
   // Refetch when the context's runs change — a new run can set a PB, and a
   // deleted one can retire it.
   useEffect(() => {
     let cancelled = false
     getRunPRs()
-      .then(d => { if (!cancelled) setPrs(d.prs) })
+      .then(d => {
+        if (cancelled) return
+        const before = seen.current
+        seen.current = new Map(d.prs.map(p => [p.label, p]))
+        setPrs(d.prs)
+        if (!before) return // first load: an old record is not news
+        // New only if it's a fresh category or a newer record; a deletion
+        // falls back to an older run, which must not celebrate.
+        const fresh = d.prs.find(p => {
+          const old = before.get(p.label)
+          return !old || (old.value !== p.value && p.date >= old.date)
+        })
+        if (fresh) setNewPr(fresh.label)
+      })
       .catch(() => {})
     return () => { cancelled = true }
   }, [runLogs])
 
+  useEffect(() => {
+    if (!newPr) return
+    const start = setTimeout(() => setSweep(newPr), SWEEP_DELAY_MS)
+    const end = setTimeout(() => { setSweep(null); setNewPr(null) }, SWEEP_DELAY_MS + SWEEP_MS)
+    return () => { clearTimeout(start); clearTimeout(end) }
+  }, [newPr])
+
   if (prs.length === 0) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <p style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: '12px',
-        fontWeight: 500,
-        letterSpacing: '0.15em',
-        textTransform: 'uppercase',
-        color: 'var(--tg-theme-hint-color)',
-      }}>
-        Personal Bests
-      </p>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        borderRadius: '16px',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        overflow: 'hidden',
-      }}>
+    <SummaryCard title="Personal bests">
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {prs.map((pr, i) => (
-          <div
+          <li
             key={pr.label}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '14px 18px',
-              borderBottom: i < prs.length - 1 ? '1px solid var(--surface-border)' : 'none',
+              display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12,
+              padding: '10px 0', borderTop: i ? '1px solid var(--line)' : 'none',
             }}
           >
-            <div>
-              <p style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '13px',
-                fontWeight: 500,
-                color: 'var(--tg-theme-text-color)',
-                marginBottom: '2px',
-              }}>
-                {pr.label}
-              </p>
-              <p style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '11px',
-                color: 'var(--tg-theme-hint-color)',
-              }}>
-                {formatPrDate(pr.date)}
-              </p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '18px',
-                fontWeight: 600,
-                color: 'var(--accent-calories)',
-                lineHeight: 1,
-                letterSpacing: '-0.02em',
-              }}>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 15, color: 'var(--ink)' }}>{sentenceCase(pr.label)}</span>
+              <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'var(--muted)' }}>{formatPrDate(pr.date)}</span>
+            </span>
+            <span style={{ flexShrink: 0, textAlign: 'right' }}>
+              <span
+                className={sweep === pr.label ? 'gradient-sweep' : undefined}
+                style={{ display: 'inline-block', fontSize: 17, fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--ink)' }}
+              >
                 {pr.value}
-              </p>
-              <p style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '10px',
-                color: 'var(--tg-theme-hint-color)',
-                marginTop: '2px',
-              }}>
-                {pr.detail}
-              </p>
-            </div>
-          </div>
+              </span>
+              {pr.detail && (
+                <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'var(--muted)' }}>{pr.detail}</span>
+              )}
+            </span>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </SummaryCard>
   )
 }

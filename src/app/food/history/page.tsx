@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Link from 'next/link'
-import MealCard from '@/components/food/MealCard'
-import SummaryCard from '@/components/dashboard/SummaryCard'
+import PageHeader from '@/components/ui/PageHeader'
+import ProgressLine from '@/components/ui/ProgressLine'
+import MealList from '@/components/food/MealList'
+import { macroLine } from '@/components/food/meals'
 import { getFoodLogs } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
 import { addDays, dayKey } from '@/lib/day'
+import { ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/icons'
 import type { FoodLog } from '@/types/api'
 
 /** Formats a `YYYY-MM-DD` key as that calendar date, whatever the device timezone. */
@@ -17,14 +19,21 @@ function formatKey(key: string, options: Intl.DateTimeFormatOptions): string {
 function displayDate(key: string): string {
   if (key === dayKey()) return 'Today'
   if (key === addDays(dayKey(), -1)) return 'Yesterday'
-  return formatKey(key, { weekday: 'short', day: 'numeric', month: 'short' })
+  return formatKey(key, { weekday: 'long' })
 }
+
+const stepBtn: React.CSSProperties = {
+  width: 44, height: 44, flexShrink: 0, border: 'none', borderRadius: 22, padding: 0,
+  display: 'grid', placeItems: 'center', background: 'var(--track)', color: 'var(--ink)',
+}
+const caption: React.CSSProperties = { margin: 0, fontSize: 14, color: 'var(--muted)' }
 
 export default function FoodHistoryPage() {
   const { user } = useUser()
   const [date, setDate] = useState(() => addDays(dayKey(), -1))
   const [logs, setLogs] = useState<FoodLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
 
   // Fast prev/next taps can land out of order — only the newest request writes.
   const requestIdRef = useRef(0)
@@ -32,11 +41,12 @@ export default function FoodHistoryPage() {
   const fetchLogs = useCallback(async (d: string) => {
     const requestId = ++requestIdRef.current
     setLoading(true)
+    setFailed(false)
     try {
       const data = await getFoodLogs(d)
       if (requestIdRef.current === requestId) setLogs(data)
     } catch {
-      if (requestIdRef.current === requestId) setLogs([])
+      if (requestIdRef.current === requestId) { setLogs([]); setFailed(true) }
     } finally {
       if (requestIdRef.current === requestId) setLoading(false)
     }
@@ -60,249 +70,71 @@ export default function FoodHistoryPage() {
     (acc, log) => ({
       calories: acc.calories + (log.calories ?? 0),
       protein: acc.protein + (log.protein ?? 0),
-      carbs: acc.carbs + (log.carbohydrates ?? 0),
+      carbohydrates: acc.carbohydrates + (log.carbohydrates ?? 0),
       fats: acc.fats + (log.fats ?? 0),
     }),
-    { calories: 0, protein: 0, carbs: 0, fats: 0 },
+    { calories: 0, protein: 0, carbohydrates: 0, fats: 0 },
   )
 
   const isToday = date === dayKey()
 
-  // The user's configured goals — these bars used to be scaled against
-  // hard-coded 2200 kcal / 150 / 250 / 70 g.
-  const goals = user?.goals
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div>
+      <PageHeader title="Past days" back={{ href: '/food', label: 'Food' }} />
 
-      {/* Header */}
-      <div className="fade-up">
-        <Link href="/food" style={{
-          display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
-          marginBottom: '12px',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Food
-        </Link>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '32px',
-          fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
-        }}>
-          History
-        </h1>
-      </div>
-
-      {/* Date nav */}
-      <div className="fade-up fade-up-1" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px',
-        borderRadius: '16px',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-      }}>
-        <button
-          onClick={prevDay}
-          style={{
-            background: 'none', border: 'none', padding: '6px',
-            cursor: 'pointer', color: 'var(--tg-theme-text-color)',
-            borderRadius: '8px',
-            transition: 'background-color 0.15s ease',
-          }}
-          aria-label="Previous day"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-
-        <div style={{ textAlign: 'center' }}>
-          <span style={{
-            fontFamily: 'var(--font-display)', fontSize: '20px',
-            fontWeight: 500, color: 'var(--tg-theme-text-color)',
-            display: 'block', lineHeight: 1.2,
-          }}>
-            {displayDate(date)}
-          </span>
-          {/*
-            Always shown: it is the only place the year appears, and the label
-            above it is either relative ("Today") or year-less ("Wed, 19 Aug").
-          */}
-          <span style={{
-            fontFamily: 'var(--font-display)', fontSize: '11px',
-            color: 'var(--tg-theme-hint-color)',
-            letterSpacing: '0.02em',
-          }}>
-            {formatKey(date, { day: 'numeric', month: 'long', year: 'numeric' })}
-          </span>
+      <section className="card" aria-busy={loading}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <button type="button" onClick={prevDay} aria-label="Previous day" style={stepBtn}>
+            <ChevronLeftIcon size={20} />
+          </button>
+          <div style={{ flex: 1, textAlign: 'center' }}>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.015em' }}>{displayDate(date)}</h2>
+            {/* The only place the year appears; the line above is relative or a weekday. */}
+            <p style={{ ...caption, fontSize: 13, marginTop: 2 }}>{formatKey(date, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          </div>
+          <button
+            type="button"
+            onClick={nextDay}
+            disabled={isToday}
+            aria-label="Next day"
+            style={{ ...stepBtn, opacity: isToday ? 0.35 : 1, cursor: isToday ? 'default' : 'pointer' }}
+          >
+            <ChevronRightIcon size={20} />
+          </button>
         </div>
 
-        <button
-          onClick={nextDay}
-          disabled={isToday}
-          style={{
-            background: 'none', border: 'none', padding: '6px',
-            cursor: isToday ? 'default' : 'pointer',
-            color: 'var(--tg-theme-text-color)',
-            opacity: isToday ? 0.2 : 1,
-            borderRadius: '8px',
-            transition: 'opacity 0.15s ease',
-          }}
-          aria-label="Next day"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Daily totals */}
-      {!loading && logs.length > 0 && (
-        <div className="fade-up fade-up-2">
-          <SummaryCard title="Daily totals">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Calories prominent */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
-                  <span style={{
-                    fontFamily: 'var(--font-display)', fontSize: '32px',
-                    fontWeight: 600, color: 'var(--tg-theme-text-color)', lineHeight: 1,
-                  }}>
-                    {Math.round(totals.calories)}
-                  </span>
-                  <span style={{
-                    fontFamily: 'var(--font-display)', fontSize: '11px',
-                    color: 'var(--tg-theme-hint-color)',
-                  }}>
-                    kcal
-                  </span>
-                </div>
-                <div style={{
-                  height: '4px', borderRadius: '99px',
-                  backgroundColor: 'var(--tg-theme-bg-color)', overflow: 'hidden',
-                }}>
-                  <div style={{
-                    height: '100%', borderRadius: '99px',
-                    width: `${goals?.daily_calorie_goal ? Math.min((totals.calories / goals.daily_calorie_goal) * 100, 100) : 0}%`,
-                    backgroundColor: 'var(--accent-calories)',
-                    transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }} />
-                </div>
-              </div>
-
-              {/* Macro breakdown */}
-              {[
-                { label: 'Protein', value: Math.round(totals.protein), goal: goals?.daily_protein_goal, color: 'var(--accent-protein)' },
-                { label: 'Carbs', value: Math.round(totals.carbs), goal: goals?.daily_carbs_goal, color: '#C4A55A' },
-                { label: 'Fats', value: Math.round(totals.fats), goal: goals?.daily_fats_goal, color: 'var(--tg-theme-hint-color)' },
-              ].map(m => (
-                <div key={m.label}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    <span style={{
-                      fontFamily: 'var(--font-display)', fontSize: '12px',
-                      fontWeight: 500, color: 'var(--tg-theme-text-color)',
-                    }}>
-                      {m.label}
-                    </span>
-                    <span style={{
-                      fontFamily: 'var(--font-display)', fontSize: '12px',
-                      color: 'var(--tg-theme-hint-color)',
-                    }}>
-                      {m.value}g
-                    </span>
-                  </div>
-                  <div style={{
-                    height: '3px', borderRadius: '99px',
-                    backgroundColor: 'var(--tg-theme-bg-color)', overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      height: '100%', borderRadius: '99px',
-                      width: `${m.goal ? Math.min((m.value / m.goal) * 100, 100) : 0}%`,
-                      backgroundColor: m.color,
-                      transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </SummaryCard>
-        </div>
-      )}
-
-      {/* Meals */}
-      <div className="fade-up fade-up-3">
-        <SummaryCard title={
-          !loading && logs.length > 0 ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Meals</span>
-              <span style={{
-                fontFamily: 'var(--font-display)', fontSize: '11px',
-                fontWeight: 400, color: 'var(--tg-theme-hint-color)',
-                letterSpacing: '0',
-                textTransform: 'none',
-              }}>
-                {logs.length} {logs.length === 1 ? 'entry' : 'entries'}
-              </span>
-            </div>
-          ) : 'Meals'
-        }>
-          {loading ? (
-            <div style={{ padding: '32px 0', textAlign: 'center' }}>
-              <div style={{
-                width: '20px', height: '20px', margin: '0 auto 10px',
-                border: '2px solid var(--surface-border)',
-                borderTopColor: 'var(--accent)',
-                borderRadius: '50%',
-                animation: 'spin 0.7s linear infinite',
-              }} />
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '12px',
-                color: 'var(--tg-theme-hint-color)',
-              }}>
-                Loading meals
-              </p>
-            </div>
-          ) : logs.length === 0 ? (
-            <div style={{ padding: '36px 0', textAlign: 'center' }}>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '22px',
-                fontWeight: 400, color: 'var(--tg-theme-hint-color)',
-                opacity: 0.6, marginBottom: '6px',
-              }}>
-                Nothing here
-              </p>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '12px',
-                color: 'var(--tg-theme-hint-color)',
-              }}>
-                No meals were logged on this day
-              </p>
-            </div>
-          ) : (
-            <div>
-              {logs.map((log, i) => (
-                <MealCard
-                  key={log.id}
-                  name={log.food_name}
-                  calories={Math.round(log.calories)}
-                  protein={Math.round(log.protein)}
-                  carbs={Math.round(log.carbohydrates)}
-                  fats={Math.round(log.fats)}
-                  fiber={Math.round(log.fiber ?? 0)}
-                  savedFoodId={log.saved_food_id}
-                  isLast={i === logs.length - 1}
-                />
-              ))}
-            </div>
-          )}
-        </SummaryCard>
-      </div>
-
+        {loading ? (
+          <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ height: 34, borderRadius: 8, background: 'var(--track)' }} />
+            {[0, 1, 2].map(i => <div key={i} style={{ height: 48, borderRadius: 10, background: 'var(--track)', opacity: 0.7 }} />)}
+          </div>
+        ) : failed ? (
+          <div>
+            <p role="alert" style={caption}>Couldn&apos;t load this day.</p>
+            <button type="button" className="btn-secondary" onClick={() => fetchLogs(date)} style={{ marginTop: 12 }}>Try again</button>
+          </div>
+        ) : logs.length === 0 ? (
+          <div>
+            <p style={caption}>Nothing was logged on this day.</p>
+            <button type="button" className="btn-secondary" onClick={prevDay} style={{ marginTop: 12 }}>Go back a day</button>
+          </div>
+        ) : (
+          <>
+            {/* Keyed by day so paging between days never plays the goal sweep. */}
+            <ProgressLine
+              key={date}
+              label="Calories"
+              value={totals.calories}
+              goal={user?.goals.daily_calorie_goal ?? 0}
+              unit="kcal"
+              color="var(--m-calories)"
+              overIsBad
+            />
+            <p style={{ ...caption, fontSize: 13, margin: '8px 0 16px' }}>{macroLine(totals)}</p>
+            <MealList logs={logs} />
+          </>
+        )}
+      </section>
     </div>
   )
 }

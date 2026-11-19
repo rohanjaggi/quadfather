@@ -18,17 +18,24 @@ export function prDisplayDate(
   return parsed.toLocaleDateString('en-GB', { ...options, timeZone: 'UTC' })
 }
 
-/**
- * The PR `type` is server-controlled and is gaining new kinds (e1RM), so treat
- * it as an opaque string and fall back to a bare "PR" when it's missing.
- */
-export function prTypeLabel(pr: WorkoutPR): string {
-  const type: unknown = pr.type
-  return typeof type === 'string' && type.trim() ? `${type} PR` : 'PR'
-}
-
-/** PR values are pre-formatted text (e.g. `100kg × 5`); render them as-is. */
+/** PR values are pre-formatted text (`100kg × 5`); shown as-is, with a space before the unit. */
 export function prDisplayValue(pr: WorkoutPR): string {
   const value: unknown = pr.value
-  return value == null ? '—' : String(value)
+  return value == null ? '—' : String(value).replace(/(\d)kg\b/, '$1 kg')
+}
+
+/**
+ * Estimated 1RM of the record set, from the `100kg × 5` value the route sends.
+ * Same Epley formula as `calculateEstimated1RM` in `lib/progress.ts` (which
+ * can't be imported here: it pulls in Prisma). It is the e1RM *of this set*;
+ * the route doesn't send the stored best e1RM, which may come from a lighter set.
+ * Null when the value doesn't parse.
+ */
+export function prEstimated1RM(pr: WorkoutPR): number | null {
+  const m = /^\s*(\d+(?:\.\d+)?)\s*kg\s*[×x]\s*(\d+)/i.exec(String(pr.value ?? ''))
+  if (!m) return null
+  const weight = Number(m[1])
+  const reps = Number(m[2])
+  if (!(weight > 0) || !(reps > 0)) return null
+  return Math.round(weight * (1 + reps / 30) * 10) / 10
 }

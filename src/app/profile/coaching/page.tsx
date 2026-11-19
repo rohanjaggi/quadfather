@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { Fragment, useState, useEffect } from 'react'
 import { useUser } from '@/context/UserContext'
 import { updateCoachingPrefs } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import type { CoachingPrefs } from '@/types/api'
+import PageHeader from '@/components/ui/PageHeader'
+import { toast } from '@/components/ui/Toast'
 
 const DEFAULT_PREFS: CoachingPrefs = {
   daily_coach: true,
@@ -20,30 +21,30 @@ const DEFAULT_PREFS: CoachingPrefs = {
   weekly_exercise_digest: true,
 }
 
-const FEATURE_GROUPS = [
+const FEATURE_GROUPS: { label: string; features: { key: keyof CoachingPrefs; title: string; desc: string }[] }[] = [
   {
-    label: 'Daily Messages',
+    label: 'Messages',
     features: [
-      { key: 'daily_coach' as const, title: 'Daily Coach', desc: 'Personalized nutrition coaching each evening' },
-      { key: 'weekly_insights' as const, title: 'Weekly Insights', desc: '7-day pattern analysis every week' },
+      { key: 'daily_coach', title: 'Daily coach', desc: 'An evening tip based on what you ate' },
+      { key: 'weekly_insights', title: 'Weekly insights', desc: 'Patterns from your last seven days' },
     ],
   },
   {
-    label: 'Proactive Nudges',
+    label: 'Nudges',
     features: [
-      { key: 'nudge_inactivity' as const, title: 'Inactivity', desc: 'Remind when no workout in 5+ days' },
-      { key: 'nudge_recovery' as const, title: 'Recovery', desc: 'Warn when training too hard' },
-      { key: 'nudge_nutrition_gap' as const, title: 'Nutrition Gap', desc: 'Alert when exercise is high but intake is low' },
-      { key: 'nudge_steps' as const, title: 'Steps', desc: 'Nudge when steps are below goal' },
-      { key: 'nudge_consistency' as const, title: 'Consistency', desc: 'Celebrate workout consistency streaks' },
+      { key: 'nudge_inactivity', title: 'No recent workout', desc: 'When you haven’t trained in 5 days' },
+      { key: 'nudge_recovery', title: 'Recovery', desc: 'When you’re training too hard' },
+      { key: 'nudge_nutrition_gap', title: 'Eating enough', desc: 'When you train a lot but eat too little' },
+      { key: 'nudge_steps', title: 'Steps', desc: 'When your steps are behind your goal' },
+      { key: 'nudge_consistency', title: 'Streaks', desc: 'Celebrates a run of steady workouts' },
     ],
   },
   {
-    label: 'Exercise Coaching',
+    label: 'Training',
     features: [
-      { key: 'pre_workout_suggestions' as const, title: 'Pre-Workout Tips', desc: 'Show weight/rep suggestions when logging' },
-      { key: 'workout_analysis' as const, title: 'Post-Workout Analysis', desc: 'AI analysis after each workout' },
-      { key: 'weekly_exercise_digest' as const, title: 'Weekly Digest', desc: 'Training summary & stall alerts every week' },
+      { key: 'pre_workout_suggestions', title: 'Set suggestions', desc: 'Weight and rep ideas while you log' },
+      { key: 'workout_analysis', title: 'Workout review', desc: 'A short review after each workout' },
+      { key: 'weekly_exercise_digest', title: 'Weekly training summary', desc: 'Progress and stalled lifts each week' },
     ],
   },
 ]
@@ -58,48 +59,64 @@ function withDefaults(stored: Partial<CoachingPrefs> | undefined): CoachingPrefs
   return { ...DEFAULT_PREFS, ...stored }
 }
 
-function Toggle({ enabled, onChange, disabled, label }: {
-  enabled: boolean
-  onChange: () => void
+/**
+ * A whole settings row that is one switch: big target, name, and what it does.
+ * `inactive` (master switch off) draws it neutral off and blocks taps, while
+ * the saved `on` value stays untouched for when the master comes back on.
+ */
+function SwitchRow({ on: saved, onToggle, disabled, inactive = false, title, desc }: {
+  on: boolean
+  onToggle: () => void
   disabled?: boolean
-  label: string
+  inactive?: boolean
+  title: string
+  desc: string
 }) {
+  const on = saved && !inactive
   return (
     <button
       type="button"
       role="switch"
-      aria-checked={enabled}
-      aria-label={label}
-      onClick={onChange}
+      aria-checked={on}
+      aria-disabled={inactive || undefined}
+      onClick={inactive ? undefined : onToggle}
       disabled={disabled}
       style={{
-        width: '44px', height: '26px', borderRadius: '13px',
-        border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
-        backgroundColor: enabled ? 'var(--tg-theme-button-color)' : 'var(--surface-border)',
-        position: 'relative',
-        transition: 'background-color 0.2s ease',
-        flexShrink: 0,
-        opacity: disabled ? 0.4 : 1,
+        display: 'flex', alignItems: 'center', gap: 14, width: '100%', minHeight: 60,
+        padding: '10px 0', border: 'none', background: 'transparent', textAlign: 'left',
+        color: 'var(--ink)', outlineOffset: -2,
+        cursor: disabled || inactive ? 'not-allowed' : 'pointer',
       }}
     >
-      <div style={{
-        width: '20px', height: '20px', borderRadius: '50%',
-        backgroundColor: 'var(--tg-theme-bg-color)',
-        position: 'absolute', top: '3px',
-        left: enabled ? '21px' : '3px',
-        transition: 'left 0.2s ease',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      }} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 15, fontWeight: 500 }}>{title}</span>
+        <span style={{ display: 'block', marginTop: 1, fontSize: 13, color: 'var(--muted)' }}>{desc}</span>
+      </span>
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'relative', width: 46, height: 28, borderRadius: 14, flexShrink: 0,
+          background: on ? 'var(--action)' : inactive ? 'var(--track)' : 'var(--line-strong)',
+          transition: 'background-color 0.2s ease',
+        }}
+      >
+        <span style={{
+          position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22, borderRadius: 11,
+          background: '#FFFFFF', boxShadow: '0 1px 3px rgba(31, 42, 36, 0.2)',
+          transition: 'left 0.2s var(--ease-out-expo)',
+        }} />
+      </span>
     </button>
   )
 }
+
+const divider = <div aria-hidden="true" style={{ height: 1, background: 'var(--line)' }} />
 
 export default function CoachingPage() {
   const { user, refreshUser } = useUser()
 
   const [masterEnabled, setMasterEnabled] = useState(user?.ai_features_enabled ?? false)
   const [prefs, setPrefs] = useState<CoachingPrefs>(withDefaults(user?.ai_coaching_prefs))
-  const [saveError, setSaveError] = useState<string | null>(null)
   // One save at a time. Each handler PUTs the whole prefs object and then
   // refreshes the user (which feeds the effect below back into `prefs`), so
   // overlapping taps would both clobber each other and land out of order.
@@ -119,20 +136,20 @@ export default function CoachingPage() {
    * optimistic value is the truth and undoing it would be a lie.
    */
   async function save(put: () => Promise<unknown>, revert: () => void) {
-    setSaveError(null)
     setBusy(true)
     try {
       await put()
     } catch (err) {
       revert()
-      setSaveError(errorMessage(err, 'Failed to save preference'))
+      // A toast, not an inline line: the row may be far below any banner.
+      toast(errorMessage(err, "Couldn't save that change. Try again."))
       setBusy(false)
       return
     }
     try {
       await refreshUser()
     } catch (err) {
-      setSaveError(`Saved, but couldn't reload your settings — ${errorMessage(err)}`)
+      toast(`Saved, but couldn't reload your settings. ${errorMessage(err)}`)
     } finally {
       setBusy(false)
     }
@@ -161,118 +178,47 @@ export default function CoachingPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div>
+      <PageHeader
+        title="Daily coach"
+        subtitle="Tips and check-ins, sent to your Telegram chat."
+        back={{ href: '/profile', label: 'Settings' }}
+      />
 
-      {/* Header */}
-      <div className="fade-up">
-        <Link href="/profile" style={{
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
-          display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '12px',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Settings
-        </Link>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 700,
-          lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
-        }}>
-          AI Coaching
-        </h1>
-      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <section className="card" style={{ paddingTop: 8, paddingBottom: 8 }}>
+          <SwitchRow
+            on={masterEnabled}
+            onToggle={handleMasterToggle}
+            disabled={busy}
+            title="Coaching"
+            desc={masterEnabled ? 'On. Choose what you get below.' : 'Off. Nothing is sent.'}
+          />
+        </section>
 
-      {saveError && (
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '12px',
-          color: 'var(--accent-calories)', padding: '10px 14px',
-          backgroundColor: 'oklch(0.94 0.02 30)',
-          borderRadius: '10px',
-        }}>
-          {saveError}
-        </p>
-      )}
-
-      {/* Master toggle */}
-      <div className="fade-up fade-up-1" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '16px 18px', borderRadius: '16px',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-      }}>
-        <div>
-          <p style={{
-            fontFamily: 'var(--font-display)', fontSize: '15px',
-            fontWeight: 600, color: 'var(--tg-theme-text-color)',
-          }}>
-            Enable AI Coaching
-          </p>
-          <p style={{
-            fontFamily: 'var(--font-display)', fontSize: '12px',
-            color: 'var(--tg-theme-hint-color)', marginTop: '2px',
-          }}>
-            Receive coaching via Telegram messages
-          </p>
-        </div>
-        <Toggle
-          enabled={masterEnabled}
-          onChange={handleMasterToggle}
-          disabled={busy}
-          label="Enable AI Coaching"
-        />
-      </div>
-
-      {/* Feature groups */}
-      {FEATURE_GROUPS.map((group, gi) => (
-        <div key={group.label} className={`fade-up fade-up-${gi + 2}`} style={{
-          opacity: masterEnabled ? 1 : 0.45,
-          transition: 'opacity 0.3s ease',
-        }}>
-          <p style={{
-            fontFamily: 'var(--font-display)', fontSize: '12px',
-            fontWeight: 500, letterSpacing: '0.15em', textTransform: 'uppercase',
-            color: 'var(--tg-theme-hint-color)', marginBottom: '10px',
-          }}>
-            {group.label}
-          </p>
-          <div style={{
-            borderRadius: '16px',
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            overflow: 'hidden',
-          }}>
-            {group.features.map((f, fi) => (
-              <div key={f.key} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 18px',
-                borderTop: fi === 0 ? 'none' : '1px solid var(--surface-border)',
-              }}>
-                <div style={{ flex: 1, minWidth: 0, marginRight: '12px' }}>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '14px',
-                    fontWeight: 500, color: 'var(--tg-theme-text-color)',
-                  }}>
-                    {f.title}
-                  </p>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '11px',
-                    color: 'var(--tg-theme-hint-color)', marginTop: '2px',
-                  }}>
-                    {f.desc}
-                  </p>
-                </div>
-                <Toggle
-                  enabled={prefs[f.key]}
-                  onChange={() => handleFeatureToggle(f.key)}
-                  disabled={!masterEnabled || busy}
-                  label={f.title}
+        {FEATURE_GROUPS.map(group => (
+          <section
+            key={group.label}
+            className="card"
+            style={{ paddingBottom: 8, opacity: masterEnabled ? 1 : 0.5, transition: 'opacity 0.3s ease' }}
+          >
+            <h2 className="card-title" style={{ margin: '0 0 2px' }}>{group.label}</h2>
+            {group.features.map((f, i) => (
+              <Fragment key={f.key}>
+                {i > 0 && divider}
+                <SwitchRow
+                  on={prefs[f.key]}
+                  onToggle={() => handleFeatureToggle(f.key)}
+                  disabled={busy}
+                  inactive={!masterEnabled}
+                  title={f.title}
+                  desc={f.desc}
                 />
-              </div>
+              </Fragment>
             ))}
-          </div>
-        </div>
-      ))}
-
+          </section>
+        ))}
+      </div>
     </div>
   )
 }

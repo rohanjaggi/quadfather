@@ -1,27 +1,39 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
+import { useState, useEffect, type CSSProperties, type ReactNode } from 'react'
 import { generateAccessToken, deleteAccessToken, getAccessTokenStatus } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
+import { useHaptic } from '@/components/telegram'
+import PageHeader from '@/components/ui/PageHeader'
+import { CheckIcon } from '@/components/ui/icons'
+import { ConfirmSheet, FormError } from '@/components/settings/ui'
 
 type Confirmable = 'regenerate' | 'revoke'
 
-const CONFIRM_MESSAGE: Record<Confirmable, string> = {
-  regenerate:
-    'Regenerating replaces your current token. The Shortcut on your iPhone will stop syncing steps until you paste the new one into it. Continue?',
-  revoke:
-    'Revoking deletes your token. Steps sync stops immediately and the Shortcut will start failing. Continue?',
+const CONFIRM: Record<Confirmable, { title: string; body: string; label: string; busy: string }> = {
+  regenerate: {
+    title: 'Make a new token?',
+    body: 'Your current token stops working. The Shortcut on your iPhone won’t sync steps until you paste the new one into it.',
+    label: 'Make new token',
+    busy: 'Creating…',
+  },
+  revoke: {
+    title: 'Revoke your token?',
+    body: 'Steps sync stops straight away and the Shortcut will start failing until you set up a new token.',
+    label: 'Revoke token',
+    busy: 'Revoking…',
+  },
 }
 
-const CONFIRM_ACTION_LABEL: Record<Confirmable, string> = {
-  regenerate: 'Regenerate',
-  revoke: 'Revoke',
-}
+const COPY_FAILED_MESSAGE = 'Couldn’t copy. Press and hold the text to select it instead.'
 
-const COPY_FAILED_MESSAGE = 'Copy failed — long-press the text to select it manually.'
+const srOnly: CSSProperties = {
+  position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+  overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
+}
 
 export default function StepsSyncPage() {
+  const haptic = useHaptic()
   const [token, setToken] = useState<string | null>(null)
   const [tokenHint, setTokenHint] = useState<string | null>(null)
   const [tokenLoading, setTokenLoading] = useState(false)
@@ -30,13 +42,7 @@ export default function StepsSyncPage() {
   // Label of the field whose last copy attempt failed, so the fallback hint
   // appears under that field rather than under all of them.
   const [copyFailed, setCopyFailed] = useState<string | null>(null)
-  // Set only when the native confirm is unavailable — see `requestConfirm`.
   const [confirming, setConfirming] = useState<Confirmable | null>(null)
-  // True from the moment a confirm is requested until it is answered. Blocks a
-  // second tap from opening a second sheet (Telegram throws `WebAppPopupOpened`
-  // for that), which used to land in the `.catch` below and raise the inline
-  // confirm *as well* — two independent routes to the same destructive call.
-  const confirmPendingRef = useRef(false)
 
   useEffect(() => {
     getAccessTokenStatus().then(({ has_token, hint }) => {
@@ -50,18 +56,19 @@ export default function StepsSyncPage() {
   // MASK (`••••abc123`) — pasting it into the Shortcut produces a header that
   // fails auth, so it is never offered as copyable header text.
   const authHeader = token ? `Bearer ${token}` : null
+  const hasToken = !!(token || tokenHint)
 
   async function handleGenerateToken() {
     if (tokenLoading) return
-    setConfirming(null)
     setTokenLoading(true)
     setTokenError(null)
     try {
       const { token: newToken } = await generateAccessToken()
       setToken(newToken)
       setTokenHint(null)
+      setConfirming(null)
     } catch (err) {
-      setTokenError(errorMessage(err, 'Failed to generate token'))
+      setTokenError(errorMessage(err, 'Couldn’t create a token. Try again.'))
     } finally {
       setTokenLoading(false)
     }
@@ -69,72 +76,29 @@ export default function StepsSyncPage() {
 
   async function handleRevokeToken() {
     if (tokenLoading) return
-    setConfirming(null)
     setTokenLoading(true)
     setTokenError(null)
     try {
       await deleteAccessToken()
       setToken(null)
       setTokenHint(null)
+      setConfirming(null)
     } catch (err) {
-      setTokenError(errorMessage(err, 'Failed to revoke token'))
+      setTokenError(errorMessage(err, 'Couldn’t revoke the token. Try again.'))
     } finally {
       setTokenLoading(false)
     }
   }
 
-  /**
-   * Confirms a destructive token action. Prefers Telegram's native sheet; falls
-   * back to a two-tap inline confirm on clients that predate `showConfirm`.
-   * Never `window.confirm` — it blocks the Mini App webview and on several
-   * Telegram clients never paints at all, leaving the app frozen.
-   */
-  function requestConfirm(action: Confirmable, run: () => void) {
-    if (confirmPendingRef.current) return
-    confirmPendingRef.current = true
-    // The SDK touches `window` at module scope, so it must only load in the
-    // browser — a static import here breaks this page's prerender.
-    void import('@twa-dev/sdk')
-      .then(({ default: WebApp }) => {
-        // Client predates `showConfirm` — hand off to the inline confirm, which
-        // is now the only thing that can run the action.
-        if (typeof WebApp.showConfirm !== 'function') {
-          confirmPendingRef.current = false
-          setConfirming(action)
-          return
-        }
-        try {
-          WebApp.showConfirm(CONFIRM_MESSAGE[action], (confirmed) => {
-            confirmPendingRef.current = false
-            if (confirmed) run()
-          })
-        } catch (err) {
-          // A sheet is already open (`WebAppPopupOpened`). The user is already
-          // being asked — don't stack an inline confirm on top of it.
-          console.error('showConfirm failed:', err)
-          confirmPendingRef.current = false
-        }
-      })
-      .catch(() => {
-        // Only the dynamic import failing reaches here — fall back inline.
-        confirmPendingRef.current = false
-        setConfirming(action)
-      })
-  }
-
   function handleGenerateClick() {
     if (tokenLoading) return
     // Nothing to invalidate the first time round, so don't ask.
-    if (!token && !tokenHint) {
+    if (!hasToken) {
       void handleGenerateToken()
       return
     }
-    requestConfirm('regenerate', () => { void handleGenerateToken() })
-  }
-
-  function handleRevokeClick() {
-    if (tokenLoading) return
-    requestConfirm('revoke', () => { void handleRevokeToken() })
+    setTokenError(null)
+    setConfirming('regenerate')
   }
 
   /**
@@ -156,6 +120,7 @@ export default function StepsSyncPage() {
     }
     clipboard.writeText(text).then(
       () => {
+        haptic.notification('success')
         setCopied(label)
         setTimeout(() => setCopied(null), 2000)
       },
@@ -175,497 +140,232 @@ export default function StepsSyncPage() {
       .catch(() => {})
   }
 
+  const copy = (value: string, label: string, name: string) => (
+    <CopyField value={value} label={label} name={name} copied={copied} copyFailed={copyFailed} onCopy={copyText} />
+  )
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div>
+      <PageHeader
+        title="Steps sync"
+        subtitle="Send your Apple Health steps here with an iPhone Shortcut."
+        back={{ href: '/profile', label: 'Settings' }}
+      />
 
-      {/* Header */}
-      <div className="fade-up">
-        <Link href="/profile" style={{
-          display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
-          marginBottom: '12px',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Settings
-        </Link>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '32px',
-          fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
-        }}>
-          Steps Sync
-        </h1>
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '14px',
-          color: 'var(--tg-theme-hint-color)', marginTop: '6px',
-        }}>
-          Auto-sync your Apple Health steps daily
-        </p>
-      </div>
-
-      {/* Step 1: Generate Token */}
-      <div className="fade-up fade-up-1">
-        <div style={{
-          padding: '18px', borderRadius: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          display: 'flex', flexDirection: 'column', gap: '12px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              backgroundColor: 'var(--tg-theme-button-color)',
-              color: 'var(--tg-theme-button-text-color)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
-            }}>1</div>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-              Generate Access Token
-            </p>
-          </div>
-
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-            This token lets your iOS Shortcut send steps to the app. Keep it secret.
-          </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <section className="card">
+          <h2 className="card-title" style={{ margin: '0 0 6px' }}>Access token</h2>
 
           {token ? (
-            <>
-              <CopyableField value={token} label="token" copied={copied} copyFailed={copyFailed} onCopy={copyText} />
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '11px',
-                color: 'var(--accent-calories)', lineHeight: 1.5,
-              }}>
-                Copy it now — this is the only time it is shown in full.
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
+                Copy it now. It’s only shown once.
               </p>
-            </>
+              {copy(token, 'token', 'token')}
+            </div>
           ) : tokenHint ? (
-            <>
-              <div style={{
-                padding: '9px 11px', borderRadius: '8px',
-                backgroundColor: 'var(--tg-theme-bg-color)',
-                fontFamily: 'monospace', fontSize: '11px',
-                color: 'var(--tg-theme-hint-color)',
-                display: 'flex', alignItems: 'center', gap: '6px',
-              }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-                Token active: {tokenHint}
-              </div>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '11px',
-                color: 'var(--tg-theme-hint-color)', lineHeight: 1.5,
-              }}>
-                Only the last few characters are kept — this is a mask, not the
-                token. Regenerate to reveal a new token.
-              </p>
-            </>
-          ) : null}
-
-          {tokenError && (
-            <p style={{
-              fontFamily: 'var(--font-display)', fontSize: '12px',
-              color: 'var(--accent-calories)', padding: '10px 12px',
-              backgroundColor: 'oklch(0.94 0.02 30)', borderRadius: '10px',
-            }}>
-              {tokenError}
+            <p style={{ margin: 0, fontSize: 15, color: 'var(--muted)' }}>
+              <span style={{ color: 'var(--ink)', fontWeight: 600 }}>Active</span>, ending {tokenHint.replace(/^•+/, '')}.
+              {' '}Only the end is kept, so make a new token if you need it in full.
+            </p>
+          ) : (
+            <p style={{ margin: 0, fontSize: 15, color: 'var(--muted)' }}>
+              The token lets your Shortcut send steps to Quadfather. Keep it private.
             </p>
           )}
 
-          {confirming ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '12px',
-                color: 'var(--tg-theme-text-color)', lineHeight: 1.5,
-                padding: '10px 12px', borderRadius: '10px',
-                backgroundColor: 'var(--tg-theme-bg-color)',
-              }}>
-                {CONFIRM_MESSAGE[confirming]}
-              </p>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button type="button" onClick={() => setConfirming(null)} disabled={tokenLoading}
-                  className="btn-secondary" style={{ flex: 1 }}>
-                  Cancel
+          {tokenError && !confirming && <div style={{ marginTop: 12 }}><FormError>{tokenError}</FormError></div>}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 16 }}>
+            {hasToken ? (
+              <>
+                <button type="button" className="btn-secondary" onClick={handleGenerateClick} disabled={tokenLoading} style={{ width: '100%' }}>
+                  Make a new token
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirming === 'regenerate') void handleGenerateToken()
-                    else void handleRevokeToken()
-                  }}
+                  className="btn-ghost"
+                  onClick={() => { setTokenError(null); setConfirming('revoke') }}
                   disabled={tokenLoading}
-                  className="btn-primary"
-                  style={{ flex: 1, backgroundColor: 'var(--accent-calories)' }}
+                  style={{ width: '100%', color: 'var(--over)' }}
                 >
-                  {tokenLoading ? 'Working…' : `Yes, ${CONFIRM_ACTION_LABEL[confirming].toLowerCase()}`}
+                  Revoke token
                 </button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {(token || tokenHint) && (
-                <button type="button" onClick={handleRevokeClick} disabled={tokenLoading}
-                  className="btn-secondary" style={{ flex: 1, color: 'var(--accent-calories)' }}>
-                  Revoke
-                </button>
-              )}
-              <button type="button" onClick={handleGenerateClick} disabled={tokenLoading}
-                className="btn-primary" style={{ flex: (token || tokenHint) ? 2 : 1 }}>
-                {tokenLoading ? 'Generating…' : (token || tokenHint) ? 'Regenerate' : 'Generate Token'}
+              </>
+            ) : (
+              <button type="button" className="btn-primary" onClick={handleGenerateClick} disabled={tokenLoading}>
+                {tokenLoading ? 'Creating…' : 'Create token'}
               </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Step 2: Action 1 — Find Health Samples */}
-      <div className="fade-up fade-up-2">
-        <div style={{
-          padding: '18px', borderRadius: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          display: 'flex', flexDirection: 'column', gap: '14px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              backgroundColor: 'var(--tg-theme-button-color)',
-              color: 'var(--tg-theme-button-text-color)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
-            }}>2</div>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-              Action 1: Find Health Samples
-            </p>
+            )}
           </div>
+        </section>
 
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-            Open the <strong>Shortcuts</strong> app, tap <strong>+</strong> to create a new shortcut, then search for &ldquo;Find Health Samples&rdquo; and add it.
-          </p>
+        <section className="card">
+          <h2 className="card-title" style={{ margin: '0 0 4px' }}>Set up the Shortcut</h2>
+          <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <Step n={1} title="Find health samples">
+              <P>Open Shortcuts, tap +, then search for “Find Health Samples” and add it. Set:</P>
+              <Spec rows={[['Type', 'Steps'], ['Start date', 'is today'], ['Unit', 'count']]} />
+              <P strong>Leave “Group by” unset so every sample is counted.</P>
+            </Step>
 
-          <div style={{
-            padding: '14px', borderRadius: '12px',
-            backgroundColor: 'var(--tg-theme-bg-color)',
-            display: 'flex', flexDirection: 'column', gap: '8px',
-          }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
-              Configure it exactly like this:
-            </p>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Type</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>Steps</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Start Date</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>is today</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Unit</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>count</strong>
-              </div>
-            </div>
-          </div>
+            <Step n={2} title="Calculate statistics">
+              <P>Search for “Calculate Statistics” and add it below. Set:</P>
+              <Spec rows={[['Operation', 'Sum'], ['Input', 'Health Samples']]} />
+              <P muted>This adds every step sample into one total.</P>
+            </Step>
 
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-            This finds all of today&rsquo;s step samples from Apple Health.
-          </p>
+            <Step n={3} title="Get contents of URL">
+              <P>Add “Get Contents of URL” below, then set it up like this.</P>
+              <Sub label="URL: tap the blue “URL” text and paste">{copy(stepsUrl, 'url', 'URL')}</Sub>
+              <Spec rows={[['Method', 'POST']]} />
+              <Sub label="Headers: expand them and add two">
+                <p style={{ margin: '0 0 6px', fontSize: 14 }}>Key <b>Authorization</b>, value:</p>
+                {authHeader ? copy(authHeader, 'auth', 'Authorization header') : (
+                  <P muted>
+                    {tokenHint
+                      ? 'Your token is hidden. Make a new token above and the full header appears here, ready to copy.'
+                      : 'Create a token above and the full header appears here, ready to copy.'}
+                  </P>
+                )}
+                <p style={{ margin: '12px 0 6px', fontSize: 14 }}>Key <b>Content-Type</b>, value:</p>
+                {copy('application/json', 'content-type', 'Content-Type value')}
+              </Sub>
+              <Sub label="Request body">
+                <P>Choose JSON, tap “Add new field” and pick Number. Type <b>steps</b> as the key. For the value, tap the field and pick <b>Statistics</b>, the result of step 2.</P>
+                <P muted>It shows as a pink “Statistics” pill. That’s your total for the day.</P>
+              </Sub>
+            </Step>
 
-          <div style={{
-            padding: '10px 12px', borderRadius: '8px',
-            backgroundColor: 'var(--tg-theme-bg-color)',
-            fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--accent-calories)', lineHeight: 1.5,
-          }}>
-            <strong>Important:</strong> Do NOT set &ldquo;Group by&rdquo; &mdash; leave it unset so all individual samples are returned.
-          </div>
-        </div>
-      </div>
+            <Step n={4} title="Run it automatically" last>
+              <P>In the Automation tab, add two automations that both run this shortcut.</P>
+              <Sub label="When you open Telegram">
+                <P>Tap +, choose App, pick Telegram with “Is Opened” selected, and choose Run Immediately. Add Run Shortcut and pick yours.</P>
+              </Sub>
+              <Sub label="Every night at 11 pm">
+                <P>Tap +, choose Time of Day, set 11:00 pm, and choose Run Immediately. Add Run Shortcut and pick the same one.</P>
+              </Sub>
+              <P muted>The Telegram one keeps today’s count fresh. The 11 pm one catches your final total before midnight, so yesterday is always right.</P>
+            </Step>
+          </ol>
+        </section>
 
-      {/* Step 3: Action 2 — Calculate Statistics */}
-      <div className="fade-up fade-up-3">
-        <div style={{
-          padding: '18px', borderRadius: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          display: 'flex', flexDirection: 'column', gap: '14px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              backgroundColor: 'var(--tg-theme-button-color)',
-              color: 'var(--tg-theme-button-text-color)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
-            }}>3</div>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-              Action 2: Calculate Statistics
-            </p>
-          </div>
-
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-            Search for &ldquo;Calculate Statistics&rdquo; and add it below Action 1.
-          </p>
-
-          <div style={{
-            padding: '14px', borderRadius: '12px',
-            backgroundColor: 'var(--tg-theme-bg-color)',
-            display: 'flex', flexDirection: 'column', gap: '8px',
-          }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Operation</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>Sum</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Input</span><strong style={{ color: 'var(--tg-theme-text-color)' }}>Health Samples</strong>
-              </div>
-            </div>
-          </div>
-
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-            This adds up all the individual step recordings into one total number.
-          </p>
-        </div>
-      </div>
-
-      {/* Step 4: Action 3 — Get Contents of URL */}
-      <div className="fade-up fade-up-4">
-        <div style={{
-          padding: '18px', borderRadius: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          display: 'flex', flexDirection: 'column', gap: '14px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              backgroundColor: 'var(--tg-theme-button-color)',
-              color: 'var(--tg-theme-button-text-color)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
-            }}>4</div>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-              Action 3: Get Contents of URL
-            </p>
-          </div>
-
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-            Search for &ldquo;Get Contents of URL&rdquo; and add it below. Then configure:
-          </p>
-
-          <div style={{
-            padding: '14px', borderRadius: '12px',
-            backgroundColor: 'var(--tg-theme-bg-color)',
-            display: 'flex', flexDirection: 'column', gap: '12px',
-          }}>
-            {/* URL */}
-            <div>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '4px' }}>
-                Tap the blue &ldquo;URL&rdquo; text and paste:
-              </p>
-              <CopyableField value={stepsUrl} label="url" copied={copied} copyFailed={copyFailed} onCopy={copyText} />
-            </div>
-
-            {/* Method */}
-            <div>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '4px' }}>
-                Tap Method, change to POST
-              </p>
-            </div>
-
-            {/* Headers */}
-            <div>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '6px' }}>
-                Expand &ldquo;Headers&rdquo; and add 2 headers:
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div>
-                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginBottom: '3px' }}>Key: Authorization &nbsp;|&nbsp; Value:</p>
-                  {authHeader ? (
-                    <CopyableField value={authHeader} label="auth" copied={copied} copyFailed={copyFailed} onCopy={copyText} />
-                  ) : (
-                    <>
-                      <code style={{
-                        display: 'block', padding: '9px 11px', borderRadius: '8px',
-                        backgroundColor: 'var(--tg-theme-bg-color)',
-                        fontFamily: 'monospace', fontSize: '11px',
-                        color: 'var(--tg-theme-hint-color)',
-                        wordBreak: 'break-all', lineHeight: 1.4,
-                        border: '1px solid var(--surface-border)',
-                      }}>
-                        Bearer {tokenHint ?? '<generate a token in step 1>'}
-                      </code>
-                      <p style={{
-                        fontFamily: 'var(--font-display)', fontSize: '10px',
-                        color: 'var(--tg-theme-hint-color)', marginTop: '4px', lineHeight: 1.5,
-                      }}>
-                        {tokenHint
-                          ? 'Masked — the real token is only shown once, right after it is generated. Regenerate to reveal a new token, then copy this header.'
-                          : 'Generate a token in step 1 and the full header appears here, ready to copy.'}
-                      </p>
-                    </>
-                  )}
-                </div>
-                <div>
-                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginBottom: '3px' }}>Key: Content-Type &nbsp;|&nbsp; Value:</p>
-                  <CopyableField value="application/json" label="content-type" copied={copied} copyFailed={copyFailed} onCopy={copyText} />
-                </div>
-              </div>
-            </div>
-
-            {/* Request Body */}
-            <div>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '6px' }}>
-                Request Body &rarr; tap &ldquo;JSON&rdquo;, then &ldquo;Add new field&rdquo;:
-              </p>
-              <div style={{
-                padding: '10px 12px', borderRadius: '8px',
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                border: '1px solid var(--surface-border)',
-              }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8 }}>
-                  <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>1.</strong> Tap &ldquo;Add new field&rdquo; &rarr; choose <strong>Number</strong></div>
-                  <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>2.</strong> Key: type <strong>steps</strong></div>
-                  <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>3.</strong> Value: tap the field, then select <strong>Statistics</strong> (the result from Action 2)</div>
-                </div>
-              </div>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginTop: '6px', lineHeight: 1.5 }}>
-                The value should show as a pink pill that says &ldquo;Statistics&rdquo; or &ldquo;Sum&rdquo; — this is your total step count for the day.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Step 5: Automate */}
-      <div className="fade-up fade-up-5">
-        <div style={{
-          padding: '18px', borderRadius: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          display: 'flex', flexDirection: 'column', gap: '12px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              backgroundColor: 'var(--tg-theme-button-color)',
-              color: 'var(--tg-theme-button-text-color)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, flexShrink: 0,
-            }}>5</div>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-              Run It Automatically
-            </p>
-          </div>
-
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.6 }}>
-            Add 2 automations that both run the same shortcut:
-          </p>
-
-          {/* Automation 1: Telegram */}
-          <div style={{
-            padding: '14px', borderRadius: '12px',
-            backgroundColor: 'var(--tg-theme-bg-color)',
-            display: 'flex', flexDirection: 'column', gap: '4px',
-            fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8,
-          }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
-              Automation 1: When you open Telegram
-            </p>
-            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>1.</strong> Go to the <strong>Automation</strong> tab in Shortcuts</div>
-            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>2.</strong> Tap <strong>+</strong> &rarr; <strong>App</strong></div>
-            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>3.</strong> Choose <strong>Telegram</strong>, keep &ldquo;Is Opened&rdquo; selected</div>
-            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>4.</strong> Choose <strong>Run Immediately</strong></div>
-            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>5.</strong> Add action &rarr; <strong>Run Shortcut</strong> &rarr; select your shortcut</div>
-          </div>
-
-          {/* Automation 2: Nightly */}
-          <div style={{
-            padding: '14px', borderRadius: '12px',
-            backgroundColor: 'var(--tg-theme-bg-color)',
-            display: 'flex', flexDirection: 'column', gap: '4px',
-            fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8,
-          }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
-              Automation 2: Nightly at 11 PM
-            </p>
-            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>1.</strong> Tap <strong>+</strong> &rarr; <strong>Time of Day</strong></div>
-            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>2.</strong> Set time to <strong>11:00 PM</strong></div>
-            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>3.</strong> Choose <strong>Run Immediately</strong></div>
-            <div><strong style={{ color: 'var(--tg-theme-text-color)' }}>4.</strong> Add action &rarr; <strong>Run Shortcut</strong> &rarr; select the same shortcut</div>
-          </div>
-
-          <div style={{
-            padding: '10px 12px', borderRadius: '8px',
-            backgroundColor: 'var(--tg-theme-bg-color)',
-            fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.5,
-          }}>
-            <strong style={{ color: 'var(--tg-theme-text-color)' }}>Why 2 triggers?</strong> The Telegram trigger keeps today&rsquo;s count fresh throughout the day. The 11 PM trigger captures your final step count before midnight, so yesterday&rsquo;s total is always accurate.
-          </div>
-        </div>
-      </div>
-
-      {/* Troubleshooting */}
-      <div className="fade-up fade-up-6">
-        <div style={{
-          padding: '18px', borderRadius: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          display: 'flex', flexDirection: 'column', gap: '10px',
-        }}>
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-            Not working?
-          </p>
-          <ul style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8, paddingLeft: '16px', margin: 0 }}>
-            <li>Make sure Health &rarr; Privacy &rarr; Shortcuts has <strong>Steps</strong> enabled</li>
-            <li>Tap the <strong>play button</strong> in Shortcuts to test manually first</li>
-            <li>The body field value must be the pink <strong>Statistics</strong> variable, not typed text</li>
-            <li>If you regenerate your token here, update it in the Shortcut too</li>
+        <section className="card">
+          <h2 className="card-title" style={{ margin: '0 0 6px' }}>Not working?</h2>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 15, color: 'var(--muted)', lineHeight: 1.6 }}>
+            <li>In Health, go to Privacy, then Shortcuts, and make sure Steps is on.</li>
+            <li>Tap the play button in Shortcuts to test it by hand first.</li>
+            <li>The body value must be the pink Statistics pill, not typed text.</li>
+            <li>If you make a new token here, paste it into the Shortcut too.</li>
           </ul>
-        </div>
+        </section>
       </div>
 
+      {confirming && (
+        <ConfirmSheet
+          open
+          onClose={() => setConfirming(null)}
+          title={CONFIRM[confirming].title}
+          body={CONFIRM[confirming].body}
+          confirmLabel={CONFIRM[confirming].label}
+          busyLabel={CONFIRM[confirming].busy}
+          busy={tokenLoading}
+          error={tokenError}
+          onConfirm={() => { void (confirming === 'regenerate' ? handleGenerateToken() : handleRevokeToken()) }}
+        />
+      )}
     </div>
   )
 }
 
-function CopyableField({ value, label, copied, copyFailed, onCopy }: {
+function Step({ n, title, last, children }: { n: number; title: string; last?: boolean; children: ReactNode }) {
+  return (
+    <li style={{ display: 'grid', gridTemplateColumns: '28px 1fr', columnGap: 12, padding: '14px 0', borderBottom: last ? 'none' : '1px solid var(--line)' }}>
+      <span aria-hidden="true" style={{
+        width: 28, height: 28, borderRadius: 14, background: 'var(--track)', color: 'var(--ink)',
+        display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 600,
+      }}>
+        {n}
+      </span>
+      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <h3 style={{ margin: '3px 0 0', fontSize: 15, fontWeight: 600 }}>
+          <span style={srOnly}>Step {n}: </span>{title}
+        </h3>
+        {children}
+      </div>
+    </li>
+  )
+}
+
+function P({ muted, strong, children }: { muted?: boolean; strong?: boolean; children: ReactNode }) {
+  return (
+    <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: muted ? 'var(--muted)' : 'var(--ink)', fontWeight: strong ? 600 : 400 }}>
+      {children}
+    </p>
+  )
+}
+
+function Sub({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>{label}</p>
+      {children}
+    </div>
+  )
+}
+
+/** The values a Shortcuts action must be set to, as label/value rows. */
+function Spec({ rows }: { rows: [string, string][] }) {
+  return (
+    <dl style={{ margin: 0 }}>
+      {rows.map(([k, v], i) => (
+        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '7px 0', borderTop: i ? '1px solid var(--line)' : 'none', fontSize: 14 }}>
+          <dt style={{ color: 'var(--muted)' }}>{k}</dt>
+          <dd style={{ margin: 0, fontWeight: 600 }}>{v}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function CopyField({ value, label, name, copied, copyFailed, onCopy }: {
   value: string
   label: string
+  name: string
   copied: string | null
   copyFailed: string | null
   onCopy: (text: string, label: string) => void
 }) {
   const failed = copyFailed === label
+  const done = copied === label
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
         <code style={{
-          flex: 1, padding: '9px 11px', borderRadius: '8px',
-          backgroundColor: 'var(--tg-theme-bg-color)',
-          fontFamily: 'monospace', fontSize: '11px',
-          color: 'var(--tg-theme-text-color)',
-          wordBreak: 'break-all', lineHeight: 1.4,
-          border: '1px solid var(--surface-border)',
+          flex: 1, minWidth: 0, padding: '10px 12px', borderRadius: 12,
+          border: '1px solid var(--line-strong)', background: 'var(--card)',
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13,
+          color: 'var(--ink)', wordBreak: 'break-all', lineHeight: 1.4,
           // Selectable so the fallback hint below is actually actionable.
-          userSelect: 'all',
+          userSelect: 'all', WebkitUserSelect: 'all',
         }}>
           {value}
         </code>
         <button
           type="button"
+          className="btn-pill"
           onClick={() => onCopy(value, label)}
-          style={{
-            background: 'none', border: '1px solid var(--surface-border)',
-            borderRadius: '8px', padding: '7px 10px',
-            fontFamily: 'var(--font-display)', fontSize: '11px',
-            color: copied === label ? 'var(--accent-protein)'
-              : failed ? 'var(--accent-calories)'
-              : 'var(--tg-theme-hint-color)',
-            cursor: 'pointer', flexShrink: 0,
-          }}
+          aria-label={done ? `${name} copied` : `Copy ${name}`}
+          data-active={done ? 'true' : undefined}
+          style={{ minHeight: 44, minWidth: 82, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, flexShrink: 0 }}
         >
-          {copied === label ? 'Copied' : 'Copy'}
+          {done && <CheckIcon size={16} />}
+          {done ? 'Copied' : 'Copy'}
         </button>
       </div>
+      <span role="status" style={srOnly}>{done ? `${name} copied` : ''}</span>
       {failed && (
-        <p role="alert" style={{
-          fontFamily: 'var(--font-display)', fontSize: '11px', lineHeight: 1.4,
-          color: 'var(--accent-calories)',
-        }}>
+        <p role="alert" style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: 'var(--over)' }}>
           {COPY_FAILED_MESSAGE}
         </p>
       )}

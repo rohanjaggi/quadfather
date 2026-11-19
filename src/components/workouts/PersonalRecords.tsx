@@ -1,99 +1,64 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { getWorkoutPRs, type WorkoutPR } from '@/lib/api'
-import { prDisplayDate, prDisplayValue, prTypeLabel } from './pr-display'
+import { prDisplayDate, prDisplayValue } from './pr-display'
+import { RowsSkeleton, ErrorRetry, friendlyError, linkStyle } from './bits'
 
 interface Props {
   period: 7 | 30
+  /** Off on the Training tab, whose More list already links to Records. */
+  seeAll?: boolean
 }
 
-export default function PersonalRecords({ period }: Props) {
+export default function PersonalRecords({ period, seeAll = true }: Props) {
   const [prs, setPrs] = useState<WorkoutPR[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let stale = false
     setLoading(true)
+    setError(null)
     getWorkoutPRs(period)
       .then(data => { if (!stale) setPrs(data.prs) })
-      .catch(console.error)
+      // A failed fetch used to read "No new PRs this period", which isn't true.
+      .catch(err => { if (!stale) setError(friendlyError(err, 'Couldn’t load your records.')) })
       .finally(() => { if (!stale) setLoading(false) })
     return () => { stale = true }
-  }, [period])
+  }, [period, attempt])
 
-  const displayPrs = prs.slice(0, 3)
+  const retry = useCallback(() => setAttempt(n => n + 1), [])
 
   return (
-    <SummaryCard title={
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>Personal Records</span>
-        <Link href="/workouts/prs" style={{
-          fontFamily: 'var(--font-display)', fontSize: '11px',
-          fontWeight: 500, color: 'var(--accent)', textDecoration: 'none',
-          textTransform: 'none', letterSpacing: 'normal',
-        }}>
-          View history
-        </Link>
-      </div>
-    }>
+    <SummaryCard title="Records" action={seeAll && <Link href="/workouts/prs" style={linkStyle}>See all</Link>}>
       {loading ? (
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0',
-        }}>
-          Loading...
-        </p>
+        <RowsSkeleton rows={3} />
+      ) : error ? (
+        <ErrorRetry message={error} onRetry={retry} />
       ) : prs.length === 0 ? (
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0',
-        }}>
-          No new PRs this period
+        <p style={{ margin: 0, fontSize: 15, color: 'var(--muted)' }}>
+          No new records {period === 7 ? 'this week' : 'in the last 30 days'}. Your heaviest sets land here.
         </p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {displayPrs.map((pr, i) => (
-            <div key={`${pr.exercise_name}-${i}`}>
-              {i > 0 && <div style={{ height: '1px', backgroundColor: 'var(--surface-border)', marginBottom: '12px' }} />}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ minWidth: 0, marginRight: '12px' }}>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '14px',
-                    fontWeight: 500, color: 'var(--tg-theme-text-color)', margin: 0,
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  }}>
-                    {pr.exercise_name}
-                  </p>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '11px',
-                    color: 'var(--tg-theme-hint-color)', margin: '2px 0 0 0',
-                  }}>
-                    {prDisplayDate(pr, { day: 'numeric', month: 'short' })}
-                  </p>
-                </div>
-                {/* `value` is now pre-formatted ("100kg × 5") — keep it intact. */}
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <span style={{
-                    fontFamily: 'var(--font-display)', fontSize: '16px',
-                    fontWeight: 600, color: 'var(--accent)',
-                  }}>
-                    {prDisplayValue(pr)}
-                  </span>
-                  <span style={{
-                    display: 'block', fontFamily: 'var(--font-display)', fontSize: '9px',
-                    fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase',
-                    color: 'var(--accent)', opacity: 0.7, marginTop: '2px',
-                  }}>
-                    {prTypeLabel(pr)}
-                  </span>
-                </div>
-              </div>
-            </div>
+        <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          {prs.slice(0, 3).map((pr, i) => (
+            <li
+              key={`${pr.exercise_name}-${i}`}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '10px 0', borderTop: i ? '1px solid var(--line)' : 'none' }}
+            >
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pr.exercise_name}</span>
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>{prDisplayDate(pr, { day: 'numeric', month: 'short' })}</span>
+              </span>
+              {/* `value` is pre-formatted ("100kg × 5"): keep it whole, truncate the name instead. */}
+              <span style={{ flexShrink: 0, fontSize: 16, fontWeight: 600 }}>{prDisplayValue(pr)}</span>
+            </li>
           ))}
-        </div>
+        </ol>
       )}
     </SummaryCard>
   )

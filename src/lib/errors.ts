@@ -6,6 +6,25 @@
  * those apart — never render `err.message` directly.
  */
 
+/**
+ * Field-validation and plumbing text the server sends as `detail` ("id must be
+ * an integer", "template_id does not belong…", "Malformed JSON body"). Fine for
+ * a log, not for a person, so the caller's fallback is shown instead.
+ *
+ * Told apart by shape, not wording: raw messages lead with a lowercase field
+ * name or carry a snake_case identifier; messages written for people are
+ * capitalised sentences ("Image must be smaller than 8 MB", "An image file is
+ * required", "A saved food with this name already exists") and come through.
+ */
+function isRawDetail(text: string): boolean {
+  const t = text.trim()
+  return /^[a-z][a-z0-9_]* (must|is|does|should|cannot)\b/.test(t) // case-sensitive: field names
+    || /\b[a-z]+_[a-z0-9_]+\b/.test(t)
+    || /^(request body|malformed|internal error|invalid request|unauthorized)\b/i.test(t)
+    || / not found\.?$/i.test(t)
+    || /referenced record/i.test(t)
+}
+
 /** Extracts the HTTP status from an `API <status>: …` error, if there is one. */
 export function errorStatus(err: unknown): number | null {
   const raw = err instanceof Error ? err.message : typeof err === 'string' ? err : ''
@@ -42,10 +61,10 @@ export function errorMessage(err: unknown, fallback = 'Something went wrong'): s
   try {
     const parsed = JSON.parse(body) as { detail?: unknown }
     const detail = parsed?.detail
-    if (typeof detail === 'string' && detail.trim()) return detail.trim()
+    if (typeof detail === 'string' && detail.trim()) return isRawDetail(detail) ? fallback : detail.trim()
   } catch {
     // body was not JSON — fall through to the raw text
   }
-  if (!body || body.startsWith('<')) return fallback
+  if (!body || body.startsWith('<') || isRawDetail(body)) return fallback
   return body.length > 160 ? `${body.slice(0, 157)}…` : body
 }

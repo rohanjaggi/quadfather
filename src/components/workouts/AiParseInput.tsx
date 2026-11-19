@@ -3,27 +3,32 @@
 import { useState } from 'react'
 import { parseWorkout } from '@/lib/api'
 import type { ExerciseSet } from '@/types/workouts'
-import WorkoutForm from './WorkoutForm'
-import { errorMessage } from '@/lib/errors'
+import { AiWorking, friendlyError } from './bits'
 
-interface AiParseInputProps {
-  onSave: (data: { name: string; exercises: { exercise_name: string; sets: ExerciseSet[]; order: number }[]; duration_minutes?: number; notes?: string; template_id?: number }) => Promise<void>
-  onClose: () => void
+export interface ParsedWorkout {
+  name: string
+  exercises: { exercise_name: string; sets: ExerciseSet[] }[]
 }
 
-export default function AiParseInput({ onSave, onClose }: AiParseInputProps) {
+interface AiParseInputProps {
+  /** The parsed workout, handed to the logger to check and finish. */
+  onParsed: (parsed: ParsedWorkout) => void
+  onBack: () => void
+}
+
+/** "Describe it": type the session out, the model fills in the sets. */
+export default function AiParseInput({ onParsed, onBack }: AiParseInputProps) {
   const [text, setText] = useState('')
   const [parsing, setParsing] = useState(false)
-  const [parsed, setParsed] = useState<{ name: string; exercises: { exercise_name: string; sets: ExerciseSet[] }[] } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function handleParse() {
-    if (!text.trim()) return
+    if (!text.trim() || parsing) return
     setParsing(true)
     setError(null)
     try {
       const result = await parseWorkout(text)
-      setParsed({
+      onParsed({
         name: result.name,
         exercises: result.exercises.map(ex => ({
           exercise_name: ex.exercise_name,
@@ -31,45 +36,40 @@ export default function AiParseInput({ onSave, onClose }: AiParseInputProps) {
         })),
       })
     } catch (err) {
-      setError(errorMessage(err, 'Failed to parse'))
+      setError(friendlyError(err, 'Couldn’t read that just now. Check your connection and try again.'))
     } finally {
       setParsing(false)
     }
   }
 
-  if (parsed) {
-    return (
-      <WorkoutForm
-        initialName={parsed.name}
-        initialExercises={parsed.exercises}
-        onSave={onSave}
-        onClose={() => setParsed(null)}
-      />
-    )
-  }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--tg-theme-hint-color)' }}>
-        Describe your workout
+    <section className="card" aria-labelledby="describe-title">
+      <h2 id="describe-title" className="card-title" style={{ margin: '0 0 4px' }}>Describe it</h2>
+      <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--muted)' }}>
+        Write it the way you’d text a friend. You’ll check the sets before anything is saved.
       </p>
+      <label htmlFor="describe-text" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
+        Your workout
+      </label>
       <textarea
-        className="input-field"
+        id="describe-text"
+        className="textarea-field"
         value={text}
         onChange={e => setText(e.target.value)}
-        placeholder="e.g. bench 80kg 4x8, incline DB 30kg 3x10, tricep pushdowns 20kg 3x12"
-        rows={4}
-        style={{ resize: 'vertical', fontFamily: 'var(--font-display)', fontSize: '14px' }}
+        readOnly={parsing}
+        placeholder="Bench 80 kg 4×8, incline dumbbell 30 kg 3×10, pushdowns 20 kg 3×12"
+        rows={5}
       />
-      {error && (
-        <p style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--accent-calories)' }}>{error}</p>
+      {parsing && <div style={{ marginTop: 12 }}><AiWorking label="Reading your workout…" height={44} /></div>}
+      {error && !parsing && (
+        <p role="alert" style={{ margin: '12px 0 0', fontSize: 15, color: 'var(--ink)' }}>{error}</p>
       )}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button type="button" className="btn-secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
-        <button type="button" className="btn-primary" onClick={handleParse} disabled={parsing || !text.trim()} style={{ flex: 1 }}>
-          {parsing ? 'Parsing…' : 'Parse with AI'}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
+        <button type="button" className="btn-primary" onClick={handleParse} disabled={parsing || !text.trim()}>
+          {parsing ? 'Reading…' : error ? 'Retry' : 'Read it'}
         </button>
+        <button type="button" className="btn-ghost" onClick={onBack} disabled={parsing}>Back</button>
       </div>
-    </div>
+    </section>
   )
 }

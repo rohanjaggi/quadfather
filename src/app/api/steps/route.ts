@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { startOfUtcDay } from '@/lib/budget'
+import { addDays, dayKey } from '@/lib/day'
 import {
   optionalInt,
   optionalString,
@@ -17,16 +17,17 @@ const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
 const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})[T ]/
 
 /**
- * Resolve the UTC calendar day a step count belongs to.
+ * Resolve the calendar day a step count belongs to; no date means today's
+ * Singapore day.
  *
- * Days are stored as UTC midnight (`@db.Date`), which is also how `GET` buckets
- * them and how `getDailyBudget` looks today's row up. For a datetime *with* an
+ * Days are stored as UTC midnight of the `YYYY-MM-DD` key (`@db.Date`), which
+ * is also how `GET` and `getDailyBudget` read them. For a datetime *with* an
  * offset (`2026-08-20T01:00:00+08:00`) the leading calendar date is the day the
  * user was actually in — converting the instant to UTC would file it under the
- * previous day, which is how a morning sync used to overwrite yesterday.
+ * previous day.
  */
 function parseStepDate(value: unknown): Date {
-  if (value === undefined || value === null || value === '') return startOfUtcDay()
+  if (value === undefined || value === null || value === '') return new Date(`${dayKey()}T00:00:00Z`)
   if (typeof value !== 'string') {
     throw unprocessable('date must be a YYYY-MM-DD or ISO-8601 date string')
   }
@@ -105,11 +106,8 @@ export const GET = withUser(async (request, user) => {
   const daysParam = request.nextUrl.searchParams.get('days')
   const days = optionalInt(daysParam, 'days', { min: 1, max: 365 }) ?? 7
 
-  // Exactly `days` UTC days ending today — this used to subtract `days` from
-  // today and so returned `days + 1` buckets (today's row plus a full extra
-  // day), which is why `getSteps(1)` could report yesterday's count as today's.
-  const startDate = startOfUtcDay()
-  startDate.setUTCDate(startDate.getUTCDate() - (days - 1))
+  // Exactly `days` calendar days ending today, compared by the stored date key.
+  const startDate = new Date(`${addDays(dayKey(), -(days - 1))}T00:00:00Z`)
 
   const stepLogs = await prisma.stepLog.findMany({
     where: { user_id: user.id, date: { gte: startDate } },

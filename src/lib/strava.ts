@@ -140,7 +140,6 @@ interface StravaActivity {
   average_heartrate?: number
   max_heartrate?: number
   start_date: string
-  start_date_local: string
 }
 
 const ACTIVITIES_PER_PAGE = 30
@@ -198,7 +197,7 @@ export function stravaActivityToRunData(activity: StravaActivity, weightKg: numb
     elevation_gain: activity.total_elevation_gain,
     name: activity.name,
     source: 'strava' as const,
-    run_date: new Date(activity.start_date_local),
+    run_date: new Date(activity.start_date),
   }
 }
 

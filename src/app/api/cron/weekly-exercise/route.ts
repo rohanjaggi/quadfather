@@ -7,18 +7,18 @@ import { escapeHtml } from '@/lib/html'
 import { clampHtml } from '@/lib/telegram-bot'
 import { checkCronAuth } from '../auth'
 import { Bot } from 'grammy'
+import { addDays, dayKey, daysAgoStart } from '@/lib/day'
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? ''
-const DAY_MS = 86400000
 
 /** Exercises with no `exercise_id` can't be mapped to a muscle group. */
 const UNCATEGORISED = 'uncategorised'
 
 /**
- * Consecutive UTC days *ending yesterday* on which a workout was logged.
+ * Consecutive days *ending yesterday* on which a workout was logged.
  *
- * Yesterday is the last day that can count: this digest runs in the small hours
- * UTC, so a streak that required a workout *today* would read 0 on essentially
+ * Yesterday is the last day that can count: this digest runs on Monday morning,
+ * so a streak that required a workout *today* would read 0 on essentially
  * every run — which is exactly what the old loop did (it started at today, the
  * date didn't match, and it broke out immediately). It also indexed the sorted
  * date list by the loop counter, so it compared the *n*-th distinct workout day
@@ -28,15 +28,15 @@ const UNCATEGORISED = 'uncategorised'
  * cron rather than a shared helper: the two read different tables, and
  * `lib/coach.ts` is about nudge state, not date arithmetic.
  */
-function workoutStreakEndingYesterday(workoutDates: Date[], todayStart: Date): number {
-  const days = new Set(workoutDates.map(d => d.toISOString().slice(0, 10)))
+function workoutStreakEndingYesterday(workoutDates: Date[]): number {
+  const days = new Set(workoutDates.map(d => dayKey(d)))
+  const today = dayKey()
 
   let streak = 0
   // Bounded by the number of distinct days we fetched — the streak can never be
   // longer than that, and the loop always terminates.
   for (let back = 1; back <= days.size; back++) {
-    const day = new Date(todayStart.getTime() - back * DAY_MS).toISOString().slice(0, 10)
-    if (!days.has(day)) break
+    if (!days.has(addDays(today, -back))) break
     streak++
   }
   return streak
@@ -64,15 +64,14 @@ export async function GET(request: NextRequest) {
   const bot = new Bot(BOT_TOKEN)
   let sent = 0
 
-  // Whole UTC days, like the sibling crons: this week is [today-7, today) and
+  // Whole days, like the sibling crons: this week is [today-7, today) and
   // last week is [today-14, today-7). The old rolling `now - 7d` window carried
   // the time of day, so a session logged this morning last Monday landed in
   // whichever half the run happened to start in, and "this week vs last week"
   // compared two windows that both straddled the same day.
-  const todayStart = new Date()
-  todayStart.setUTCHours(0, 0, 0, 0)
-  const weekStart = new Date(todayStart.getTime() - 7 * DAY_MS)
-  const prevWeekStart = new Date(todayStart.getTime() - 14 * DAY_MS)
+  const todayStart = daysAgoStart(0)
+  const weekStart = daysAgoStart(7)
+  const prevWeekStart = daysAgoStart(14)
 
   for (const user of users) {
     const coachPrefs = user.ai_coaching_prefs as Record<string, boolean> | null
@@ -174,10 +173,7 @@ export async function GET(request: NextRequest) {
         .map(s => `${s.exercise_name}: stalled ${s.sessions_since_improvement} sessions (1RM: ${s.estimated_1rm}kg)`)
         .join('\n')
 
-      const streak = workoutStreakEndingYesterday(
-        thisWeekWorkouts.map(w => w.workout_date),
-        todayStart,
-      )
+      const streak = workoutStreakEndingYesterday(thisWeekWorkouts.map(w => w.workout_date))
 
       const message = await generateWeeklyExerciseDigest(creds.provider, creds.apiKey, creds.model, {
         trainingFocus: user.training_focus ?? 'general fitness',

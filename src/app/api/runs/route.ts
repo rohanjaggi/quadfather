@@ -10,22 +10,15 @@ import {
   optionalString,
   unprocessable,
 } from '@/lib/api-handler'
+import { dayKey, dayRange } from '@/lib/day'
 
 export const GET = withUser(async (request, user) => {
-  const dateParam = request.nextUrl.searchParams.get('date')
-  parseDateParam(dateParam, 'date')
-
-  const dateStr = dateParam ?? new Date().toISOString().slice(0, 10)
-  const dayStart = new Date(`${dateStr}T00:00:00.000Z`)
-  const dayEnd = new Date(`${dateStr}T23:59:59.999Z`)
-  if (Number.isNaN(dayStart.getTime()) || Number.isNaN(dayEnd.getTime())) {
-    throw unprocessable('date must be a valid YYYY-MM-DD date')
-  }
+  const { start, end } = dayRange(dayKey(parseDateParam(request.nextUrl.searchParams.get('date'), 'date')))
 
   const runs = await prisma.runLog.findMany({
     where: {
       user_id: user.id,
-      run_date: { gte: dayStart, lte: dayEnd },
+      run_date: { gte: start, lt: end },
     },
     orderBy: { run_date: 'desc' },
   })

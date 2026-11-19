@@ -8,8 +8,7 @@ import { escapeHtml } from "@/lib/html";
 import { clampHtml } from "@/lib/telegram-bot";
 import { checkCronAuth } from "../auth";
 import { Bot } from "grammy";
-
-const DAY_MS = 86400000;
+import { dayKey, daysAgoStart } from "@/lib/day";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
 
@@ -32,11 +31,10 @@ export async function GET(request: NextRequest) {
     where: { ai_features_enabled: true },
   });
 
-  // The 7 *complete* previous UTC days: [day-7 00:00, today 00:00).
+  // The 7 *complete* previous days: [day-7 00:00, today 00:00).
   // Today is excluded — it is still in progress and would drag averages down.
-  const todayStart = new Date();
-  todayStart.setUTCHours(0, 0, 0, 0);
-  const weekStart = new Date(todayStart.getTime() - 7 * DAY_MS);
+  const todayStart = daysAgoStart(0);
+  const weekStart = daysAgoStart(7);
 
   const bot = new Bot(BOT_TOKEN);
   let sent = 0;
@@ -66,12 +64,9 @@ export async function GET(request: NextRequest) {
 
       const days: { date: string; calories: number; protein: number; water: number }[] = [];
       for (let i = 7; i >= 1; i--) {
-        const dayStart = new Date(todayStart.getTime() - i * DAY_MS);
-        const dayEnd = new Date(dayStart.getTime() + DAY_MS - 1);
-        const dateStr = dayStart.toISOString().split('T')[0];
-
-        const dayFood = foodLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
-        const dayWater = waterLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
+        const dateStr = dayKey(daysAgoStart(i));
+        const dayFood = foodLogs.filter(l => dayKey(l.logged_at) === dateStr);
+        const dayWater = waterLogs.filter(l => dayKey(l.logged_at) === dateStr);
 
         days.push({
           date: dateStr,

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { calculateEstimated1RM, type ProgressSuggestion } from '@/lib/progress'
 import { coerceNumber, fillTemplate, parseJsonObject } from '@/lib/ai'
+import { dayKey } from '@/lib/day'
 
 interface SetData {
   reps: number
@@ -63,7 +64,7 @@ export function formatHistory(
       }
 
       const best1RM = Math.max(...weightedSets.map(s => calculateEstimated1RM(s.weight_kg!, s.reps)))
-      const dateStr = log.workout_date.toISOString().split('T')[0]
+      const dateStr = dayKey(log.workout_date)
       return `${dateStr}: ${setsStr} (est 1RM: ${best1RM}kg)`
     })
     .filter(Boolean)

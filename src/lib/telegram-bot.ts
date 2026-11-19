@@ -6,7 +6,8 @@ import type { MealAnalysisResult } from "./ai";
 import type { AIProvider } from "./models";
 import { encrypt, decrypt } from "./crypto";
 import { escapeHtml } from "./html";
-import { getDailyBudget, startOfUtcDay } from "./budget";
+import { getDailyBudget } from "./budget";
+import { dayKey, dayRange, daysAgoStart } from "./day";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
 
@@ -26,8 +27,6 @@ if (!MINI_APP_URL) {
 }
 
 const VALID_PROVIDERS: AIProvider[] = ["openai", "anthropic", "gemini"];
-
-const DAY_MS = 86400000;
 
 let _bot: Bot | null = null;
 
@@ -456,9 +455,8 @@ function registerHandlers(bot: Bot) {
     // running-total query or in Telegram itself must not reach `bot.catch` — its
     // generic "please try again" made users re-tap and log the bottle twice.
     try {
-      const todayStart = startOfUtcDay();
       const todayLogs = await prisma.waterLog.findMany({
-        where: { user_id: user.id, logged_at: { gte: todayStart } },
+        where: { user_id: user.id, logged_at: { gte: dayRange().start } },
       });
       const totalLiters = todayLogs.reduce((s, l) => s + l.amount_liters, 0);
       const pct = user.daily_water_goal > 0
@@ -665,11 +663,11 @@ function registerHandlers(bot: Bot) {
     const thinking = await ctx.reply("\u{1F4CA} Analysing your week...");
 
     try {
-      // The 7 *complete* previous UTC days: [day-7 00:00, today 00:00).
+      // The 7 *complete* previous days: [day-7 00:00, today 00:00).
       // Today is excluded — it is still in progress and would drag averages
       // down. Mirrors /api/cron/weekly-insights.
-      const todayStart = startOfUtcDay();
-      const weekStart = new Date(todayStart.getTime() - 7 * DAY_MS);
+      const todayStart = daysAgoStart(0);
+      const weekStart = daysAgoStart(7);
 
       const [foodLogs, waterLogs, runLogs, workoutLogs] = await Promise.all([
         prisma.foodLog.findMany({ where: { user_id: user.id, logged_at: { gte: weekStart, lt: todayStart } } }),
@@ -690,12 +688,9 @@ function registerHandlers(bot: Bot) {
 
       const days: { date: string; calories: number; protein: number; water: number }[] = [];
       for (let i = 7; i >= 1; i--) {
-        const dayStart = new Date(todayStart.getTime() - i * DAY_MS);
-        const dayEnd = new Date(dayStart.getTime() + DAY_MS - 1);
-        const dateStr = dayStart.toISOString().split('T')[0];
-
-        const dayFood = foodLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
-        const dayWater = waterLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
+        const dateStr = dayKey(daysAgoStart(i));
+        const dayFood = foodLogs.filter(l => dayKey(l.logged_at) === dateStr);
+        const dayWater = waterLogs.filter(l => dayKey(l.logged_at) === dateStr);
 
         days.push({
           date: dateStr,

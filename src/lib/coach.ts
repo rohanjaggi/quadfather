@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { dayKey, dayRange } from './day'
 
 export type NudgeTopic = 'inactivity' | 'recovery' | 'nutrition_gap' | 'consistency' | 'steps'
 
@@ -50,8 +51,7 @@ export async function determineNudgeTopic(userId: number, stepGoal?: number, coa
   fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5)
   const twoDaysAgo = new Date(now)
   twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
-  const todayStart = new Date(now)
-  todayStart.setUTCHours(0, 0, 0, 0)
+  const todayStart = dayRange().start
   const sevenDaysAgo = new Date(now)
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
@@ -92,7 +92,7 @@ export async function determineNudgeTopic(userId: number, stepGoal?: number, coa
 
   // Priority 4: Step motivation
   if (stepLogs.length >= 3 && coachPrefs?.nudge_steps !== false) {
-    const today = stepLogs.find(l => l.date >= todayStart)
+    const today = stepLogs.find(l => l.date.toISOString().slice(0, 10) === dayKey())
     if (stepGoal && today && today.steps < stepGoal * 0.5 && !wasNudgedRecently(state, 'steps')) {
       return 'steps'
     } else if (!stepGoal) {

@@ -16,6 +16,7 @@ import MuscleBalance from '@/components/workouts/MuscleBalance'
 import { calculateStepAllowance } from '@/lib/steps'
 import { errorMessage } from '@/lib/errors'
 import { currentStepStreak, longestStepStreak } from '@/lib/streak'
+import { addDays, dayKey } from '@/lib/day'
 
 type Period = 7 | 30
 
@@ -31,11 +32,6 @@ function parseIsoDay(iso: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-/** `YYYY-MM-DD` in the viewer's own calendar. */
-function localIsoDay(d: Date): string {
-  return d.toLocaleDateString('en-CA')
-}
-
 function shortDate(iso: string) {
   const d = parseIsoDay(iso)
   if (!d) return iso
@@ -46,14 +42,8 @@ function dayLabel(iso: string) {
   const d = parseIsoDay(iso)
   if (!d) return iso
 
-  // "Today"/"Yday" are about the viewer's calendar, so they compare date
-  // strings rather than instants — `toDateString()` on a UTC-midnight Date is
-  // the previous day for most of the world.
-  const today = new Date()
-  if (iso === localIsoDay(today)) return 'Today'
-  const yesterday = new Date(today)
-  yesterday.setDate(today.getDate() - 1)
-  if (iso === localIsoDay(yesterday)) return 'Yday'
+  if (iso === dayKey()) return 'Today'
+  if (iso === addDays(dayKey(), -1)) return 'Yday'
 
   return d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })
 }
@@ -990,7 +980,7 @@ export default function AnalyticsPage() {
               <div className="fade-up fade-up-1">
                 <SummaryCard title="Streaks & Consistency">
                   {(() => {
-                    const currentStreak = currentStepStreak(stepsData, stepGoal, localIsoDay(new Date()))
+                    const currentStreak = currentStepStreak(stepsData, stepGoal)
                     const longestStreak = longestStepStreak(stepsData, stepGoal)
                     const chronological = [...stepsData].sort((a, b) => a.date.localeCompare(b.date))
                     const goalHitDays = stepsData.filter(d => d.steps >= stepGoal).length

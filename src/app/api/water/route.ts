@@ -6,17 +6,15 @@ import {
   unprocessable,
   withUser,
 } from "@/lib/api-handler";
+import { dayRange } from "@/lib/day";
 
 /** Sanity ceilings — a single log is one drink, not a day's intake. */
 const MAX_LITERS = 10;
 const MAX_BOTTLES = 50;
 
 export const GET = withUser(async (request, user) => {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
   const logs = await prisma.waterLog.findMany({
-    where: { user_id: user.id, logged_at: { gte: todayStart } },
+    where: { user_id: user.id, logged_at: { gte: dayRange().start } },
     orderBy: { logged_at: "desc" },
   });
 

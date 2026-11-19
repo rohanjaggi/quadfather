@@ -12,6 +12,7 @@ import {
 import { callTextDirect } from '@/lib/ai'
 import { prisma } from '@/lib/prisma'
 import { withUser, requireString } from '@/lib/api-handler'
+import { dayKey } from '@/lib/day'
 import type { PredictionData } from '@/types/exercises'
 
 /**
@@ -131,7 +132,7 @@ export const GET = withUser(async (request, user) => {
 
   const lastSession = history[0]
   const lastSessionData = {
-    date: lastSession.workout_date.toISOString().split('T')[0],
+    date: dayKey(lastSession.workout_date),
     sets: lastSession.sets,
   }
 

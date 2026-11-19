@@ -12,8 +12,8 @@ import {
   unprocessable,
   withUser,
 } from "@/lib/api-handler";
+import { dayKey, dayRange } from "@/lib/day";
 
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 /** `FoodLog.food_name` is `VarChar(100)`, `source` is `VarChar(20)`. */
 const MAX_NAME = 100;
 const MAX_SOURCE = 20;
@@ -22,22 +22,10 @@ const MAX_MACRO = 100_000;
 const MAX_SERVINGS = 100;
 
 export const GET = withUser(async (request, user) => {
-  const dateParam = request.nextUrl.searchParams.get("date");
-  // `?date=abc` used to build an Invalid Date and 500 inside Prisma.
-  const parsed = parseDateParam(dateParam, "date");
-
-  // A bare `YYYY-MM-DD` keeps being read as *local* midnight (the client sends
-  // `toLocaleDateString('en-CA')`), so the day a user sees doesn't shift.
-  const dayStart =
-    dateParam && DATE_ONLY.test(dateParam)
-      ? new Date(`${dateParam}T00:00:00`)
-      : (parsed ?? new Date());
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(dayStart);
-  dayEnd.setHours(23, 59, 59, 999);
+  const { start, end } = dayRange(dayKey(parseDateParam(request.nextUrl.searchParams.get("date"), "date")));
 
   const logs = await prisma.foodLog.findMany({
-    where: { user_id: user.id, logged_at: { gte: dayStart, lte: dayEnd } },
+    where: { user_id: user.id, logged_at: { gte: start, lt: end } },
     orderBy: { logged_at: "desc" },
   });
 

@@ -41,9 +41,7 @@ export const POST = withUser(async (request, user) => {
 
   const token = await getValidStravaToken(user)
 
-  // Cursor is based on the last successful sync (a real UTC timestamp), NOT on
-  // run_date — run_date stores Strava's `start_date_local` wall clock, which
-  // runs ahead of UTC and made later-in-the-day runs permanently unreachable.
+  // Cursor is based on the last successful sync, not on the newest run_date.
   // Never scan a window narrower than FIRST_SYNC_LOOKBACK_MS, so late/backdated
   // uploads stay reachable no matter how often the app auto-syncs.
   const lastSyncedAt = user.strava_last_synced_at

@@ -3,8 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getUserAICredentials } from "@/lib/auth";
 import { generateTrendsCoach } from "@/lib/ai";
 import { callAIProvider, withUser, optionalInt, parseJsonStringArray } from "@/lib/api-handler";
-
-const DAY_MS = 86400000;
+import { dayKey, daysAgoStart } from "@/lib/day";
 
 export const GET = withUser(async (request, user) => {
   const { provider, apiKey, model } = getUserAICredentials(user);
@@ -17,12 +16,11 @@ export const GET = withUser(async (request, user) => {
   });
   const period = daysParam === 30 ? 30 : 7;
 
-  // The `period` *complete* previous UTC days: [day-period 00:00, today 00:00).
+  // The `period` *complete* previous days: [day-period 00:00, today 00:00).
   // Today is excluded (still in progress); the exercise window matches the
   // food window exactly instead of running one day longer.
-  const todayStart = new Date();
-  todayStart.setUTCHours(0, 0, 0, 0);
-  const start = new Date(todayStart.getTime() - period * DAY_MS);
+  const todayStart = daysAgoStart(0);
+  const start = daysAgoStart(period);
 
   const [foodLogs, waterLogs, runLogs, workoutLogs] = await Promise.all([
     prisma.foodLog.findMany({ where: { user_id: user.id, logged_at: { gte: start, lt: todayStart } } }),
@@ -45,12 +43,9 @@ export const GET = withUser(async (request, user) => {
 
   const days: { date: string; calories: number; protein: number; carbs: number; fats: number; fiber: number; water: number; meals_logged: number }[] = [];
   for (let i = period; i >= 1; i--) {
-    const dayStart = new Date(todayStart.getTime() - i * DAY_MS);
-    const dayEnd = new Date(dayStart.getTime() + DAY_MS - 1);
-    const dateStr = dayStart.toISOString().split("T")[0];
-
-    const dayFood = foodLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
-    const dayWater = waterLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
+    const dateStr = dayKey(daysAgoStart(i));
+    const dayFood = foodLogs.filter(l => dayKey(l.logged_at) === dateStr);
+    const dayWater = waterLogs.filter(l => dayKey(l.logged_at) === dateStr);
 
     days.push({
       date: dateStr,

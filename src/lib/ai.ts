@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI, ThinkingLevel, type ThinkingConfig } from "@google/genai";
 import { getModelForProvider, type AIProvider } from "@/lib/models";
 import { ApiError } from "@/lib/api-handler";
+import { UTC_OFFSET_HOURS } from "@/lib/day";
 
 const VISION_PROMPT = `Estimate the nutritional content of the food shown.
 
@@ -348,7 +349,7 @@ function parseAnalysisResponse(raw: string): MealAnalysisResult {
 
 /** Meal-time label for a UTC hour, read on the Singapore clock (UTC+8). */
 export function sgtMealTimeLabel(utcHour: number): string {
-  const hour = (utcHour + 8) % 24;
+  const hour = (utcHour + UTC_OFFSET_HOURS) % 24;
   return hour < 11 ? 'morning (breakfast/brunch time)'
     : hour < 14 ? 'midday (lunch time)'
     : hour < 17 ? 'afternoon (snack time)'

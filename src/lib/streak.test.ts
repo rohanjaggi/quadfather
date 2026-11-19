@@ -25,3 +25,8 @@ test('a missing day breaks the longest streak', () => {
   assert.equal(longestStepStreak(rows, 8000), 3)
   assert.equal(longestStepStreak([r('2026-01-01', 9000), r('2026-01-03', 9000)], 8000), 1)
 })
+
+test('a streak that ended days ago is not current', () => {
+  assert.equal(currentStepStreak([r('2026-01-03', 9000), r('2026-01-02', 9000)], 8000, '2026-01-08'), 0)
+  assert.equal(currentStepStreak([r('2026-01-07', 9000), r('2026-01-06', 9000)], 8000, '2026-01-08'), 2)
+})

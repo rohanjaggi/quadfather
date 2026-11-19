@@ -1,3 +1,5 @@
+import { dayKey } from './day'
+
 const DAY_MS = 86_400_000
 
 const dayGap = (later: string, earlier: string) =>
@@ -20,22 +22,22 @@ export function longestStepStreak(rows: { date: string; steps: number }[], goal:
 }
 
 /**
- * Consecutive goal-hit days ending at the latest row. `rows` are one per
+ * Consecutive goal-hit days ending today or yesterday. `rows` are one per
  * logged day (`YYYY-MM-DD`); a gap of more than one calendar day ends the
  * streak, and today's still-incomplete row is ignored.
  */
 export function currentStepStreak(
   rows: { date: string; steps: number }[],
   goal: number,
-  today: string,
+  today: string = dayKey(),
 ): number {
   const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date))
   if (sorted[0]?.date === today && sorted[0].steps < goal) sorted.shift()
   let streak = 0
-  let prev: string | null = null
+  let prev = today
   for (const r of sorted) {
     if (r.steps < goal) break
-    if (prev && dayGap(prev, r.date) > 1) break
+    if (dayGap(prev, r.date) > 1) break
     streak++
     prev = r.date
   }

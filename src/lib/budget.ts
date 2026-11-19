@@ -1,6 +1,7 @@
 import type { FoodLog, RunLog, StepLog, User, WaterLog, WorkoutLog } from '@prisma/client'
 import { prisma } from './prisma'
 import { calculateStepAllowance } from './steps'
+import { dayKey, dayRange } from './day'
 
 /**
  * Single source of truth for "how many calories can I still eat today".
@@ -16,8 +17,7 @@ import { calculateStepAllowance } from './steps'
  *
  *   remaining = total_goal - calories eaten today
  *
- * A "day" is a UTC calendar day: [dayStart, dayEnd] where dayStart is
- * 00:00:00.000Z and dayEnd is 23:59:59.999Z.
+ * A "day" is the Singapore calendar day from `./day`: [day_start, day_end).
  */
 
 /**
@@ -138,11 +138,11 @@ export function computeDailyBudget(input: DailyBudgetInput): DailyBudget {
 }
 
 export interface DailyBudgetResult extends DailyBudget {
-  /** Start of the UTC day the budget covers (00:00:00.000Z). */
+  /** Start of the day the budget covers. */
   day_start: Date
-  /** End of the UTC day the budget covers (23:59:59.999Z). */
+  /** Start of the next day (exclusive end). */
   day_end: Date
-  /** `day_start` as `YYYY-MM-DD`. */
+  /** The day as `YYYY-MM-DD`. */
   date: string
   /** Total water logged that day, in litres (not part of the calorie budget). */
   water_liters: number
@@ -157,42 +157,33 @@ export interface DailyBudgetResult extends DailyBudget {
   }
 }
 
-/** Normalise any Date to the start of its UTC calendar day. */
-export function startOfUtcDay(date: Date = new Date()): Date {
-  const d = new Date(date)
-  d.setUTCHours(0, 0, 0, 0)
-  return d
-}
-
 /**
  * Fetch one day's logs and compute the canonical budget.
  *
- * @param user     the authenticated user (a full Prisma `User` works)
- * @param dayStart any Date within the wanted UTC day; defaults to today.
+ * @param user the authenticated user (a full Prisma `User` works)
+ * @param key  the `YYYY-MM-DD` day; defaults to today.
  */
 export async function getDailyBudget(
   user: BudgetUser,
-  dayStart?: Date,
+  key: string = dayKey(),
 ): Promise<DailyBudgetResult> {
-  const start = startOfUtcDay(dayStart)
-  const end = new Date(start)
-  end.setUTCHours(23, 59, 59, 999)
+  const { start, end } = dayRange(key)
 
   const [foodLogs, waterLogs, runLogs, workoutLogs, stepLog] = await Promise.all([
     prisma.foodLog.findMany({
-      where: { user_id: user.id, logged_at: { gte: start, lte: end } },
+      where: { user_id: user.id, logged_at: { gte: start, lt: end } },
     }),
     prisma.waterLog.findMany({
-      where: { user_id: user.id, logged_at: { gte: start, lte: end } },
+      where: { user_id: user.id, logged_at: { gte: start, lt: end } },
     }),
     prisma.runLog.findMany({
-      where: { user_id: user.id, run_date: { gte: start, lte: end } },
+      where: { user_id: user.id, run_date: { gte: start, lt: end } },
     }),
     prisma.workoutLog.findMany({
-      where: { user_id: user.id, workout_date: { gte: start, lte: end } },
+      where: { user_id: user.id, workout_date: { gte: start, lt: end } },
     }),
     prisma.stepLog.findFirst({
-      where: { user_id: user.id, date: start },
+      where: { user_id: user.id, date: new Date(`${key}T00:00:00Z`) },
       orderBy: { logged_at: 'desc' },
     }),
   ])
@@ -209,7 +200,7 @@ export async function getDailyBudget(
     ...budget,
     day_start: start,
     day_end: end,
-    date: start.toISOString().split('T')[0],
+    date: key,
     water_liters: waterLogs.reduce((s, l) => s + l.amount_liters, 0),
     logs: {
       food: foodLogs,

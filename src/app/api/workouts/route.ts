@@ -13,6 +13,7 @@ import {
   unprocessable,
   parseDateParam,
 } from '@/lib/api-handler'
+import { dayKey, dayRange, daysAgoStart } from '@/lib/day'
 
 interface IncomingSet {
   reps: number
@@ -87,24 +88,11 @@ export const GET = withUser(async (request, user) => {
   const where: Prisma.WorkoutLogWhereInput = { user_id: user.id }
 
   if (dateParam) {
-    // Validate before building the range — `?date=abc` used to reach Prisma as
-    // an Invalid Date and 500. The range is built from a bare `YYYY-MM-DD`, so
-    // a full ISO timestamp is rejected too rather than silently becoming NaN.
-    parseDateParam(dateParam, 'date')
-    const start = new Date(dateParam + 'T00:00:00Z')
-    const end = new Date(dateParam + 'T23:59:59.999Z')
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      throw unprocessable('date must be a valid YYYY-MM-DD date')
-    }
-    where.workout_date = { gte: start, lte: end }
+    const { start, end } = dayRange(dayKey(parseDateParam(dateParam, 'date')))
+    where.workout_date = { gte: start, lt: end }
   } else {
-    // `?days=7` is seven calendar days *including today* — the convention
-    // /steps and /runs/history already use. Subtracting `days` whole days from
-    // today's UTC midnight returned `days + 1` days of workouts.
-    const startDate = new Date()
-    startDate.setUTCHours(0, 0, 0, 0)
-    startDate.setUTCDate(startDate.getUTCDate() - (days - 1))
-    where.workout_date = { gte: startDate }
+    // `?days=7` is seven calendar days *including today*, like /steps and /runs/history.
+    where.workout_date = { gte: daysAgoStart(days - 1) }
   }
 
   const workouts = await prisma.workoutLog.findMany({

@@ -6,8 +6,7 @@ import { EXERCISE_MUSCLES } from '@/lib/exercise-muscles'
 import { muscleToZones, ALL_ZONES } from '@/lib/muscle-zones'
 import { setsVolume } from '@/lib/volume'
 import { callAIProvider, withUser } from '@/lib/api-handler'
-
-const DAY_MS = 86400000
+import { daysAgoStart } from '@/lib/day'
 
 export const GET = withUser(async (request, user) => {
   const { provider, apiKey, model } = getUserAICredentials(user)
@@ -15,15 +14,14 @@ export const GET = withUser(async (request, user) => {
   const daysParam = request.nextUrl.searchParams.get('days')
   const period = daysParam === '30' ? 30 : 7
 
-  // The `period` *complete* previous UTC days — the same window the crons and
+  // The `period` *complete* previous days — the same window the crons and
   // /analytics/insights use. The old current window was open-ended (`gte` only),
   // so it covered `period + 1` days and was compared against a `period`-day
   // previous window under a prompt that says "Period: 7 days"; the volume
   // delta it produced was structurally inflated.
-  const todayStart = new Date()
-  todayStart.setUTCHours(0, 0, 0, 0)
-  const startDate = new Date(todayStart.getTime() - period * DAY_MS)
-  const prevStartDate = new Date(startDate.getTime() - period * DAY_MS)
+  const todayStart = daysAgoStart(0)
+  const startDate = daysAgoStart(period)
+  const prevStartDate = daysAgoStart(2 * period)
 
   const [workouts, prevWorkouts, prs] = await Promise.all([
     prisma.workoutLog.findMany({

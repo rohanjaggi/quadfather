@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { getRunHistory } from '@/lib/api'
 import { formatPace } from '@/lib/format'
+import { addDays, dayKey } from '@/lib/day'
 import type { RunLog } from '@/types/running'
 
 function formatDuration(seconds: number): string {
@@ -13,38 +14,31 @@ function formatDuration(seconds: number): string {
   return `${m}min`
 }
 
-/** Monday-start week containing `date`. `getDay()` is Sunday-based, so `-getDay()+1` lands on *next* Monday on Sundays. */
-function startOfWeek(date: Date): Date {
-  const start = new Date(date)
-  start.setHours(0, 0, 0, 0)
-  start.setDate(start.getDate() - ((start.getDay() + 6) % 7))
-  return start
+/** Formats a `YYYY-MM-DD` key as that calendar date, whatever the device timezone. */
+function formatKey(key: string, options: Intl.DateTimeFormatOptions): string {
+  return new Date(`${key}T00:00:00Z`).toLocaleDateString('en-GB', { ...options, timeZone: 'UTC' })
+}
+
+/** Monday of the week containing day `key`. `getUTCDay()` is Sunday-based, hence `+ 6`. */
+function weekStartKey(key: string): string {
+  return addDays(key, -((new Date(`${key}T00:00:00Z`).getUTCDay() + 6) % 7))
 }
 
 function getWeekLabel(dateStr: string): string {
-  const d = new Date(dateStr)
-  const startOfThisWeek = startOfWeek(new Date())
+  const start = weekStartKey(dayKey(new Date(dateStr)))
+  const thisWeek = weekStartKey(dayKey())
 
-  const startOfLastWeek = new Date(startOfThisWeek)
-  startOfLastWeek.setDate(startOfLastWeek.getDate() - 7)
+  if (start >= thisWeek) return 'This Week'
+  if (start >= addDays(thisWeek, -7)) return 'Last Week'
 
-  if (d >= startOfThisWeek) return 'This Week'
-  if (d >= startOfLastWeek) return 'Last Week'
-
-  return startOfWeek(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' week'
+  return formatKey(start, { day: 'numeric', month: 'short' }) + ' week'
 }
 
 function formatRunDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const run = new Date(d)
-  run.setHours(0, 0, 0, 0)
-
-  const diff = Math.round((today.getTime() - run.getTime()) / 86400000)
-  if (diff === 0) return 'Today'
-  if (diff === 1) return 'Yesterday'
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  const key = dayKey(new Date(dateStr))
+  if (key === dayKey()) return 'Today'
+  if (key === addDays(dayKey(), -1)) return 'Yesterday'
+  return formatKey(key, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 interface WeekGroup {

@@ -10,13 +10,21 @@ test('calculateEstimated1RM (Epley, 1 decimal)', () => {
 
 test('findBestSets: heaviest weight wins, ties go to more reps', () => {
   const r = findBestSets([
-    { reps: 8, weight_kg: 80 },
-    { reps: 10, weight_kg: 77.5 },
     { reps: 5, weight_kg: 80 },
+    { reps: 10, weight_kg: 77.5 },
+    { reps: 8, weight_kg: 80 },
     { reps: 6, weight_kg: 80 },
   ])
   assert.equal(r.bestWeight, 80)
   assert.equal(r.bestWeightReps, 8)
+})
+
+test('findBestSets: equal e1RM keeps the first set', () => {
+  const a = { reps: 10, weight_kg: 90 }
+  const b = { reps: 6, weight_kg: 100 }
+  assert.equal(calculateEstimated1RM(90, 10), calculateEstimated1RM(100, 6))
+  assert.equal(findBestSets([a, b]).e1rmSet, a)
+  assert.equal(findBestSets([b, a]).e1rmSet, b)
 })
 
 test('findBestSets: best e1RM can differ from heaviest set', () => {

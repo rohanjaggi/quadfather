@@ -52,6 +52,12 @@ export async function forEachCronUser(
   const authFailure = checkCronAuth(request)
   if (authFailure) return authFailure
 
+  // Fail before any AI spend: without a token every send would throw only after the user's AI call was paid for.
+  if (!process.env.BOTFATHER_TOKEN) {
+    console.error('BOTFATHER_TOKEN is not set — refusing to run the cron job')
+    return NextResponse.json({ detail: 'Server misconfigured' }, { status: 500 })
+  }
+
   const users = await prisma.user.findMany({
     where: { ai_features_enabled: true },
   })

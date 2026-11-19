@@ -510,14 +510,14 @@ function registerHandlers(bot: Bot) {
   });
 
   bot.command("key", async (ctx) => {
-    const user = await prisma.user.findUnique({
-      where: { telegram_id: ctx.from!.id },
-    });
-    const ai = user ? findUserAICredentials(user) : null;
+    const user = await requireUser(ctx);
+    if (!user) return;
+    const ai = findUserAICredentials(user);
     // The lookup falls back to this deployment's shared key, so "you have a
-    // <provider> key set" was a lie for anyone who had never saved one.
+    // <provider> key set" was a lie for anyone who had never saved one. Same
+    // condition as `findUserAICredentials` uses for the user's own key.
     let status = "";
-    if (ai && user?.ai_api_key) {
+    if (ai && user.ai_provider && user.ai_api_key) {
       status = `\u{2705} You're using <b>your own ${escapeHtml(ai.provider)}</b> key.\n\n`;
     } else if (ai) {
       status =

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { GrammyError } from "grammy";
 import { getBot, setupBotCommands } from "@/lib/telegram-bot";
 import {
   ApiError,
@@ -35,9 +36,14 @@ export const POST = withErrorHandling(async (request) => {
 
   await setupBotCommands();
 
-  // grammY throws on Telegram's `ok: false`, so a rejected webhook is an error
-  // response here rather than a 200 carrying the failure.
-  const result = await getBot().api.setWebhook(`${WEBHOOK_URL}/api/webhook/${WEBHOOK_SECRET}`);
+  // grammY throws on Telegram's `ok: false`; pass Telegram's reason on to the admin.
+  let result: true;
+  try {
+    result = await getBot().api.setWebhook(`${WEBHOOK_URL}/api/webhook/${WEBHOOK_SECRET}`);
+  } catch (err) {
+    if (err instanceof GrammyError) throw new ApiError(502, err.description);
+    throw err;
+  }
 
   return NextResponse.json({
     commands: "registered",

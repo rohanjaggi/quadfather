@@ -12,14 +12,7 @@ import { dayRange } from "./day";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
 
-/**
- * Base URL for the Mini App the inline buttons open. There is no sensible
- * default: the old `https://your-app.vercel.app` placeholder produced buttons
- * that opened a stranger's domain (or nothing) with no error anywhere. When it
- * is unset we complain once at module load and simply omit the buttons — the
- * bot's in-chat commands (/today, /log_meal, /log_water, /coach, /insights)
- * keep working.
- */
+/** Mini App base URL for inline buttons. Unset: log once and omit the buttons; in-chat commands still work. */
 const MINI_APP_URL = process.env.MINI_APP_URL ?? "";
 if (!MINI_APP_URL) {
   console.error(
@@ -34,10 +27,7 @@ export function getBot(): Bot {
   _bot = new Bot(BOT_TOKEN);
   _bot.catch(async (err) => {
     console.error("Bot error:", err);
-    // Reached via `bot.handleUpdates` when long-polling, and via the explicit
-    // `bot.errorHandler(err)` call the webhook route makes after
-    // `handleUpdate` rejects — that is what keeps this reply user-visible even
-    // though the webhook has already acknowledged Telegram.
+    // Reached via `bot.handleUpdates` (long-polling) and the webhook route's explicit `bot.errorHandler(err)`.
     try {
       await err.ctx.reply(
         "Something went wrong handling that. Please try again in a moment.",
@@ -67,11 +57,7 @@ function progressBar(current: number, goal: number, width = 10): string {
   return "\u{2588}".repeat(filled) + "\u{2591}".repeat(width - filled);
 }
 
-/**
- * Today's headline numbers, derived from the canonical daily budget so the bot
- * always agrees with the dashboard (the calorie goal includes the dampened
- * run/workout credit and the step allowance).
- */
+/** Today's headline numbers from the canonical daily budget, so the bot agrees with the dashboard. */
 async function getSummary(telegramId: number) {
   const user = await prisma.user.findUnique({
     where: { telegram_id: telegramId },
@@ -97,11 +83,7 @@ async function getSummary(telegramId: number) {
   };
 }
 
-/**
- * `FoodLog.food_name` is `VarChar(100)` and `source` is `VarChar(20)`; anything
- * past `MAX_MACRO` in a single meal is a model hallucination, not food.
- * Mirrors the bounds POST /api/foods enforces.
- */
+/** `FoodLog.food_name` is VarChar(100), `source` VarChar(20); mirrors the bounds POST /api/foods enforces. */
 const MAX_NAME = 100;
 const MAX_SOURCE = 20;
 const MAX_MACRO = 100_000;
@@ -111,15 +93,7 @@ function clampMacro(value: number): number {
   return Math.min(Math.max(value, 0), MAX_MACRO);
 }
 
-/**
- * Row payload for a bot-side `FoodLog.create`.
- *
- * The bot writes to Prisma directly instead of going through POST /api/foods, so
- * none of that route's validation applied: a 120-character AI food name threw a
- * raw Prisma "value too long" *after* the analysis had been paid for, and a
- * hallucinated 9-digit calorie count went straight into the daily totals. Build
- * the row here so both call sites (photo and /log_meal) get the same bounds.
- */
+/** Row payload for a bot-side `FoodLog.create`; the bot bypasses POST /api/foods, so bounds are applied here. */
 function foodLogData(
   userId: number,
   result: MealAnalysisResult,
@@ -145,12 +119,7 @@ const CONFIDENCE_EMOJI: Record<string, string> = {
   low: "\u{1F534}",
 };
 
-/**
- * Build both renderings of a "meal logged" confirmation: the HTML one we
- * normally send, and a plain-text fallback used when Telegram rejects the
- * HTML message. The food log is already written by the time we get here, so
- * the user must never be told the analysis failed.
- */
+/** Both renderings of a "meal logged" confirmation: HTML, and plain text for when Telegram rejects the HTML. */
 function mealConfirmation(result: MealAnalysisResult): {
   html: string;
   plain: string;
@@ -178,13 +147,8 @@ function mealConfirmation(result: MealAnalysisResult): {
 }
 
 /**
- * Telegram rejects any message body over 4096 characters. Stay clear of the
- * limit — an LLM reply that overshoots must degrade to a truncated message, not
- * to a stuck "Thinking…" placeholder.
- *
- * Exported because the cron digests send AI prose straight to `sendMessage` with
- * no placeholder to fall back on: over the limit, Telegram 400s and the user
- * simply never receives that morning's digest.
+ * Telegram rejects message bodies over 4096 characters. Exported because the cron
+ * digests send AI prose with no placeholder to fall back on.
  */
 export const TELEGRAM_TEXT_LIMIT = 4000;
 
@@ -192,14 +156,7 @@ export function clamp(text: string, limit: number = TELEGRAM_TEXT_LIMIT): string
   return text.length > limit ? `${text.slice(0, limit - 1)}\u{2026}` : text;
 }
 
-/**
- * `clamp` for a string whose body has already been HTML-escaped.
- *
- * A blind slice can land inside an escape sequence ("&am"), and Telegram rejects
- * that with the same 400 the clamp exists to prevent — so drop any dangling
- * partial entity at the cut. Only entities can be split here: the sole raw tags
- * are in the caller's own header, ahead of the escaped body.
- */
+/** `clamp` for an already-escaped body: drops a dangling partial entity ("&am") at the cut, which Telegram 400s on. */
 export function clampHtml(text: string, limit: number = TELEGRAM_TEXT_LIMIT): string {
   if (text.length <= limit) return text;
   const head = text.slice(0, limit - 1).replace(/&[a-zA-Z#0-9]{0,9}$/, "");
@@ -207,11 +164,9 @@ export function clampHtml(text: string, limit: number = TELEGRAM_TEXT_LIMIT): st
 }
 
 /**
- * Replace a "thinking…" placeholder with real content, in three stages:
- * HTML edit → the same text with no `parse_mode` → a fresh plain reply (and
- * then remove the placeholder so it is not left hanging). Every failure is
- * swallowed: callers use this only once the underlying work has succeeded, so
- * a Telegram parse/length error must never look like the work failed.
+ * Replace a "thinking…" placeholder: HTML edit, then plain edit, then a fresh reply
+ * (deleting the placeholder). Failures are swallowed so a Telegram error never
+ * looks like the work failed.
  */
 async function deliverText(
   ctx: Context,
@@ -246,8 +201,7 @@ async function deliverText(
     return;
   }
 
-  // The content landed in a new message, so drop the placeholder. Deleting
-  // first would risk leaving the user with nothing if the reply also failed.
+  // Delete the placeholder only after the reply landed, so a failure can't leave the user with nothing.
   try {
     await ctx.api.deleteMessage(chatId, messageId);
   } catch (err) {
@@ -393,8 +347,7 @@ function registerHandlers(bot: Bot) {
       text =
         `\u{1F4A7} <b>Water today:</b> ${wat.total}L / ${wat.goal}L  (${watPct}%)\n` +
         `<code>${progressBar(wat.total, wat.goal)}</code>\n\n` +
-        // No MINI_APP_URL means `appButton` returns undefined and there is no
-        // button to tap — point at the in-chat command instead of at nothing.
+        // No MINI_APP_URL means no button; point at the in-chat command.
         (MINI_APP_URL
           ? "Tap below to log your next bottle."
           : "Use /log_water to log your next bottle.");
@@ -422,9 +375,7 @@ function registerHandlers(bot: Bot) {
       },
     });
 
-    // The bottle is saved. Everything below is presentation, so a failure in the
-    // running-total query or in Telegram itself must not reach `bot.catch` — its
-    // generic "please try again" made users re-tap and log the bottle twice.
+    // Everything below is presentation; a failure must not reach `bot.catch`, whose "try again" made users double-log.
     try {
       const todayLogs = await prisma.waterLog.findMany({
         where: { user_id: user.id, logged_at: { gte: dayRange().start } },
@@ -484,7 +435,7 @@ function registerHandlers(bot: Bot) {
       return;
     }
 
-    // The meal is logged — from here on a failure must never say "try again".
+    // The meal is logged; a failure from here must never say "try again".
     const { html, plain } = mealConfirmation(result);
     await deliverText(ctx, thinking.message_id, html, plain);
   });
@@ -513,9 +464,7 @@ function registerHandlers(bot: Bot) {
     const user = await requireUser(ctx);
     if (!user) return;
     const ai = findUserAICredentials(user);
-    // The lookup falls back to this deployment's shared key, so "you have a
-    // <provider> key set" was a lie for anyone who had never saved one. Same
-    // condition as `findUserAICredentials` uses for the user's own key.
+    // The lookup falls back to the shared key, so also check the user's own.
     let status = "";
     if (ai && user.ai_provider && user.ai_api_key) {
       status = `\u{2705} You're using <b>your own ${escapeHtml(ai.provider)}</b> key.\n\n`;
@@ -544,8 +493,7 @@ function registerHandlers(bot: Bot) {
     const thinking = await ctx.reply("\u{1F9E0} Thinking...");
 
     try {
-      // Canonical budget: runs + workouts (dampened) + step allowance, exactly
-      // like the dashboard and the daily-coach cron.
+      // Canonical budget, as on the dashboard and the daily-coach cron.
       const budget = await getDailyBudget(user);
 
       if (budget.logs.food.length === 0) {
@@ -553,8 +501,7 @@ function registerHandlers(bot: Bot) {
         return;
       }
 
-      // No streak here: it would need a 30-day step history fetch for a single
-      // conversational aside.
+      // No streak: it would need a 30-day step history fetch.
       const message = await buildDailyCoach(user, ai, budget, 0);
 
       await deliverText(
@@ -618,9 +565,7 @@ function registerHandlers(bot: Bot) {
     }
 
     try {
-      // Mirrors /api/users/me/key: the key is encrypted at rest, and the model
-      // is cleared so a stale model from the previous provider can't 404 every
-      // call (e.g. openai/gpt-5.4-mini left behind after switching to gemini).
+      // Key is encrypted at rest; the model is cleared so a stale one can't 404 every call.
       const encrypted = encrypt(apiKey);
       const { count } = await prisma.user.updateMany({
         where: { telegram_id: ctx.from!.id },
@@ -628,8 +573,7 @@ function registerHandlers(bot: Bot) {
       });
 
       if (count === 0) {
-        // Only the mini-app (POST /api/users) creates the account row — /start
-        // does not — so telling the user to /start would loop them forever.
+        // Only the mini-app creates the account row, so telling users to /start would loop.
         await ctx.reply(
           MINI_APP_URL
             ? "I couldn't find your account \u{2014} open the app once (button below), then send your key again."
@@ -695,7 +639,7 @@ function registerHandlers(bot: Bot) {
       return;
     }
 
-    // The meal is logged — from here on a failure must never say "try again".
+    // The meal is logged; a failure from here must never say "try again".
     const { html, plain } = mealConfirmation(result);
     await deliverText(ctx, thinking.message_id, html, plain);
   });

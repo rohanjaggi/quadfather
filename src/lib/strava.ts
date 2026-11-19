@@ -9,13 +9,9 @@ const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET ?? ''
 const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI ?? ''
 
 /**
- * Sign the OAuth `state` handed to Strava. Used by `/api/strava/connect` to
- * mint it and by `/api/strava/callback` to re-derive and compare it.
- *
- * There is deliberately no `verifyStravaState` here: the only verifier lives in
- * the callback route, which compares in constant time and refuses to run at all
- * when `ENCRYPTION_KEY` is unset. The variant that used to sit here did neither,
- * so anyone could sign a state for any Telegram id on a deployment with no key.
+ * Sign the OAuth `state` handed to Strava (minted by `/api/strava/connect`). There is no
+ * verifier here on purpose: the only one lives in the callback route, which compares in
+ * constant time and refuses an unset `ENCRYPTION_KEY`.
  */
 export function signStravaState(telegramId: string): string {
   const key = process.env.ENCRYPTION_KEY ?? ''
@@ -23,12 +19,7 @@ export function signStravaState(telegramId: string): string {
   return `${telegramId}.${sig}`
 }
 
-/**
- * Strava returns the granted scopes as a comma-separated list on the OAuth
- * callback (e.g. `read,activity:read_all`). Reading activities requires either
- * `activity:read` or `activity:read_all`; anything less means the athlete
- * activity endpoints will 401.
- */
+/** Strava returns granted scopes comma-separated (`read,activity:read_all`); activity endpoints 401 without `activity:read` or `activity:read_all`. */
 export function hasActivityReadScope(scope: string | null | undefined): boolean {
   if (!scope) return false
   return scope
@@ -182,8 +173,7 @@ export function stravaActivityToRunData(activity: StravaActivity, weightKg: numb
     ? (activity.moving_time / 60) / (activity.distance / 1000)
     : null
 
-  // Explicit `null` rather than `undefined`: these rows are inserted with
-  // `createMany`, which is happiest when every row carries the same key set.
+  // Explicit `null` so every `createMany` row carries the same key set.
   return {
     strava_activity_id: BigInt(activity.id),
     distance_meters: activity.distance,

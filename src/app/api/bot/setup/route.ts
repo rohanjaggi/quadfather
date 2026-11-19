@@ -12,13 +12,9 @@ const WEBHOOK_URL = process.env.WEBHOOK_URL ?? "";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? "";
 
 /**
- * One-shot bot bootstrap: registers the command list and points Telegram's
- * webhook at this deployment. Authenticated with the bot token itself.
- *
- * Fails closed on misconfiguration. Previously an unset `BOTFATHER_TOKEN` made
- * the guard compare against the literal `"Bearer "`, so anyone could re-point
- * the webhook; an unset `WEBHOOK_URL`/`WEBHOOK_SECRET` would have registered a
- * garbage URL that no route matches, silently killing the bot.
+ * One-shot bot bootstrap: registers commands and points Telegram's webhook here,
+ * authenticated with the bot token. Fails closed when `BOTFATHER_TOKEN`,
+ * `WEBHOOK_URL` or `WEBHOOK_SECRET` is unset, so no one can re-point the webhook.
  */
 export const POST = withErrorHandling(async (request) => {
   if (!BOT_TOKEN || !WEBHOOK_URL || !WEBHOOK_SECRET) {

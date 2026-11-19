@@ -35,8 +35,7 @@ export const POST = withUser(async (request, user) => {
   let bottles: number | null;
 
   if (body.bottles != null) {
-    // `"2"` used to become `"2" * size` → NaN and a 500; a negative or 0 wrote
-    // a row that quietly reduced (or did nothing to) the day's total.
+    // Reject `"2"` (NaN) and negative/0 amounts, which would corrupt the day's total.
     const count = requireNumber(body.bottles, "bottles", { max: MAX_BOTTLES });
     if (count <= 0) throw unprocessable("bottles must be greater than 0");
     if (!(bottleSize > 0)) {

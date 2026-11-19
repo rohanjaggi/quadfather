@@ -80,10 +80,7 @@ export interface DailyBudget {
   food: ReturnType<typeof sumMacros> & { meals_logged: number }
 }
 
-/**
- * Pure budget maths. Takes already-fetched logs so it can be unit-tested and
- * reused by callers that fetched the rows for other reasons.
- */
+/** Pure budget maths over already-fetched logs. */
 export function computeDailyBudget(input: DailyBudgetInput): DailyBudget {
   const { user, foodLogs, runLogs, workoutLogs, steps } = input
 
@@ -130,12 +127,7 @@ export interface DailyBudgetResult extends DailyBudget {
   }
 }
 
-/**
- * Fetch one day's logs and compute the canonical budget.
- *
- * @param user the authenticated user (a full Prisma `User` works)
- * @param key  the `YYYY-MM-DD` day; defaults to today.
- */
+/** Fetch one day's logs (`key` is `YYYY-MM-DD`, default today) and compute the canonical budget. */
 export async function getDailyBudget(
   user: BudgetUser,
   key: string = dayKey(),

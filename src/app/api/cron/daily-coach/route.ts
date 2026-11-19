@@ -8,16 +8,8 @@ import { clampHtml, sendHtml, TELEGRAM_TEXT_LIMIT } from "@/lib/telegram-bot";
 import { forEachCronUser } from "../auth";
 
 /**
- * Number of consecutive calendar days *ending yesterday* on which the user hit
- * their step goal.
- *
- * Yesterday is the last day that can count: today is still in progress, so a
- * streak that included it would drop back to 0 every morning (the old code
- * started at today, saw a partial count below goal, and broke out immediately —
- * the streak was therefore always 0 and the "don't break your streak" line was
- * unreachable). Days are the `YYYY-MM-DD` keys `StepLog.date` is stored under,
- * and a missing day breaks the streak — the old loop walked the sorted list and
- * happily counted non-consecutive dates.
+ * Consecutive days ending yesterday on which the user hit their step goal: today is still
+ * in progress, and a missing day breaks the streak. Days are the `StepLog.date` keys.
  */
 function stepStreakEndingYesterday(
   logs: { date: Date; steps: number }[],
@@ -33,8 +25,7 @@ function stepStreakEndingYesterday(
 
   const today = dayKey();
   let streak = 0;
-  // Bounded by the number of distinct days we fetched — the streak can never
-  // be longer than that, and the loop always terminates.
+  // Bounded by the number of distinct days fetched.
   for (let back = 1; back <= byDay.size; back++) {
     const steps = byDay.get(addDays(today, -back));
     if (steps === undefined || steps < goal) break;
@@ -69,19 +60,16 @@ export async function GET(request: NextRequest) {
         recovery: "You've been training hard — consider a rest day for recovery.",
         nutrition_gap: "Big burn today but intake is low — prioritise protein tonight.",
         consistency: "Great consistency this week — keep the momentum going!",
-        // A "streak" of 1 isn't a streak worth protecting, so only mention it
-        // from 2 consecutive goal-hitting days up.
+        // A streak of 1 isn't worth protecting; mention from 2 days up.
         steps: `You're at ${todayStepCount.toLocaleString()} steps — ${Math.max(0, user.daily_step_goal - todayStepCount).toLocaleString()} more to hit your goal.${currentStreak >= 2 ? ` Don't break your ${currentStreak}-day streak!` : ''}`,
       };
       // Escaped once, here; the result is interpolated raw below.
       nudgeText = `\n\n\u{1F4A1} ${escapeHtml(nudgeLabels[nudgeTopic] ?? "")}`;
     }
 
-    // Telegram 400s on anything over 4096 characters and there is no
-    // placeholder to fall back to here, so a chatty model meant the user got
-    // nothing at all. The nudge is budgeted for separately rather than being
-    // truncated away: `recordNudge` below burns the 48 h cooldown, so a nudge
-    // clipped off the end would be marked as delivered without being seen.
+    // Telegram 400s past 4096 characters with no placeholder to fall back on. The nudge is
+    // budgeted separately because `recordNudge` burns the 48 h cooldown, so a clipped nudge
+    // would count as delivered.
     await sendHtml(
       user.telegram_id,
       clampHtml(
@@ -90,10 +78,7 @@ export async function GET(request: NextRequest) {
       ) + nudgeText,
     );
 
-    // Only *after* the message actually reached Telegram. Recording the nudge
-    // first burned the 48 h per-topic cooldown on sends that failed (user
-    // blocked the bot, HTML parse error, rate limit), so the nudge was
-    // silently skipped for two days having never been seen.
+    // Only after the message reached Telegram: recording first burned the 48 h cooldown on failed sends.
     if (nudgeTopic) {
       try {
         await recordNudge(user.id, nudgeTopic);

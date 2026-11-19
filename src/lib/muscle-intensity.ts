@@ -1,10 +1,9 @@
 import { muscleToZones, type MuscleZone } from './muscle-zones'
 
 /**
- * `exercise-muscles.ts` is ~100 KB of static data. It is deliberately NOT
- * imported statically here: every client page that shows a muscle map would
- * otherwise ship it in its first-load bundle. It is pulled in on demand and
- * memoised for the rest of the session.
+ * The exercise->muscle seed JSON that `exercise-muscles.ts` wraps is large, so it is
+ * deliberately NOT imported statically: every client page with a muscle map would ship it
+ * in its first-load bundle. It is loaded on demand and memoised.
  */
 type ExerciseMuscleMap = Record<string, { primary: string[]; secondary: string[] }>
 
@@ -12,9 +11,7 @@ let muscleMapPromise: Promise<ExerciseMuscleMap> | null = null
 
 export function loadExerciseMuscles(): Promise<ExerciseMuscleMap> {
   if (!muscleMapPromise) {
-    // A rejected promise must not be memoised: a single flaky chunk request
-    // would otherwise leave every muscle map on the page permanently empty for
-    // the rest of the session. Clear the cache so the next caller retries.
+    // Don't memoise a rejected promise: one flaky chunk request would leave every muscle map empty for the session.
     muscleMapPromise = import('./exercise-muscles')
       .then(m => m.EXERCISE_MUSCLES)
       .catch(err => {
@@ -70,10 +67,7 @@ function intensitiesFrom(
   return normalized as Record<MuscleZone, number>
 }
 
-/**
- * Per-zone intensity in 0..1, normalised against the hardest-hit zone.
- * Async because the exercise→muscle table is code-split (see above).
- */
+/** Per-zone intensity in 0..1, normalised against the hardest-hit zone. Async because the table is code-split. */
 export async function calculateMuscleIntensities(
   exercises: ExerciseInput[],
 ): Promise<Record<MuscleZone, number>> {

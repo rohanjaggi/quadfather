@@ -69,9 +69,7 @@ export async function determineNudgeTopic(
   const sevenDaysAgo = new Date(now)
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  // Fetch the full 7-day workout window — the consistency rule below ("3+ this
-  // week") needs it. Narrower windows are derived in JS so no rule silently
-  // inherits another's cut-off.
+  // Fetch the full 7-day window (the "3+ this week" rule needs it); narrower ones are derived in JS.
   const weekWorkouts = await prisma.workoutLog.findMany({ where: { user_id: userId, workout_date: { gte: sevenDaysAgo } } })
   const recentWorkouts = weekWorkouts.filter(w => w.workout_date >= fiveDaysAgo)
   const stepLogs = recentSteps.filter(l => l.date >= sevenDaysAgo)
@@ -134,9 +132,7 @@ export function buildDailyCoach(
     meals: budget.logs.food.map(l => l.food_name).filter((n): n is string => !!n),
     waterConsumed: budget.water_liters,
     waterGoal: user.daily_water_goal,
-    // Raw burn — what the coach talks about ("you burned ~X today"). The
-    // dampened half of it is already inside `total_goal`, and the prompt says
-    // so, so the model must not add it to the goal a second time.
+    // Raw burn is what the coach talks about; the dampened half is already in `total_goal`, so don't add it twice.
     exerciseCalories: budget.runs_raw + budget.workouts_raw,
     dietaryRestrictions: parseJsonStringArray(user.dietary_restrictions),
     steps: {

@@ -11,14 +11,9 @@ const SKIP_TELEGRAM_AUTH =
 const DEV_USER_ID = parseInt(process.env.DEV_USER_ID ?? "12345678", 10);
 
 /**
- * How long a signed initData payload stays usable, in seconds.
- *
- * initData is a bearer credential: the signature proves Telegram issued it but
- * says nothing about *when*, so without this an intercepted header would
- * authenticate that user forever. The window has to be generous because the
- * mini-app SDK does not refresh `WebApp.initData` while the app stays open —
- * a short TTL would log out anyone who leaves the app backgrounded. 24h is
- * Telegram's own suggested bound; do not shorten it.
+ * How long signed initData stays usable, in seconds. It is a bearer credential and the
+ * signature says nothing about age. Generous because the SDK doesn't refresh `WebApp.initData`
+ * while the app stays open; 24h is Telegram's own suggested bound, do not shorten it.
  */
 const MAX_AUTH_AGE_SECONDS = 86_400;
 
@@ -35,8 +30,6 @@ export function verifyTelegramAuth(initData: string): TelegramUser {
 
   // Fail closed: with an empty bot token the HMAC secret is a publicly known
   // constant, so anyone could sign an initData payload for any user id.
-  // The message deliberately avoids the words "initData"/"hash" so route
-  // handlers map it to a 500 (server misconfiguration) rather than a 401.
   if (!BOT_TOKEN) {
     throw new Error("Server misconfigured: BOTFATHER_TOKEN is not set");
   }
@@ -67,9 +60,7 @@ export function verifyTelegramAuth(initData: string): TelegramUser {
     throw new ApiError(401, "Invalid initData signature");
   }
 
-  // Only meaningful once the signature checks out: `auth_date` is covered by
-  // the HMAC, so before that point it is attacker-controlled. `Number(null)`
-  // is NaN, so a payload without the field is rejected too.
+  // Only meaningful after the signature checks: `auth_date` is HMAC-covered. `Number(null)` is NaN, so a missing field is rejected.
   const authDate = Number(params.get("auth_date"));
   if (
     !Number.isFinite(authDate) ||

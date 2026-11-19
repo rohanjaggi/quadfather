@@ -5,8 +5,7 @@ import { sumMacros } from "@/lib/budget";
 import { addDays, dayKey, daysAgoStart } from "@/lib/day";
 
 export const GET = withUser(async (request, user) => {
-  // `?days=abc` used to be NaN, which passed the `< 1 || > 90` check and then
-  // built a window from Invalid Dates.
+  // `?days=abc` is NaN, which passes the range check and builds Invalid Date windows.
   const days =
     optionalInt(request.nextUrl.searchParams.get("days"), "days", { min: 1, max: 90 }) ?? 7;
 
@@ -14,8 +13,7 @@ export const GET = withUser(async (request, user) => {
   const today = dayKey();
   const keys = Array.from({ length: days }, (_, i) => addDays(today, i - (days - 1)));
 
-  // Two queries for the whole range instead of two per day: `?days=90` used to
-  // issue 180 round-trips to render one chart.
+  // Two queries for the whole range, not two per day.
   const [foodLogs, waterLogs] = await Promise.all([
     prisma.foodLog.findMany({
       where: { user_id: user.id, logged_at: { gte: start } },

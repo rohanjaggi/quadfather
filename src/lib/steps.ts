@@ -23,19 +23,10 @@ const REFERENCE_WEIGHT_KG = 70
 const KCAL_PER_STEP_AT_REFERENCE_WEIGHT = 0.04
 
 /**
- * Extra calorie allowance earned by walking more than the baseline implied by
- * the user's declared activity level (that baseline is already priced into the
- * TDEE activity multiplier, so only the surplus steps earn extra food).
- *
- * Derivation:
- *   Walking costs roughly 0.04 kcal per step for a ~70 kg adult
- *   (~0.5 kcal/kg per km, ~1,250 steps/km → 70 kg * 0.5 / 1250 ≈ 0.04).
- *   Energy cost scales approximately linearly with body mass, so we scale the
- *   constant by weight / 70 rather than multiplying by weight again:
- *
- *     kcal = extraSteps * 0.04 * (weightKg / 70)
- *
- *   e.g. 3,000 extra steps at 75 kg → 3000 * 0.04 * (75/70) ≈ 129 kcal.
+ * Extra calorie allowance for steps above the baseline implied by the activity level (that
+ * baseline is already in the TDEE multiplier, so only the surplus earns food).
+ * kcal = extraSteps * 0.04 * (weightKg / 70): walking costs ~0.04 kcal/step for a ~70 kg
+ * adult (~0.5 kcal/kg/km, ~1,250 steps/km), scaling roughly linearly with body mass.
  */
 export function calculateStepAllowance(
   todaySteps: number,

@@ -10,19 +10,13 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? "";
 /** Upper bound on grammY's `getMe` call — see `getInitedBot` below. */
 const INIT_TIMEOUT_MS = 8000;
 
-// Telegram re-delivers an update whenever the webhook does not answer 2xx
-// quickly. Photo / /log_meal / /coach / /insights all do file download + LLM +
-// DB write and routinely exceed grammY's 10 s default timeout, which produced
-// duplicate food logs and duplicate AI spend. So: acknowledge the update
-// immediately and let the handler run in the background via `waitUntil`.
+// Telegram re-delivers any update the webhook doesn't 2xx quickly, and photo / /log_meal / /coach /
+// /insights routinely exceed grammY's 10 s default, duplicating logs and AI spend. So acknowledge
+// immediately and run the handler in the background via `waitUntil`.
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Vercel hobby maximum, in seconds.
 
-/**
- * `bot.handleUpdate` requires `bot.botInfo`, which `webhookCallback` used to
- * populate implicitly. Cache the init promise module-level so a warm instance
- * only calls `getMe` once.
- */
+/** `bot.handleUpdate` needs `bot.botInfo`; cache the init promise so a warm instance calls `getMe` once. */
 let initPromise: Promise<void> | null = null;
 
 async function getInitedBot() {
@@ -30,15 +24,9 @@ async function getInitedBot() {
   if (bot.isInited()) return bot;
 
   if (!initPromise) {
-    // `init` retries `getMe` *indefinitely* on network / 5xx errors, so without
-    // a signal the cached promise can stay pending forever on a warm instance
-    // and wedge every later request. Cap it, and drop the cache on any outcome
-    // that did not actually initialise the bot (timeout, abort, rejection) so
-    // the next request gets a fresh attempt rather than a poisoned promise.
-    // The cast bridges a grammY typing wart: it declares `signal` with the
-    // `abort-controller` shim it carries for Deno compatibility, which is
-    // structurally incompatible with the global `AbortSignal` even though this
-    // is exactly the object it forwards to `fetch`.
+    // `init` retries `getMe` indefinitely, so cap it, and drop the cache on any outcome that
+    // didn't initialise the bot so a failure can't poison later requests. The cast bridges
+    // grammY's `abort-controller` shim typing, which clashes with the global `AbortSignal`.
     const signal = AbortSignal.timeout(INIT_TIMEOUT_MS) as unknown as Parameters<
       typeof bot.init
     >[0];
@@ -60,10 +48,8 @@ export async function POST(
     return NextResponse.json({ detail: "Webhook misconfigured" }, { status: 500 });
   }
 
-  // Constant-time: the shared helper also treats a length mismatch (and the
-  // empty string) as a plain mismatch, since `timingSafeEqual` throws on
-  // unequal buffer lengths and the length of a URL path segment is not a
-  // secret worth protecting.
+  // Constant-time via the shared helper, which treats a length mismatch as a mismatch
+  // (`timingSafeEqual` throws on unequal lengths).
   const { secret } = await params;
   if (!timingSafeEqualStr(secret, WEBHOOK_SECRET)) {
     return NextResponse.json({ detail: "Forbidden" }, { status: 403 });
@@ -77,9 +63,7 @@ export async function POST(
     return NextResponse.json({ detail: "Bad Request" }, { status: 400 });
   }
 
-  // Construction / init happens *before* anything has been handed off, so no
-  // side effect has occurred yet: a 500 here is safe to retry and surfaces the
-  // outage (e.g. an empty BOTFATHER_TOKEN makes `new Bot("")` throw).
+  // Init happens before any hand-off, so a 500 here is safe to retry (e.g. empty BOTFATHER_TOKEN throws).
   let bot: Awaited<ReturnType<typeof getInitedBot>>;
   try {
     bot = await getInitedBot();
@@ -88,18 +72,12 @@ export async function POST(
     return NextResponse.json({ detail: "Bot unavailable" }, { status: 500 });
   }
 
-  // Detached on purpose: Telegram gets its 200 now and the handler keeps
-  // running in the background.
-  //
-  // NOTE: `waitUntil` is a Vercel primitive and is a no-op outside a Vercel
-  // request context — self-hosting this route would need a different mechanism
-  // (a queue, or simply awaiting the handler and accepting the retry risk).
+  // Detached on purpose: Telegram gets its 200 now. `waitUntil` is a Vercel primitive and a
+  // no-op elsewhere; self-hosting would need a queue or an awaited handler.
   waitUntil(
     bot.handleUpdate(update).catch(async (err) => {
       console.error("Webhook update failed:", err);
-      // `handleUpdate` (singular) *throws* the `BotError`; only the private
-      // `handleUpdates` (plural) feeds it to `bot.catch`. Route it ourselves so
-      // the user-facing "something went wrong" reply in `bot.catch` still runs.
+      // `handleUpdate` throws the `BotError`; route it to `bot.catch` ourselves so the user-facing reply runs.
       if (err instanceof BotError) {
         try {
           await bot.errorHandler(err);

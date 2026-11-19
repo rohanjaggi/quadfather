@@ -1,11 +1,7 @@
 /**
- * Every AI-coaching toggle the app knows about — the single source of truth for
- * both the settings screen and `User.ai_coaching_prefs`.
- *
- * Always consumed as `Partial<CoachingPrefs>`: the column is free-form JSON, so
- * a row written before a key existed simply won't have it. Read a missing key
- * as "on" (`!== false`) or merge over a full defaults object; never assume the
- * stored object is complete.
+ * Every AI-coaching toggle; single source of truth for the settings screen and
+ * `User.ai_coaching_prefs`. The column is free-form JSON, so consume it as
+ * `Partial<CoachingPrefs>` and read a missing key as "on" (`!== false`).
  */
 export interface CoachingPrefs {
   daily_coach: boolean

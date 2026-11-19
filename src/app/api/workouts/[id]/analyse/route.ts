@@ -12,15 +12,7 @@ type Ctx = { params: { id: string } }
 
 type PrEntry = { exercise: string; type: 'weight' | 'reps'; value: string }
 
-/**
- * Shape-check an analysis object before it is persisted or served.
- *
- * The model returns free-form JSON; a missing `prs` array or a non-string
- * `takeaway` used to be written to `workout.analysis` and then returned from
- * the cache forever (and `analysis.prs.length` threw inside the Telegram
- * try/catch, silently swallowing the send). Anything that fails this check is
- * treated as "no analysis": not stored, and regenerated on the next request.
- */
+/** Shape-check an analysis before it is persisted or served; a failure counts as "no analysis" and is regenerated. */
 function isValidAnalysis(value: unknown): value is WorkoutAnalysis {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
   const a = value as Record<string, unknown>
@@ -53,8 +45,7 @@ export const POST = withUser<Ctx>(async (request, user, { params }) => {
 
   if (!workout) throw notFound('Workout not found')
 
-  // A cached-but-malformed analysis is treated as missing rather than served
-  // (and re-served) for the life of the row.
+  // A malformed cached analysis is treated as missing, not served for the life of the row.
   if (workout.analysis && isValidAnalysis(workout.analysis)) {
     return NextResponse.json(workout.analysis)
   }
@@ -78,9 +69,7 @@ export const POST = withUser<Ctx>(async (request, user, { params }) => {
     `${s.exercise_name}: 1RM=${s.estimated_1rm}kg, ${s.sessions_since_improvement === 0 ? 'just improved' : `${s.sessions_since_improvement} sessions since improvement`}`
   ).join('\n') || 'No prior history'
 
-  // Wrapped so a provider failure (bad key, outage) is the same 502 "check your
-  // API key" the food/run routes return, instead of an opaque 500. `ApiError`
-  // passes through untouched, so the 502 thrown below still reads as itself.
+  // Wrapped so a provider failure is the same 502 the food/run routes return; `ApiError` passes through.
   const analysis = await callAIProvider('workouts/analyse', () =>
     generateWorkoutAnalysis(ai, {
       workoutName: workout.name,
@@ -94,13 +83,10 @@ export const POST = withUser<Ctx>(async (request, user, { params }) => {
     }),
   )
 
-  // The persisted `workout.prs` is the authoritative list — the model only ever
-  // echoes it back and can drop or invent entries. Overwrite before anything
-  // (validation, stored analysis, Telegram message) reads `analysis.prs`.
+  // The persisted `workout.prs` is authoritative (the model can drop or invent entries); overwrite before anything reads `analysis.prs`.
   analysis.prs = prs.map(p => ({ exercise: p.exercise, type: p.type, value: p.value }))
 
-  // Belt and braces on top of whatever `ai.ts` validates: nothing malformed
-  // reaches the database.
+  // Belt and braces on top of `ai.ts` validation.
   if (!isValidAnalysis(analysis)) {
     console.error('Discarded invalid workout analysis for workout', workoutId, analysis)
     throw new ApiError(502, 'AI returned an invalid analysis — try again')

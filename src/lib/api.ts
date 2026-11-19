@@ -1,37 +1,18 @@
 import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, PersonalUpdate, MealAnalysis, MealSuggestion, SavedFood, SavedFoodCreate, AnalyticsResponse } from '@/types/api'
 
 /**
- * The signed `initData` blob every request authenticates with, read straight
- * off the global Telegram injects into the webview.
- *
- * Deliberately NOT `import WebApp from '@twa-dev/sdk'`: that module runs
- * `var telegramWindow = window` at import time, so importing it here throws
- * `ReferenceError: window is not defined` the moment anything on the server
- * touches this module — and it also made the `typeof window` guard below dead
- * code, since the import blew up before the guard could run. `WebApp.initData`
- * is exactly this string, so behaviour is unchanged.
- *
- * Read per call rather than once at module scope: the global is only populated
- * once Telegram's script has run, which is not guaranteed at import time.
+ * The signed `initData` blob every request authenticates with, read off the Telegram
+ * global. Not `@twa-dev/sdk`: it touches `window` at import time and throws on the
+ * server. Read per call because the global is populated only after Telegram's script runs.
  */
 function getInitData(): string {
   return typeof window !== 'undefined' ? (window.Telegram?.WebApp?.initData ?? '') : ''
 }
 
-/**
- * A hung TCP connection used to leave every `saving`/`pending` button disabled
- * forever with no way to recover inside the Telegram webview, so every request
- * is capped. 20s comfortably clears the platform's own function ceiling, which
- * is what actually bounds the slow (AI) routes.
- */
+/** Every request is capped so a hung connection can't leave buttons disabled forever in the webview. */
 const REQUEST_TIMEOUT_MS = 20_000
 
-/**
- * `AbortSignal.timeout` is iOS 16+ / Chrome 103+. A Mini App opened in an older
- * webview would otherwise get a synchronous `TypeError` on *every* request —
- * a dead app — so an unsupported engine falls back to the previous
- * no-timeout behaviour rather than taking the whole client down.
- */
+/** `AbortSignal.timeout` needs iOS 16+ / Chrome 103+; older webviews fall back to no timeout rather than throw on every request. */
 function timeoutSignal(): AbortSignal | undefined {
   return typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
     ? AbortSignal.timeout(REQUEST_TIMEOUT_MS)

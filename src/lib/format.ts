@@ -2,11 +2,7 @@
  * Shared display formatting helpers (client-safe, no server imports).
  */
 
-/**
- * Format a pace given in seconds-per-km (or minutes-per-km when `unit` is
- * 'min') as `m:ss`. Rounds to the nearest second FIRST so `5:59.6` becomes
- * `6:00`, never `5:60`.
- */
+/** Pace as `m:ss` from seconds-per-km (or minutes when `unit` is 'min'); rounds to the second first so `5:59.6` is `6:00`, never `5:60`. */
 export function formatPace(
   value: number | null | undefined,
   unit: 'sec' | 'min' = 'sec',

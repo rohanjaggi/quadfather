@@ -5,8 +5,7 @@ import { EXERCISE_DAMPENING } from '@/lib/constants'
 import { addDays, dayKey, daysAgoStart } from '@/lib/day'
 
 export const GET = withUser(async (request, user) => {
-  // `?days=abc` used to parse to NaN, which slips through `days < 1 || days > 90`
-  // (every NaN comparison is false) and produced an all-Invalid-Date window.
+  // `?days=abc` is NaN, which slips through the range check (every NaN comparison is false).
   const days =
     optionalInt(request.nextUrl.searchParams.get('days'), 'days', { min: 1, max: 90 }) ?? 7
 
@@ -29,9 +28,7 @@ export const GET = withUser(async (request, user) => {
   let totalDistance = 0
   let totalDuration = 0
   let totalCalories = 0
-  // Raw burn of the runs that actually feed the food budget — excludes the ones
-  // the user switched off via `PATCH /runs/:id`. Dampened once at the end so the
-  // rounding matches `computeDailyBudget`'s `runs_credit` exactly.
+  // Raw burn of runs that feed the food budget (excludes `added_to_allowance` off); dampened once at the end to match `runs_credit`.
   let creditedRaw = 0
   let totalRuns = 0
   const result = []
@@ -72,9 +69,7 @@ export const GET = withUser(async (request, user) => {
       duration: totalDuration,
       // Every run's reported burn, whether or not it counts toward food budget.
       calories: Math.round(totalCalories),
-      // What those runs actually added to the food budget: dampened, and only
-      // the runs still flagged `added_to_allowance`. The burn summary shows
-      // this, so it can't disagree with the dashboard's remaining calories.
+      // What those runs added to the food budget (dampened, flagged runs only), so it agrees with the dashboard.
       credited_calories: Math.round(creditedRaw * EXERCISE_DAMPENING),
       run_count: totalRuns,
     },

@@ -3,11 +3,8 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { withUser, optionalInt, optionalString } from '@/lib/api-handler'
 
-// The catalog is shared rather than per-user, but the lookup still runs a
-// leading-wildcard `ILIKE` scan, so it is not something to leave open to the
-// internet — the only caller (`searchExercises`) already sends initData.
-// The query string also has to be sane: `?limit=abc` used to reach Prisma as
-// `take: NaN` and 500.
+// Leading-wildcard `ILIKE` scan, so not open to the internet (the caller sends initData);
+// `?limit` must be sane or `take: NaN` would 500.
 export const GET = withUser(async request => {
   const q = optionalString(request.nextUrl.searchParams.get('q'), 'q', { maxLength: 100 }) ?? ''
   const limit = optionalInt(request.nextUrl.searchParams.get('limit'), 'limit', {

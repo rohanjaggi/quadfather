@@ -16,11 +16,10 @@ import {
 
 export { ApiError, badRequest, notFound, conflict, unprocessable, timingSafeEqualStr }
 
-/** Map any thrown value to a JSON response. Safe to call from any route. */
+/** Map any thrown value to a JSON response. */
 function handleRouteError(e: unknown): NextResponse {
-  // Next.js control-flow errors (dynamic-usage probes at build time, notFound/
-  // redirect bail-outs) must propagate to the framework — swallowing the
-  // build-time probe would let a route be statically cached with a 500.
+  // Next.js control-flow errors (build-time dynamic probes, notFound/redirect) must propagate,
+  // or a route could be statically cached with a 500.
   if (
     typeof e === 'object' &&
     e !== null &&
@@ -86,11 +85,7 @@ function wrap<A extends unknown[]>(
 
 /**
  * Wrap a handler with Telegram-initData auth + uniform error mapping.
- *
- * ```ts
- * export const GET = withUser(async (request, user) => { ... })
- * export const DELETE = withUser<{ params: { id: string } }>(async (req, user, { params }) => { ... })
- * ```
+ * `withUser<{ params: { id: string } }>(async (req, user, { params }) => ...)` types route params.
  */
 export function withUser<C = RouteContext>(handler: UserHandler<C>) {
   return wrap(async (request: NextRequest, context: C) =>
@@ -138,10 +133,8 @@ export interface ImageInput {
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
 /**
- * Read the multipart `image` field. Every provider rejects formats outside
- * `ACCEPTED_IMAGE_TYPES` (HEIC, BMP, TIFF…) with an opaque error of its own, so
- * they are caught here where we can say what went wrong. `form` is returned for
- * any other fields the route reads.
+ * Read the multipart `image` field. Unsupported formats (HEIC, BMP, TIFF) are
+ * rejected here since providers fail on them opaquely. `form` is returned for other fields.
  */
 export async function readImageUpload(
   request: Request,
@@ -185,12 +178,7 @@ function toNumber(value: unknown): number {
   return typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN
 }
 
-/**
- * Integer from a route param / query string / body value; 422 otherwise.
- * Strings must be canonical decimal integers: `Number()` also takes `'1e3'` and
- * `'0x10'`, and an exponent like `1e20` would reach Prisma outside `Int` range
- * as a 500 instead of a 422.
- */
+/** Integer from a param/query/body value; 422 otherwise. Canonical decimals only: `Number()` takes '1e3' and '0x10'. */
 export function requireInt(value: unknown, name: string, opts: Range = {}): number {
   if (typeof value === 'string' && !/^-?\d+$/.test(value.trim()))
     throw unprocessable(`${name} must be an integer`)
@@ -286,13 +274,7 @@ export function optionalEnum<T extends string>(
   return value as T
 }
 
-/**
- * Read a `String?` column that stores a JSON array of strings.
- *
- * Legacy rows may hold a bare JSON string (`"\"vegan\""` — what the old
- * unvalidated goals PUT wrote) or invalid JSON; both degrade to `[]` rather
- * than throwing a 500 out of a read path.
- */
+/** Read a `String?` column holding a JSON string array; legacy bare-string or invalid JSON degrades to `[]`. */
 export function parseJsonStringArray(raw: string | null | undefined): string[] {
   if (!raw) return []
   try {
@@ -309,12 +291,8 @@ const AI_PROVIDER_ERROR_DETAIL =
   'AI provider error — check your API key in Settings'
 
 /**
- * Run a call to an AI provider, mapping any failure to a fixed 502.
- *
- * Provider SDK errors put the API key, model id and prompt fragments into
- * `.message` (e.g. "Incorrect API key provided: sk-…"), so the original is
- * logged server-side and never returned. `ApiError`s thrown by our own code
- * inside `fn` pass through untouched.
+ * Run an AI provider call, mapping any failure to a fixed 502: SDK errors carry the
+ * API key and prompt fragments in `.message`, so they are logged, never returned.
  */
 export async function callAIProvider<T>(
   label: string,
@@ -340,13 +318,8 @@ export function parseDateParam(value: string | null | undefined, name = 'date'):
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) throw unprocessable(`${name} must be a valid date`)
 
-  // `new Date('2026-02-31')` is *not* an Invalid Date — it silently rolls over
-  // to Mar 3, so a typo'd day filed logs under, or queried, the wrong date.
-  // Round-trip the parsed UTC fields against the input to catch that.
-  //
-  // Only for the bare `YYYY-MM-DD` form: a full ISO datetime may carry an
-  // offset (`2026-08-20T01:00:00+08:00`), where the UTC calendar day
-  // legitimately differs from the one written in the string.
+  // `new Date('2026-02-31')` silently rolls over; round-trip the UTC fields to catch it.
+  // Bare `YYYY-MM-DD` only: a full ISO datetime may carry an offset.
   const dateOnly = DATE_ONLY_PARAM.exec(value)
   if (dateOnly) {
     const [, year, month, day] = dateOnly

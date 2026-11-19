@@ -27,11 +27,7 @@ interface IncomingExercise {
   order: number
 }
 
-/**
- * Validate the `exercises` payload. Everything that reaches Prisma is built
- * here, so a hostile/broken body can't smuggle extra JSON columns into
- * `ExerciseLog.sets` or blow up with a 500 on a type mismatch.
- */
+/** Validate the `exercises` payload; everything reaching Prisma is built here so a hostile body can't smuggle extra JSON into `ExerciseLog.sets`. */
 function parseExercises(value: unknown): IncomingExercise[] {
   if (!Array.isArray(value) || value.length === 0) {
     throw unprocessable('exercises must be a non-empty array')
@@ -91,7 +87,7 @@ export const GET = withUser(async (request, user) => {
     const { start, end } = dayRange(dayKey(parseDateParam(dateParam, 'date')))
     where.workout_date = { gte: start, lt: end }
   } else {
-    // `?days=7` is seven calendar days *including today*, like /steps and /runs/history.
+    // `?days=7` is seven calendar days including today, like /steps and /runs/history.
     where.workout_date = { gte: daysAgoStart(days - 1) }
   }
 
@@ -107,8 +103,7 @@ export const GET = withUser(async (request, user) => {
 export const POST = withUser(async (request, user) => {
   const body = await parseJsonBody(request)
 
-  // 200, not 100 — `WorkoutLog.name` is `VarChar(200)`, and template names that
-  // fit the column were being rejected at 101 characters.
+  // 200: `WorkoutLog.name` is VarChar(200).
   const name = requireString(body.name, 'name', { maxLength: 200 })
   const exercises = parseExercises(body.exercises)
   const durationMinutes = optionalInt(body.duration_minutes, 'duration_minutes', { min: 0, max: 1440 })
@@ -122,9 +117,7 @@ export const POST = withUser(async (request, user) => {
   }
   const workoutDate = parseDateParam(rawDate as string | null | undefined, 'workout_date')
 
-  // A template id from another user would otherwise be linked straight in
-  // (cross-user linkage, and a 500-shaped FK-violation oracle for ids that
-  // don't exist at all).
+  // Reject another user's template id (cross-user link, and an FK-violation oracle).
   if (templateId !== undefined) {
     const template = await prisma.workoutTemplate.findFirst({
       where: { id: templateId, user_id: user.id },
@@ -155,8 +148,7 @@ export const POST = withUser(async (request, user) => {
     include: { exercises: { orderBy: { order: 'asc' } } },
   })
 
-  // The PRs are persisted on the workout row so /analyse can read them.
-  // A failure here must not fail the request: the workout is already saved.
+  // PRs are persisted on the workout row for /analyse; a failure here must not fail the saved workout.
   let response: typeof workout = workout
   try {
     const prs = await recomputeSnapshotsForExercises(

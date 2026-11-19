@@ -30,8 +30,7 @@ export const GET = withUser(async (request, user) => {
 export const POST = withUser(async (request, user) => {
   const body = await parseJsonBody(request)
 
-  // Every field is validated before it reaches Prisma — a string
-  // `distance_meters` used to surface as a 500 from the driver.
+  // Every field is validated before it reaches Prisma.
   const distanceMeters = requireNumber(body.distance_meters, 'distance_meters', {
     min: 1,
     max: 1_000_000,
@@ -72,8 +71,7 @@ export const POST = withUser(async (request, user) => {
       elevation_gain: elevationGain ?? null,
       name: name?.trim() || 'Run',
       source: source ?? 'manual',
-      // Explicit rather than relying on the column default — the budget
-      // calculation reads this flag and a wrong default would zero run credit.
+      // Explicit: the budget reads this flag, and a wrong default would zero run credit.
       added_to_allowance: true,
       run_date: runDate ?? new Date(),
     },

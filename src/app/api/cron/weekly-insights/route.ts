@@ -9,8 +9,7 @@ export async function GET(request: NextRequest) {
     const insights = await buildWeeklyInsights(user, ai);
     if (insights === null) return false;
 
-    // Telegram 400s past 4096 characters and this send has no fallback, so an
-    // over-long model reply used to mean the user simply got no digest.
+    // Telegram 400s past 4096 characters and this send has no fallback.
     await sendHtml(
       user.telegram_id,
       clampHtml(`\u{1F4CA} <b>Weekly Insights</b>\n\n${escapeHtml(insights)}`),

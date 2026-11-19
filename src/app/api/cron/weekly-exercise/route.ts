@@ -10,26 +10,16 @@ import { addDays, dayKey, daysAgoStart } from '@/lib/day'
 const UNCATEGORISED = 'uncategorised'
 
 /**
- * Consecutive days *ending yesterday* on which a workout was logged.
- *
- * Yesterday is the last day that can count: this digest runs on Monday morning,
- * so a streak that required a workout *today* would read 0 on essentially
- * every run — which is exactly what the old loop did (it started at today, the
- * date didn't match, and it broke out immediately). It also indexed the sorted
- * date list by the loop counter, so it compared the *n*-th distinct workout day
- * against "n days ago" and could count non-consecutive days as a streak.
- *
- * Deliberately a local copy of `stepStreakEndingYesterday` in the daily-coach
- * cron rather than a shared helper: the two read different tables, and
- * `lib/coach.ts` is about nudge state, not date arithmetic.
+ * Consecutive days ending yesterday on which a workout was logged: this runs Monday
+ * morning, so requiring one today would read 0. A local copy of the daily-coach step
+ * streak since the two read different tables.
  */
 function workoutStreakEndingYesterday(workoutDates: Date[]): number {
   const days = new Set(workoutDates.map(d => dayKey(d)))
   const today = dayKey()
 
   let streak = 0
-  // Bounded by the number of distinct days we fetched — the streak can never be
-  // longer than that, and the loop always terminates.
+  // Bounded by the number of distinct days fetched.
   for (let back = 1; back <= days.size; back++) {
     if (!days.has(addDays(today, -back))) break
     streak++
@@ -38,11 +28,7 @@ function workoutStreakEndingYesterday(workoutDates: Date[]): number {
 }
 
 export async function GET(request: NextRequest) {
-  // Whole days, like the sibling crons: this week is [today-7, today) and
-  // last week is [today-14, today-7). The old rolling `now - 7d` window carried
-  // the time of day, so a session logged this morning last Monday landed in
-  // whichever half the run happened to start in, and "this week vs last week"
-  // compared two windows that both straddled the same day.
+  // Whole days like the sibling crons: this week is [today-7, today), last week [today-14, today-7).
   const todayStart = daysAgoStart(0)
   const weekStart = daysAgoStart(7)
   const prevWeekStart = daysAgoStart(14)
@@ -86,10 +72,7 @@ export async function GET(request: NextRequest) {
         for (const ex of w.exercises) {
           const sets = (ex.sets as unknown as { reps: number; weight_kg: number | null }[]).length
           const dbExercise = ex.exercise_id ? exerciseMap.get(ex.exercise_id) : null
-          // Free-text exercises carry no `exercise_id` and so no muscle
-          // mapping. They used to be filed under a literal "unknown", which
-          // reached the model as a muscle group ("unknown: 6 sets"); label
-          // them for what they are so the digest can say so plainly.
+          // Free-text exercises have no `exercise_id`, so no muscle; label them so the digest can say so.
           const rawMuscles = dbExercise?.primary_muscles
           const mapped = Array.isArray(rawMuscles)
             ? rawMuscles.filter((m): m is string => typeof m === 'string' && m.length > 0)
@@ -106,10 +89,7 @@ export async function GET(request: NextRequest) {
     const thisWeekMuscles = getMuscleSets(thisWeekWorkouts)
     const lastWeekMuscles = getMuscleSets(lastWeekWorkouts)
 
-    // Union of both weeks, not just this week's keys: a muscle trained last
-    // week and dropped entirely this week simply vanished from the list, so
-    // the one imbalance the digest most needs to flag was the one it could
-    // never see.
+    // Union of both weeks so a muscle dropped entirely this week still shows up.
     const volumeBreakdown = [...new Set([
       ...Object.keys(thisWeekMuscles),
       ...Object.keys(lastWeekMuscles),
@@ -121,9 +101,7 @@ export async function GET(request: NextRequest) {
         if (sets === 0) {
           return `${muscle}: 0 sets this week (dropped — ${lastSets} sets last week)`
         }
-        // A muscle with no sets last week has no percentage to report — it
-        // used to render as "=", which read as "unchanged" and told the model
-        // the exact opposite of what happened.
+        // No sets last week means no percentage to report.
         if (lastSets === 0) return `${muscle}: ${sets} sets (new this week)`
         const diff = Math.round(((sets - lastSets) / lastSets) * 100)
         const arrow = diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : '='
@@ -146,8 +124,7 @@ export async function GET(request: NextRequest) {
       stallAlerts,
     })
 
-    // Telegram 400s past 4096 characters and this send has no fallback, so an
-    // over-long model reply used to mean the user simply got no digest.
+    // Telegram 400s past 4096 characters and this send has no fallback.
     await sendHtml(
       user.telegram_id,
       clampHtml(`\u{1F4AA} <b>Weekly Training Digest</b>\n\n${escapeHtml(message)}`),

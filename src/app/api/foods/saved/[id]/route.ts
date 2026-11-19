@@ -34,15 +34,13 @@ export const PATCH = withUser<{ params: { id: string } }>(
       const value = optionalNumber(body[key], key, { min: 0, max: MAX_MACRO });
       if (value !== undefined) data[key] = value;
     }
-    // Both used to be silently dropped, so editing a favourite's notes or
-    // serving size did nothing.
+    // Notes and serving size must be written, not dropped.
     const description = nullable(body, "description", (v) => optionalString(v, "description")!);
     if (description !== undefined) data.description = description;
     const servingLabel = nullable(body, "serving_label", (v) => optionalString(v, "serving_label")!.slice(0, MAX_LABEL));
     if (servingLabel !== undefined) data.serving_label = servingLabel;
 
-    // Renaming onto another favourite hits `uq_user_food_name`; the wrapper
-    // turns that P2002 into a 409 instead of a 500.
+    // Renaming onto another favourite hits `uq_user_food_name`; the wrapper maps the P2002 to 409.
     const updated = await prisma.savedFood.update({
       where: { id: foodId },
       data,

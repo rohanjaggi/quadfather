@@ -141,27 +141,17 @@ export interface MealAnalysisResult {
 // --- Shared config ---
 
 /**
- * Hard ceiling on a single provider round-trip; a hung provider must not pin the
- * function.
- *
- * Vercel kills these routes at 60 s. The old budget was 45 s × 2 attempts = 90 s,
- * so a slow provider was guaranteed to blow the function limit *before* its own
- * timeout fired — the caller was killed mid-flight and the user got nothing, no
- * log line, no fallback. One attempt at 30 s leaves room for the Telegram file
- * download that precedes a photo analysis and still surfaces a hung provider as
- * a catchable error rather than a silent platform kill.
+ * Hard ceiling on a single provider round-trip. Vercel kills these routes at 60 s,
+ * so one 30 s attempt (no retry) leaves room for the Telegram file download that
+ * precedes a photo analysis and surfaces a hung provider as a catchable error.
  */
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 0;
 
 /**
- * Output-token budgets: JSON extraction is short and structured, prose needs more
- * room.
- *
- * `max_completion_tokens` / `maxOutputTokens` count *thinking* tokens too on the
- * default reasoning models, so a tight cap can be spent entirely on reasoning and
- * return an empty string. Thinking is minimised per-provider below; the JSON
- * budget carries extra headroom on top of that for providers that ignore the hint.
+ * Output-token budgets. `max_completion_tokens` / `maxOutputTokens` count thinking
+ * tokens too on reasoning models, so the JSON budget carries headroom for
+ * providers that ignore the minimal-thinking hint.
  */
 export const MAX_TOKENS_JSON = 2048;
 const MAX_TOKENS_TEXT = 1500;
@@ -169,12 +159,8 @@ const MAX_TOKENS_TEXT = 1500;
 // --- Prompt templating ---
 
 /**
- * Fill `{placeholder}` slots in a prompt template.
- *
- * Uses a replacer *function* so `$&`, `$1`, `$$`… inside user-supplied values are
- * inserted literally rather than being interpreted by `String.prototype.replace`,
- * and substitutes in a single pass so an injected value can never itself be
- * treated as a placeholder. Unknown placeholders are left untouched.
+ * Fill `{placeholder}` slots in a prompt template. A replacer function and a single
+ * pass keep `$&`/`$1` and `{...}` inside user-supplied values literal.
  */
 export function fillTemplate(template: string, values: Record<string, string>): string {
   return template.replace(/\{([a-z_][a-z0-9_]*)\}/gi, (match, key: string) =>
@@ -184,23 +170,12 @@ export function fillTemplate(template: string, values: Record<string, string>): 
 
 // --- Numeric coercion (never let NaN reach the database) ---
 
-/**
- * Matches the first number in a string, tolerating the shapes models actually
- * emit: `-12`, `1.5`, a bare-decimal `.5`, and exponent notation `1e3` / `2.5E-2`.
- *
- * The leading-dot and exponent branches are not cosmetic. The old
- * `/-?\d+(?:\.\d+)?/` skipped the dot in `".5"` and matched `5` — a 10× overstate
- * on a macro — and truncated `"1e3"` to `1`, a 1000× understate.
- */
+/** First number in a string, including bare `.5` and exponent `1e3` shapes models emit. */
 const NUMERIC_RE = /-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?/;
 
 /**
- * Returns a finite number or null. Tolerates "~500" / "500 kcal" style strings.
- *
- * Thousands separators are stripped before the numeric match — `"1,200"` used
- * to match only the leading `1` and silently store a 200× understatement. Only
- * commas that actually sit between digit groups are removed, so a decimal comma
- * ("1,5") is left alone rather than being read as 15.
+ * Returns a finite number or null. Tolerates "~500" / "500 kcal". Thousands commas
+ * are stripped ("1,200"), but a decimal comma ("1,5") is left alone.
  */
 export function coerceNumber(value: unknown): number | null {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
@@ -274,19 +249,13 @@ export function parseJsonObject(raw: string): Record<string, unknown> {
 function parseAnalysisResponse(raw: string): MealAnalysisResult {
   const data = parseJsonObject(raw);
 
-  // Presence (`"calories" in data`) is not validity: `{"calories": null}`,
-  // `{"calories": []}` and `{"calories": true}` all pass a key check, and
-  // `toInt`/`toDecimal` then quietly coerce them to 0 — a real meal logged as a
-  // 0 kcal row the user has to notice and fix by hand. Coerce first and reject
-  // anything that isn't a finite number, exactly like `analyseRunScreenshot`.
+  // Reject non-numbers: `"calories" in data` would let null/[]/true coerce to a 0 kcal row.
   const calories = coerceNumber(data.calories);
   const protein = coerceNumber(data.protein);
   const carbohydrates = coerceNumber(data.carbohydrates);
   const fats = coerceNumber(data.fats);
 
-  // `"food_name" in data` used to be enough, so `{"food_name": null}` was logged
-  // as a meal literally called "null". Numbers are still accepted — a model that
-  // answers `2` for a name is odd but not a reason to throw away the analysis.
+  // Numbers are accepted as names; null is not (it would be logged as "null").
   const foodName =
     typeof data.food_name === "string" || typeof data.food_name === "number"
       ? String(data.food_name).trim()
@@ -309,8 +278,7 @@ function parseAnalysisResponse(raw: string): MealAnalysisResult {
     );
   }
 
-  // Fiber is the one macro models routinely omit, and 0 is a defensible default
-  // for it in a way it never is for calories.
+  // Fiber is the one macro models routinely omit; 0 is a defensible default for it.
   return {
     food_name: foodName,
     calories: Math.round(calories as number),
@@ -355,11 +323,7 @@ function parseSuggestionsResponse(raw: string): MealSuggestion[] {
       try {
         const wrapper: unknown = JSON.parse(objectBlock);
         if (isRecord(wrapper)) {
-          // Not simply the *first* array: key order is whatever the model felt
-          // like, so `{"notes": ["…"], "meals": [ {...}, {...} ]}` handed back
-          // the notes and every suggestion was dropped. The payload we want is
-          // the longest array of objects; string arrays like `notes` can never
-          // win because they hold no records at all.
+          // The payload is the longest array of objects; a notes string array never wins.
           const nested = Object.values(wrapper)
             .filter((v): v is unknown[] => Array.isArray(v))
             .map((arr) => ({ arr, score: arr.filter(isRecord).length }))
@@ -392,27 +356,16 @@ function parseSuggestionsResponse(raw: string): MealSuggestion[] {
 // --- Model call ---
 
 /**
- * The output-token cap covers reasoning tokens as well as the visible reply, so
- * on the default reasoning models (gpt-5.4-mini and friends) a short JSON call
- * could spend its whole budget thinking and return `""` — which surfaced to the
- * user as "couldn't analyse that". Every call here wants a small, mechanical
- * JSON or a few sentences of prose; none of it benefits from extended reasoning.
- *
- * OpenRouter normalises `reasoning_effort` across upstreams and ignores it for
- * models that have no reasoning mode, so the same hint is safe on both targets.
+ * Thinking is minimised because the output-token cap covers reasoning tokens, so a
+ * short JSON call can otherwise return "". OpenRouter ignores the hint for models
+ * without a reasoning mode.
  */
 const REASONING_EFFORT = { reasoning_effort: "low" } as const;
 
 /**
- * Keep Gemini's thinking budget at the floor, for the same reason as
- * `REASONING_EFFORT`: `maxOutputTokens` is spent on thinking tokens first, so a
- * capped JSON call can come back empty.
- *
- * The control differs by generation and the wrong one is a hard 400, not a
- * silently-ignored hint: Gemini 3 models (the defaults — `gemini-3-flash-preview`,
- * `gemini-3.1-*`) take `thinkingLevel` and reject `thinkingBudget`, while 2.5 and
- * earlier take `thinkingBudget` (0 = disabled) and don't know `thinkingLevel`.
- * Unrecognised model strings get no thinking config at all rather than a guess.
+ * Gemini thinking floor. The control differs by generation and the wrong one is a
+ * hard 400: Gemini 3 takes `thinkingLevel`, 2.5 and earlier take `thinkingBudget`.
+ * Unrecognised model strings get no thinking config.
  */
 function geminiThinkingConfig(model: string): ThinkingConfig | undefined {
   const generation = /^(?:models\/)?gemini-(\d+)/i.exec(model)?.[1];
@@ -863,10 +816,7 @@ export async function parseWorkoutText(
   const raw = await callModel(ai, prompt, MAX_TOKENS_JSON);
   const data = parseJsonObject(raw);
 
-  // Filter *before* the emptiness check. The old order counted raw entries, so a
-  // model that answered `{"exercises": ["bench 4x8"]}` — strings, not objects —
-  // sailed through as a success and returned an empty exercise list, which the
-  // caller then saved as a workout with nothing in it.
+  // Filter before the emptiness check so an array of strings isn't a success.
   const exercises = (Array.isArray(data.exercises) ? data.exercises : [])
     .filter(isRecord)
     .map((ex, index) => ({
@@ -877,8 +827,7 @@ export async function parseWorkoutText(
       })),
       order: toInt(ex.order, index + 1),
     }))
-    // Same trap one level down: an exercise whose sets were all unparseable is
-    // not a logged exercise.
+    // Same one level down: an exercise whose sets all failed to parse isn't logged.
     .filter((ex) => ex.exercise_name.length > 0 && ex.sets.length > 0);
 
   if (!data.name || exercises.length === 0) {
@@ -949,8 +898,7 @@ export async function generateWorkoutAnalysis(
   const raw = await callModel(ai, prompt, MAX_TOKENS_JSON);
   const data = parseJsonObject(raw);
 
-  // This object is persisted on the workout and served from cache forever,
-  // so a malformed shape must never make it past here.
+  // Persisted and served from cache forever, so a malformed shape must not pass.
   const volumeComparison =
     typeof data.volume_comparison === 'string' ? data.volume_comparison.trim() : '';
   const takeaway = typeof data.takeaway === 'string' ? data.takeaway.trim() : '';

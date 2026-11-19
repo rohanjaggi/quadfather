@@ -127,21 +127,12 @@ interface Session {
 }
 
 /**
- * Snapshot fields for one exercise from all of its sessions (oldest first), plus
- * the weight/reps PR each session set over the sessions before it.
- *
- *  - `estimated_1rm` / `best_set_*` — the best-e1RM set; `best_weight` /
- *    `best_weight_reps` — the heaviest set (most reps at that weight).
- *  - `total_volume_7d` — sessions dated on or after `volumeSince`.
- *  - `last_improved_at` — the latest session that set any record (e1RM, weight,
- *    or reps at that weight); `best_weight_improved_at` — the latest that set the
- *    weight/reps record, which is what the PR list dates itself from.
- *  - `sessions_since_improvement` — weighted sessions after `last_improved_at`.
+ * Snapshot fields for one exercise from all its sessions (oldest first), plus the PRs
+ * each session set. `snapshot` is null when no session carried external load.
  *
  * Records must be strictly better, so the first session to reach one owns it.
- * Bodyweight-only sessions never set or stall a record. The first weighted
- * session sets every record but is not announced as a PR.
- * `snapshot` is null when no session carried external load.
+ * Bodyweight sessions neither set records nor count as stalls. The first session
+ * is not announced as a PR.
  */
 export function snapshotFromSessions(sessions: Session[], volumeSince: Date) {
   let best: BestSets = { best1RM: 0, e1rmSet: null, bestWeight: 0, bestWeightReps: 0 }

@@ -13,8 +13,7 @@ import {
   withUser,
 } from "@/lib/api-handler";
 
-// Typed against `@/lib/tdee` so a new activity level / goal there can't drift
-// out of sync with what this endpoint accepts.
+// Typed against `@/lib/tdee` so new levels/goals there can't drift from what this accepts.
 const SEXES: readonly Sex[] = ["male", "female"];
 const ACTIVITY_LEVELS: readonly ActivityLevel[] = [
   "sedentary",
@@ -46,16 +45,7 @@ const NUMBER_GOALS = [
   ["daily_water_goal", 0, 20],
 ] as const;
 
-/**
- * Update goals and personal dimensions.
- *
- * Every accepted field is validated here: this used to spread the raw body into
- * `prisma.user.update`, so `daily_step_goal: 1.5` or `age: 25.5` hit an Int
- * column (500), `ai_coaching_prefs: null` needed `Prisma.JsonNull` (500),
- * `water_bottle_size: 0` silently made every bottle log 0 L, and
- * `dietary_restrictions: "vegan"` was stored as `"\"vegan\""` against a
- * `string[]` contract. Unknown keys are ignored.
- */
+/** Update goals and personal dimensions. Every field is validated here; unknown keys are ignored. */
 export const PUT = withUser(async (request, user) => {
   const body = await parseJsonBody(request);
   const data: Prisma.UserUpdateInput = {};
@@ -123,8 +113,7 @@ export const PUT = withUser(async (request, user) => {
     return value as Prisma.InputJsonValue;
   });
   if (coachingPrefs !== undefined) {
-    // A `Json?` column rejects a bare `null` — Prisma wants the explicit
-    // JSON-null marker, and passing `null` used to 500.
+    // A `Json?` column needs `Prisma.JsonNull`, not a bare `null`.
     data.ai_coaching_prefs = coachingPrefs === null ? Prisma.JsonNull : coachingPrefs;
   }
 

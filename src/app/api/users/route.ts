@@ -6,11 +6,8 @@ import { hasActivityReadScope } from "@/lib/strava";
 import { parseJsonStringArray, withErrorHandling } from "@/lib/api-handler";
 
 /**
- * Register (or re-register) the caller; the client calls this on every boot.
- *
- * An `upsert` so concurrent first boots don't both insert. Prisma emulates it
- * with a read then a write, so the loser of a tight race can still hit the
- * `telegram_id` unique index (P2002): by then the row exists, so re-read it.
+ * Register (or re-register) the caller on every boot. `upsert` is emulated as read-then-write,
+ * so a tight race can hit the `telegram_id` unique index (P2002); the row exists by then, so re-read.
  */
 export const POST = withErrorHandling(async (request) => {
   const initData = request.headers.get("x-telegram-init-data") ?? "";
@@ -20,8 +17,7 @@ export const POST = withErrorHandling(async (request) => {
   try {
     user = await prisma.user.upsert({
       where: { telegram_id: telegramUser.id },
-      // Nothing to refresh on an existing account — the profile is user-owned,
-      // and `username` is only meaningful at sign-up.
+      // Nothing to refresh: the profile is user-owned and `username` matters only at sign-up.
       update: {},
       create: {
         telegram_id: telegramUser.id,
@@ -35,8 +31,7 @@ export const POST = withErrorHandling(async (request) => {
     const reread = await prisma.user.findUnique({
       where: { telegram_id: telegramUser.id },
     });
-    // Only a P2002 on `telegram_id` can be re-read this way; anything else that
-    // reports P2002 here has no row to find and should still surface as an error.
+    // Only a P2002 on `telegram_id` has a row to re-read; any other P2002 should surface.
     if (!reread) throw e;
     user = reread;
   }
@@ -74,9 +69,7 @@ export const POST = withErrorHandling(async (request) => {
     ai_coaching_prefs: user.ai_coaching_prefs ?? undefined,
     training_focus: user.training_focus ?? null,
     strava_connected: !!user.strava_access_token,
-    // Tokens are stored even when the granted scope lacks activity read, in
-    // which case /runs/sync 409s forever — the client needs to know so it can
-    // prompt for a reconnect. `true` when not connected (nothing to fix).
+    // Tokens are stored even without activity scope, so /runs/sync 409s forever; the client needs this to prompt a reconnect (`true` when not connected).
     strava_scope_ok: !user.strava_access_token || hasActivityReadScope(user.strava_scope),
     strava_last_synced_at: user.strava_last_synced_at?.toISOString() ?? null,
   });

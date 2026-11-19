@@ -45,9 +45,7 @@ export const POST = withUser(async (request, user) => {
     if (!saved) throw notFound("Saved food not found");
   }
 
-  // Only an absent/null `servings` means "one serving". A literal 0 — what the
-  // manual form sends for a cleared field — used to multiply every macro to 0
-  // and save the empty row without a word.
+  // Only absent/null `servings` means one serving; a literal 0 (cleared manual form) must not zero every macro.
   const servings =
     body.servings == null
       ? 1
@@ -61,8 +59,7 @@ export const POST = withUser(async (request, user) => {
     data: {
       user_id: user.id,
       saved_food_id: savedFoodId ?? null,
-      // Truncated rather than rejected: names come from the AI parsers, and a
-      // clipped name beats losing the meal to a 422 (the column is VarChar).
+      // Truncated, not rejected: a clipped AI name beats losing the meal to a 422.
       food_name: requireString(body.food_name, "food_name").slice(0, MAX_NAME),
       raw_text_input: optionalString(body.raw_text_input, "raw_text_input") ?? null,
       servings,

@@ -13,14 +13,9 @@ export interface VolumeSet {
 }
 
 /**
- * Volume (kg lifted) for a single set — the ONE definition used everywhere
- * (progress snapshots, recap, volume trends, muscle balance).
- *
- * `reps × weight_kg` when the set carried external load, otherwise 0. A
- * bodyweight set is deliberately 0 rather than `reps × 1`: "1 kg per rep" is
- * neither honest nor useful, and 3×12 pull-ups showing as "36 kg" in Volume
- * Trends was the bug this helper exists to kill. Counting bodyweight as load
- * (reps × bodyweight × a per-exercise factor) is a future product item.
+ * Volume (kg lifted) for one set; the single definition used everywhere. `reps × weight_kg`
+ * when the set carried external load, else 0: bodyweight is deliberately not `reps × 1`.
+ * Counting bodyweight as load is a future product item.
  */
 export function setVolume(set: VolumeSet): number {
   const weight = set.weight_kg ?? 0

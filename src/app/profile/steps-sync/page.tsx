@@ -612,7 +612,7 @@ export default function StepsSyncPage() {
           <ul style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', lineHeight: 1.8, paddingLeft: '16px', margin: 0 }}>
             <li>Make sure Health &rarr; Privacy &rarr; Shortcuts has <strong>Steps</strong> enabled</li>
             <li>Tap the <strong>play button</strong> in Shortcuts to test manually first</li>
-            <li>The body field value must be the pink <strong>Health Samples</strong> variable, not typed text</li>
+            <li>The body field value must be the pink <strong>Statistics</strong> variable, not typed text</li>
             <li>If you regenerate your token here, update it in the Shortcut too</li>
           </ul>
         </div>

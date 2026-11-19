@@ -165,7 +165,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const updatePersonal = useCallback(async (data: PersonalUpdate) => {
     await api.updatePersonal(data)
     await refreshUser()
-  }, [refreshUser])
+    await refresh()
+  }, [refresh, refreshUser])
 
   const saveFood = useCallback(async (data: SavedFoodCreate): Promise<SavedFood> => {
     const saved = await api.saveFood(data)

@@ -15,6 +15,7 @@ import TrainingRecap from '@/components/workouts/TrainingRecap'
 import MuscleBalance from '@/components/workouts/MuscleBalance'
 import { calculateStepAllowance } from '@/lib/steps'
 import { errorMessage } from '@/lib/errors'
+import { currentStepStreak } from '@/lib/streak'
 
 type Period = 7 | 30
 
@@ -248,7 +249,7 @@ export default function AnalyticsPage() {
       getSteps(period)
         .then(data => {
           if (stepsReqRef.current !== requestId) return
-          setStepsData([...data].sort((a, b) => a.date.localeCompare(b.date)))
+          setStepsData(data.map(d => ({ ...d, date: d.date.slice(0, 10) })).sort((a, b) => a.date.localeCompare(b.date)))
         })
         .catch(console.error)
         .finally(() => { if (stepsReqRef.current === requestId) setStepsLoading(false) })
@@ -311,8 +312,9 @@ export default function AnalyticsPage() {
   const avgProtein = activeDays.length > 0
     ? Math.round(activeDays.reduce((s, d) => s + d.protein, 0) / activeDays.length * 10) / 10
     : 0
-  const avgWater = activeDays.length > 0
-    ? Math.round(activeDays.reduce((s, d) => s + d.water, 0) / activeDays.length * 100) / 100
+  const waterDays = days.filter(d => d.water > 0)
+  const avgWater = waterDays.length > 0
+    ? Math.round(waterDays.reduce((s, d) => s + d.water, 0) / waterDays.length * 100) / 100
     : 0
   const avgFiber = activeDays.length > 0
     ? Math.round(activeDays.reduce((s, d) => s + d.fiber, 0) / activeDays.length * 10) / 10
@@ -988,13 +990,7 @@ export default function AnalyticsPage() {
               <div className="fade-up fade-up-1">
                 <SummaryCard title="Streaks & Consistency">
                   {(() => {
-                    // Sort by date descending for streak calculation
-                    const sorted = [...stepsData].sort((a, b) => b.date.localeCompare(a.date))
-                    let currentStreak = 0
-                    for (const d of sorted) {
-                      if (d.steps >= stepGoal) currentStreak++
-                      else break
-                    }
+                    const currentStreak = currentStepStreak(stepsData, stepGoal, localIsoDay(new Date()))
                     // Longest streak
                     const chronological = [...stepsData].sort((a, b) => a.date.localeCompare(b.date))
                     let longestStreak = 0
@@ -1102,12 +1098,8 @@ export default function AnalyticsPage() {
                       const daySums: number[] = [0, 0, 0, 0, 0, 0, 0]
                       const dayCounts: number[] = [0, 0, 0, 0, 0, 0, 0]
                       stepsData.forEach(d => {
-                        // `d.date` is already a full ISO timestamp — appending
-                        // 'T00:00:00' produced an Invalid Date and NaN buckets,
-                        // so this panel was always empty. Bucket by UTC day to
-                        // match how the rows are stored.
-                        const parsed = new Date(d.date.includes('T') ? d.date : `${d.date}T00:00:00Z`)
-                        if (Number.isNaN(parsed.getTime())) return
+                        const parsed = parseIsoDay(d.date)
+                        if (!parsed) return
                         const dow = parsed.getUTCDay()
                         daySums[dow] += d.steps
                         dayCounts[dow]++

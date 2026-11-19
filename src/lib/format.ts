@@ -30,6 +30,11 @@ export function formatDuration(totalSeconds: number | null | undefined): string 
     : `${m}:${s.toString().padStart(2, '0')}`
 }
 
+/** `HH:MM` (24h) in the viewer's locale timezone. */
+export function formatTime(isoString: string): string {
+  return new Date(isoString).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
 /** Thousands-separated integer (e.g. 12,345). */
 export function formatInt(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return '0'

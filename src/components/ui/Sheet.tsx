@@ -60,7 +60,7 @@ export default function Sheet({
         tabIndex={-1}
         style={{
           position: 'absolute', left: 0, right: 0, bottom: 0,
-          maxHeight: '88svh', overflowY: 'auto',
+          maxHeight: 'calc(100svh - var(--tg-safe-top, 0px) - var(--tg-content-top, 0px) - 32px)', overflowY: 'auto',
           background: 'var(--ground)', borderRadius: '24px 24px 0 0',
           padding: '10px 18px calc(22px + env(safe-area-inset-bottom))',
           boxShadow: '0 -12px 40px -12px rgba(31,42,36,.3)',

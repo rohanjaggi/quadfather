@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { logWorkout, getTemplates, getWorkouts } from '@/lib/api'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { deleteWorkout, logWorkout, getTemplates, getWorkouts } from '@/lib/api'
 import PageHeader from '@/components/ui/PageHeader'
 import Sheet from '@/components/ui/Sheet'
 import { toast } from '@/components/ui/Toast'
+import { toastWithUndo } from '@/components/ui/undo'
 import { ChevronRightIcon, EditIcon, PlusIcon, TextIcon } from '@/components/ui/icons'
 import { useHaptic } from '@/components/telegram'
 import WorkoutForm from '@/components/workouts/WorkoutForm'
@@ -26,15 +28,30 @@ type Step =
     key: number
     source: 'manual' | 'ai_parse'
     name?: string
-    exercises?: { exercise_name: string; sets: ExerciseSet[] }[]
+    exercises?: { exercise_name: string; exercise_id?: number | null; sets: ExerciseSet[] }[]
     templateId?: number
+    duration?: number
+    notes?: string
   }
   | { kind: 'done'; saved: SavedWorkout }
+
+type LoggerStep = Extract<Step, { kind: 'logger' }>
+
+/** A save undone after leaving this page: it reopens the logger on the next mount. */
+let undoneDraft: LoggerStep | null = null
 
 export default function WorkoutsLogPage() {
   const { refresh } = useUser()
   const haptic = useHaptic()
-  const [step, setStep] = useState<Step>({ kind: 'start' })
+  const router = useRouter()
+  const [step, setStep] = useState<Step>(() => undoneDraft ?? { kind: 'start' })
+  // Cleared in an effect, not the initializer, which StrictMode runs twice.
+  useEffect(() => { undoneDraft = null }, [])
+  const mounted = useRef(false)
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
   const [creating, setCreating] = useState(false)
   // Stable, so the sheet's focus effect doesn't re-run when this page re-renders.
   const closeCreator = useCallback(() => setCreating(false), [])
@@ -80,7 +97,7 @@ export default function WorkoutsLogPage() {
 
   useEffect(() => { window.scrollTo({ top: 0 }) }, [step.kind])
 
-  const openLogger = (p: Omit<Extract<Step, { kind: 'logger' }>, 'kind' | 'key'>) =>
+  const openLogger = (p: Omit<LoggerStep, 'kind' | 'key'>) =>
     setStep({ kind: 'logger', key: Date.now(), ...p })
 
   function startTemplate(t: WorkoutTemplate) {
@@ -114,11 +131,33 @@ export default function WorkoutsLogPage() {
     const saved = await logWorkout(payload)
     haptic.notification('success')
     setStep({ kind: 'done', saved })
+    toastWithUndo('Workout saved', () => undoSave(saved.id, {
+      kind: 'logger', key: Date.now(), source,
+      name: payload.name, exercises: payload.exercises, templateId: payload.template_id,
+      duration: payload.duration_minutes, notes: payload.notes,
+    }))
     // Keep Today and Training in step with what was just logged.
     try {
       await refresh()
     } catch (err) {
       console.error('Failed to refresh after logging workout:', err)
+    }
+  }
+
+  // Undo: delete the session now and put the user back in the logger with what they entered.
+  async function undoSave(id: number, draft: LoggerStep) {
+    try {
+      await deleteWorkout(id)
+    } catch (err) {
+      toast(friendlyError(err, 'Couldn’t undo. The workout is still saved.'))
+      return
+    }
+    refresh().catch(err => console.error('Failed to refresh after undoing a workout:', err))
+    if (mounted.current) {
+      setStep(draft)
+    } else {
+      undoneDraft = draft
+      router.push('/workouts/log')
     }
   }
 
@@ -192,6 +231,8 @@ export default function WorkoutsLogPage() {
           key={step.key}
           initialName={step.name}
           initialExercises={step.exercises}
+          initialDuration={step.duration}
+          initialNotes={step.notes}
           templateId={step.templateId}
           onSave={data => handleSave(data, step.source)}
           onClose={() => setStep({ kind: 'start' })}

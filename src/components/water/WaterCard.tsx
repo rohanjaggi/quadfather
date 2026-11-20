@@ -7,11 +7,13 @@ import { useUser } from '@/context/UserContext'
 import { useHaptic } from '@/components/telegram'
 import { toast } from '@/components/ui/Toast'
 import { errorMessage } from '@/lib/errors'
+import { toastLogged } from '@/components/food/logged'
+import { formatLiters } from '@/components/water/BottleCounter'
 import { ChevronRightIcon, PlusIcon } from '@/components/ui/icons'
 
 /** Food tab's water row: today's bottles (links to /water) and one-tap add. */
 export default function WaterCard() {
-  const { user, summary, logWater } = useUser()
+  const { user, summary, logWater, deleteWater } = useUser()
   const haptic = useHaptic()
   const [adding, setAdding] = useState(false)
   const liters = summary?.water.total ?? 0
@@ -23,8 +25,8 @@ export default function WaterCard() {
     setAdding(true)
     haptic.impact('light')
     try {
-      await logWater({ bottles: 1 })
-      toast(`Water logged · ${bottle.toFixed(1)} L`, { type: 'success' })
+      const log = await logWater({ bottles: 1 })
+      toastLogged(`Water logged · ${formatLiters(log.amount_liters)} L`, () => deleteWater(log.id, { undoable: false }))
     } catch (err) {
       toast(errorMessage(err, 'Could not log water'))
     } finally {

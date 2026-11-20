@@ -13,11 +13,9 @@ export type SavedWorkout = WorkoutLog & { prs?: { exercise: string; type: string
 /** After "Finish workout": what was saved, any new records, then the coach's read. */
 export default function WorkoutDone({ saved, onAnother }: { saved: SavedWorkout; onAnother: () => void }) {
   const { user } = useUser()
-  const showAnalysis = (user?.ai_coaching_prefs as Record<string, boolean> | undefined)?.workout_analysis !== false
-  const willAnalyse = showAnalysis && user?.has_api_key === true
-  // The record sweep waits for the analysis shimmer to finish, so only one
-  // gradient ever moves at a time.
-  const [aiSettled, setAiSettled] = useState(!willAnalyse)
+  // The record sweep plays at once; asking for coaching ends it, so the
+  // shimmer is never a second moving gradient.
+  const [sweep, setSweep] = useState(true)
 
   const prs = Array.isArray(saved.prs) ? saved.prs : []
   const sets = saved.exercises.reduce((n, ex) => n + ex.sets.length, 0)
@@ -44,7 +42,7 @@ export default function WorkoutDone({ saved, onAnother }: { saved: SavedWorkout;
                 <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '6px 0' }}>
                   <span style={{ minWidth: 0, fontSize: 15 }}>{p.exercise}</span>
                   {/* Plays once, when the class first lands. */}
-                  <span className={aiSettled ? 'gradient-sweep' : undefined} style={{ flexShrink: 0, fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>
+                  <span className={sweep ? 'gradient-sweep' : undefined} style={{ flexShrink: 0, fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>
                     {String(p.value).replace(/(\d)kg\b/, '$1 kg')}
                   </span>
                 </li>
@@ -60,15 +58,13 @@ export default function WorkoutDone({ saved, onAnother }: { saved: SavedWorkout;
       </section>
 
       <WorkoutAnalysis
-        title={willAnalyse ? 'How it went' : 'Muscles worked'}
+        title={user?.has_api_key || saved.analysis ? 'How it went' : 'Muscles worked'}
         workoutId={saved.id}
         existingAnalysis={saved.analysis}
         exercises={saved.exercises}
-        autoAnalyse
         showMap
         hidePrs
-        allowAnalysis={showAnalysis}
-        onSettled={() => setAiSettled(true)}
+        onRequest={() => setSweep(false)}
       />
     </div>
   )

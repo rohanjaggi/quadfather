@@ -4,6 +4,8 @@ import { useId, useState, type FormEvent } from 'react'
 import { useUser } from '@/context/UserContext'
 import { useHaptic } from '@/components/telegram'
 import { errorMessage } from '@/lib/errors'
+import { toastMealLogged } from '@/components/food/logged'
+import type { FoodLog } from '@/types/api'
 
 /** A meal's name and macros, validated and parsed. */
 export interface FoodValues {
@@ -55,7 +57,7 @@ export default function ManualFoodForm({
   onApply?: (values: FoodValues) => void | Promise<void>
   submitLabel?: string
 }) {
-  const { logFood } = useUser()
+  const { logFood, deleteFood } = useUser()
   const haptic = useHaptic()
   const id = useId()
   const [saving, setSaving] = useState(false)
@@ -117,18 +119,18 @@ export default function ManualFoodForm({
 
     setSaving(true)
     setError(null)
-    let logged = false
+    let log: FoodLog | null = null
     try {
-      await logFood({ ...values, servings })
-      logged = true
+      log = await logFood({ ...values, servings })
     } catch (err) {
       setError(errorMessage(err, 'Could not save this meal'))
       haptic.notification('error')
     } finally {
       setSaving(false)
     }
-    if (logged) {
+    if (log) {
       haptic.notification('success')
+      toastMealLogged(log, deleteFood)
       onClose?.()
     }
   }

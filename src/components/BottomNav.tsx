@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import LogSheet from '@/components/LogSheet'
 import { useHaptic } from '@/components/telegram'
 import { FoodIcon, HomeIcon, PlusIcon, TrainingIcon, TrendsIcon } from '@/components/ui/icons'
@@ -23,6 +23,17 @@ export default function BottomNav() {
   const haptic = useHaptic()
   const [logOpen, setLogOpen] = useState(false)
   const closeLog = useCallback(() => setLogOpen(false), [])
+
+  // The evening "close the day" message's "I forgot something" button opens
+  // the app at `/?sheet=log`: land straight on the Log sheet, then drop the flag.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('sheet') !== 'log') return
+    setLogOpen(true)
+    params.delete('sheet')
+    const rest = params.toString()
+    window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
+  }, [])
 
   const tab = ({ href, label, Icon, match }: typeof left[number]) => {
     const active = match.some(m => (m === '/' ? pathname === '/' : pathname.startsWith(m)))

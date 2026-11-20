@@ -16,8 +16,9 @@ import {
 import Sheet from '@/components/ui/Sheet'
 import ManualFoodForm, { type FoodValues } from '@/components/food/ManualFoodForm'
 import { macroLine } from '@/components/food/meals'
+import { toastMealLogged } from '@/components/food/logged'
 import { BookmarkIcon, CameraIcon, CheckIcon, CloseIcon, EditIcon, SendIcon } from '@/components/ui/icons'
-import type { MealAnalysis } from '@/types/api'
+import type { FoodLog, MealAnalysis } from '@/types/api'
 
 /** Element ids the Food page's deep links (`?mode=photo|describe`) reach for. */
 export const COMPOSER_INPUT_ID = 'meal-composer-input'
@@ -41,7 +42,7 @@ const CONFIDENCE = { high: 'High confidence', medium: 'Medium confidence', low: 
  * spot, so "Log meal" lands where the thumb already is.
  */
 export default function MealComposer({ onManual }: { onManual: () => void }) {
-  const { user, logFood, saveFood } = useUser()
+  const { user, logFood, deleteFood, saveFood } = useUser()
   const haptic = useHaptic()
   const fileRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -145,8 +146,9 @@ export default function MealComposer({ onManual }: { onManual: () => void }) {
     if (!draft || phase === 'logging' || phase === 'saving') return
     setPhase('logging')
     setError(null)
+    let log: FoodLog
     try {
-      await logFood({
+      log = await logFood({
         food_name: draft.food_name,
         calories: Number(draft.calories),
         protein: Number(draft.protein),
@@ -162,6 +164,7 @@ export default function MealComposer({ onManual }: { onManual: () => void }) {
       return
     }
     haptic.notification('success')
+    toastMealLogged(log, deleteFood)
     reset()
   }
 

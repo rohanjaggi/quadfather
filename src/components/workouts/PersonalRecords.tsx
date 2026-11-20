@@ -1,19 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import Link from 'next/link'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { getWorkoutPRs, type WorkoutPR } from '@/lib/api'
 import { prDisplayDate, prDisplayValue } from './pr-display'
-import { RowsSkeleton, ErrorRetry, friendlyError, linkStyle } from './bits'
+import { RowsSkeleton, ErrorRetry, friendlyError } from './bits'
 
-interface Props {
-  period: 7 | 30
-  /** Off on the Training tab, whose More list already links to Records. */
-  seeAll?: boolean
-}
-
-export default function PersonalRecords({ period, seeAll = true }: Props) {
+/** No "See all": the Training tab's More list already links to Records. */
+export default function PersonalRecords({ period }: { period: 7 | 30 }) {
   const [prs, setPrs] = useState<WorkoutPR[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +28,7 @@ export default function PersonalRecords({ period, seeAll = true }: Props) {
   const retry = useCallback(() => setAttempt(n => n + 1), [])
 
   return (
-    <SummaryCard title="Records" action={seeAll && <Link href="/workouts/prs" style={linkStyle}>See all</Link>}>
+    <SummaryCard title="Records">
       {loading ? (
         <RowsSkeleton rows={3} />
       ) : error ? (

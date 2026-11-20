@@ -40,15 +40,28 @@ export function getBot(): Bot {
   return _bot;
 }
 
-/** Push an HTML message to a user outside any chat update (crons, workout analysis). */
-export async function sendHtml(telegramId: bigint, html: string): Promise<void> {
-  await getBot().api.sendMessage(Number(telegramId), html, { parse_mode: "HTML" });
+/** Push an HTML message to a user outside any chat update (the crons). */
+export async function sendHtml(
+  telegramId: bigint,
+  html: string,
+  reply_markup?: InlineKeyboard,
+): Promise<void> {
+  await getBot().api.sendMessage(Number(telegramId), html, { parse_mode: "HTML", reply_markup });
 }
 
 /** `undefined` when `MINI_APP_URL` is unset — grammY then sends no keyboard. */
 function appButton(label: string, path: string = ""): InlineKeyboard | undefined {
   if (!MINI_APP_URL) return undefined;
   return new InlineKeyboard().webApp(label, `${MINI_APP_URL}${path}`);
+}
+
+const CLOSE_DAY_OK = "close_day:ok";
+
+/** The evening summary's buttons: "Looks right" only when there is a day to confirm; the Log sheet only with `MINI_APP_URL`. */
+export function closeDayKeyboard(hasLogs: boolean): InlineKeyboard | undefined {
+  if (!hasLogs) return appButton("I forgot something", "/?sheet=log");
+  const keyboard = new InlineKeyboard().text("Looks right \u{2713}", CLOSE_DAY_OK);
+  return MINI_APP_URL ? keyboard.webApp("I forgot something", `${MINI_APP_URL}/?sheet=log`) : keyboard;
 }
 
 function progressBar(current: number, goal: number, width = 10): string {
@@ -493,7 +506,7 @@ function registerHandlers(bot: Bot) {
     const thinking = await ctx.reply("\u{1F9E0} Thinking...");
 
     try {
-      // Canonical budget, as on the dashboard and the daily-coach cron.
+      // Canonical budget, as on the dashboard and the evening summary.
       const budget = await getDailyBudget(user);
 
       if (budget.logs.food.length === 0) {
@@ -501,8 +514,7 @@ function registerHandlers(bot: Bot) {
         return;
       }
 
-      // No streak: it would need a 30-day step history fetch.
-      const message = await buildDailyCoach(user, ai, budget, 0);
+      const message = await buildDailyCoach(user, ai, budget);
 
       await deliverText(
         ctx,
@@ -540,6 +552,22 @@ function registerHandlers(bot: Bot) {
     } catch (err) {
       console.error("/insights failed:", err);
       await safeEdit(ctx, thinking.message_id, "Sorry, couldn't generate insights right now. Try again later.");
+    }
+  });
+
+  bot.callbackQuery(CLOSE_DAY_OK, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const msg = ctx.callbackQuery.message;
+    // An inaccessible (e.g. deleted) message has no text to append to; the tap is still acknowledged above.
+    if (!msg || !("text" in msg) || !msg.text) return;
+    try {
+      // Appending keeps the original entities' offsets valid; no reply_markup removes the keyboard.
+      await ctx.editMessageText(`${msg.text}\n\nDay closed. See you tomorrow.`, {
+        entities: msg.entities,
+      });
+    } catch (err) {
+      // A double tap lands here ("message is not modified"); nothing for the user to retry.
+      console.error("Close the day edit failed:", err);
     }
   });
 

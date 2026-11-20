@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import RecentActivity from '@/components/dashboard/RecentActivity'
+import HomeScreenOffer from '@/components/dashboard/HomeScreenOffer'
 import { useCountTo } from '@/components/dashboard/useCountTo'
 import ProgressLine from '@/components/ui/ProgressLine'
 import { MacroColumns, StepBlocks, WaterPips } from '@/components/ui/MetricMinis'
@@ -83,7 +84,7 @@ export default function TodayPage() {
         style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '8px 18px', background: 'rgba(243, 238, 232, 0.92)',
+          padding: 'calc(8px + var(--tg-safe-top, 0px) + var(--tg-content-top, 0px)) 18px 8px', background: 'rgba(243, 238, 232, 0.92)',
           backdropFilter: 'saturate(1.4) blur(16px)', WebkitBackdropFilter: 'saturate(1.4) blur(16px)',
           borderBottom: '1px solid var(--line)',
           transform: compact ? 'none' : 'translateY(-100%)',
@@ -113,6 +114,8 @@ export default function TodayPage() {
           {avatar(40)}
         </div>
       </header>
+
+      <HomeScreenOffer />
 
       {/* What's left: the one question this screen answers */}
       <section className="card" aria-labelledby="left-today">

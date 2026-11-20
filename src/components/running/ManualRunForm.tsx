@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { useUser } from '@/context/UserContext'
 import { errorMessage } from '@/components/ui/Toast'
 import { DEFAULT_BODYWEIGHT_KG, runKcal } from '@/lib/constants'
+import type { RunLog } from '@/types/running'
 
-export default function ManualRunForm({ onLogged }: { onLogged: () => void }) {
+export default function ManualRunForm({ onLogged }: { onLogged: (run: RunLog) => void }) {
   const { user, logRun } = useUser()
   const [distance, setDistance] = useState('')
   const [minutes, setMinutes] = useState('')
@@ -36,21 +37,20 @@ export default function ManualRunForm({ onLogged }: { onLogged: () => void }) {
 
     setLoading(true)
     setError(null)
-    let logged = false
+    let logged: RunLog | null = null
     try {
-      await logRun({
+      logged = await logRun({
         distance_meters: distKm * 1000,
         duration_seconds: mins * 60 + secs,
         calories_burned: cal,
         source: 'manual',
       })
-      logged = true
     } catch (err) {
       setError(errorMessage(err, 'Could not log this run'))
     } finally {
       setLoading(false)
     }
-    if (logged) onLogged()
+    if (logged) onLogged(logged)
   }
 
   return (

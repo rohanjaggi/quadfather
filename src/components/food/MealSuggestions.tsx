@@ -8,6 +8,7 @@ import { toast } from '@/components/ui/Toast'
 import { errorMessage } from '@/lib/errors'
 import { formatInt } from '@/lib/format'
 import { macroLine } from '@/components/food/meals'
+import { toastMealLogged } from '@/components/food/logged'
 import { ChevronDownIcon, RefreshIcon } from '@/components/ui/icons'
 import type { MealSuggestion } from '@/types/api'
 
@@ -15,7 +16,7 @@ const caption: React.CSSProperties = { margin: 0, fontSize: 13, lineHeight: 1.4,
 
 /** AI meal ideas that fit the rest of today's budget; collapsed until asked. */
 export default function MealSuggestions() {
-  const { user, logFood } = useUser()
+  const { user, logFood, deleteFood } = useUser()
 
   const [expanded, setExpanded] = useState(false)
   const [suggestions, setSuggestions] = useState<MealSuggestion[] | null>(null)
@@ -45,12 +46,11 @@ export default function MealSuggestions() {
     if (next && !suggestions && !loading) fetchSuggestions()
   }
 
-  // Success is announced by the Food page when the new row lands.
   async function handleLog(s: MealSuggestion, idx: number) {
     if (loggingIdx !== null) return
     setLoggingIdx(idx)
     try {
-      await logFood({
+      const log = await logFood({
         food_name: s.name,
         calories: s.calories,
         protein: s.protein,
@@ -59,6 +59,7 @@ export default function MealSuggestions() {
         fiber: s.fiber,
         source: 'ai-suggest',
       })
+      toastMealLogged(log, deleteFood)
     } catch (err) {
       toast(errorMessage(err, `Could not log ${s.name}`))
     } finally {

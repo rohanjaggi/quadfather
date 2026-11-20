@@ -20,7 +20,7 @@ export const dockedPageStyle: CSSProperties = {
  */
 export default function BottomDock({ children }: { children: ReactNode }) {
   return (
-    <div style={{
+    <div data-dock style={{
       position: 'sticky',
       bottom: 'calc(68px + env(safe-area-inset-bottom))',
       zIndex: 30,

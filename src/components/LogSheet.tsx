@@ -6,6 +6,7 @@ import Sheet from '@/components/ui/Sheet'
 import { useUser } from '@/context/UserContext'
 import { useHaptic } from '@/components/telegram'
 import { toast } from '@/components/ui/Toast'
+import { toastLogged } from '@/components/food/logged'
 import { errorMessage } from '@/lib/errors'
 import {
   BookmarkIcon, CameraIcon, ChevronRightIcon, EditIcon, PlusIcon, RunIcon, TextIcon, TrainingIcon, WaterIcon,
@@ -16,7 +17,7 @@ type Row = { label: string; hint?: string; href: string; Icon: ComponentType<{ s
 const MEAL: Row[] = [
   { label: 'Snap a photo', href: '/food?mode=photo', Icon: CameraIcon },
   { label: 'Describe it', hint: 'Type what you ate', href: '/food?mode=describe', Icon: TextIcon },
-  { label: 'From saved foods', href: '/food?mode=saved', Icon: BookmarkIcon },
+  { label: 'Log again', hint: 'Recent meals and saved foods', href: '/food?mode=again', Icon: BookmarkIcon },
   { label: 'Enter manually', href: '/food?mode=manual', Icon: EditIcon },
 ]
 
@@ -34,9 +35,11 @@ const rowStyle: React.CSSProperties = {
 
 export default function LogSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter()
-  const { user, savedFoods, logWater } = useUser()
-  // No saved foods yet means that row would land on nothing.
-  const mealRows = savedFoods.length > 0 ? MEAL : MEAL.filter(r => r.href !== '/food?mode=saved')
+  const { user, savedFoods, foodLogs, logWater, deleteWater } = useUser()
+  // With nothing saved and nothing logged yet, "Log again" would land on nothing.
+  // shortcut: today's logs stand in for "has history"; a user whose only meals are
+  // from earlier days loses this row until they log today. Use a history count if one appears.
+  const mealRows = savedFoods.length > 0 || foodLogs.length > 0 ? MEAL : MEAL.filter(r => r.href !== '/food?mode=again')
   const haptic = useHaptic()
   const [adding, setAdding] = useState(false)
   const bottle = user?.water_bottle_size ?? 0.5
@@ -51,9 +54,9 @@ export default function LogSheet({ open, onClose }: { open: boolean; onClose: ()
     if (adding) return
     setAdding(true)
     try {
-      await logWater({ bottles: 1 })
+      const log = await logWater({ bottles: 1 })
       haptic.notification('success')
-      toast(`Water logged · ${bottle.toFixed(1)} L`, { type: 'success' })
+      toastLogged(`Water logged · ${log.amount_liters.toFixed(1)} L`, () => deleteWater(log.id, { undoable: false }))
       onClose()
     } catch (err) {
       haptic.notification('error')

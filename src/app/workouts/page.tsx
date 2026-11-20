@@ -158,7 +158,7 @@ export default function TrainingPage() {
                 action={<span style={{ fontSize: 13, color: 'var(--muted)' }}>Last 7 days</span>}
               />
 
-              <PersonalRecords period={30} seeAll={false} />
+              <PersonalRecords period={30} />
             </>
           )}
         </>

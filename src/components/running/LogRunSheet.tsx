@@ -9,6 +9,7 @@ import ManualRunForm from './ManualRunForm'
 import RunPhotoUpload from './RunPhotoUpload'
 import type { StravaState } from './StravaSync'
 import { ACCEPT_IMAGE_ATTR } from '@/lib/image'
+import type { RunLog } from '@/types/running'
 
 type Step = 'choose' | 'photo' | 'manual'
 
@@ -52,7 +53,7 @@ export default function LogRunSheet({
   open: boolean
   /** Must be stable (Sheet re-runs its focus effect when it changes). */
   onClose: () => void
-  onLogged: () => void
+  onLogged: (run: RunLog) => void
   onStravaSync: () => void
   strava: StravaState
 }) {

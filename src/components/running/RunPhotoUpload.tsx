@@ -11,7 +11,7 @@ import {
   UNSUPPORTED_IMAGE_MESSAGE,
   downscaleImage,
 } from '@/lib/image'
-import type { RunAnalysis } from '@/types/running'
+import type { RunAnalysis, RunLog } from '@/types/running'
 
 const rowStyle: React.CSSProperties = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '11px 0',
@@ -22,7 +22,7 @@ const rowStyle: React.CSSProperties = {
  * it is analysed as soon as it arrives, and "Choose another screenshot" picks
  * a replacement here.
  */
-export default function RunPhotoUpload({ file, onLogged }: { file: File | null; onLogged: () => void }) {
+export default function RunPhotoUpload({ file, onLogged }: { file: File | null; onLogged: (run: RunLog) => void }) {
   const { logRun } = useUser()
   const fileRef = useRef<HTMLInputElement>(null)
   const lastFile = useRef<File | null>(null)
@@ -75,9 +75,9 @@ export default function RunPhotoUpload({ file, onLogged }: { file: File | null; 
     if (!result || saving) return
     setSaving(true)
     setError(null)
-    let logged = false
+    let logged: RunLog | null = null
     try {
-      await logRun({
+      logged = await logRun({
         distance_meters: result.distance_meters,
         duration_seconds: result.duration_seconds,
         calories_burned: result.calories_burned,
@@ -85,7 +85,6 @@ export default function RunPhotoUpload({ file, onLogged }: { file: File | null; 
         average_heartrate: result.average_heartrate,
         source: 'ai_parsed',
       })
-      logged = true
     } catch (err) {
       // Previously uncaught: the POST failed, the panel stayed open with no
       // explanation, and a second tap risked logging the run twice.
@@ -93,7 +92,7 @@ export default function RunPhotoUpload({ file, onLogged }: { file: File | null; 
     } finally {
       setSaving(false)
     }
-    if (logged) onLogged()
+    if (logged) onLogged(logged)
   }
 
   const pickAnother = (

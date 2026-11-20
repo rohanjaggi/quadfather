@@ -42,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {/* Bottom pad clears BottomNav, which itself pads by the safe-area
                   inset — without adding it here the last element of a page sits
                   under the nav on notched devices (viewport-fit=cover is on). */}
-              <main style={{ minHeight: '100svh', padding: '24px 18px calc(96px + env(safe-area-inset-bottom))' }}>
+              <main style={{ minHeight: '100svh', padding: 'calc(24px + var(--tg-safe-top, 0px) + var(--tg-content-top, 0px)) 18px calc(96px + env(safe-area-inset-bottom))' }}>
                 {children}
               </main>
               <BottomNav />

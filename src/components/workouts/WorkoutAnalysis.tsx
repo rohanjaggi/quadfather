@@ -12,39 +12,30 @@ import { calculateMuscleIntensities, intensitiesFromMuscleNames } from '@/lib/mu
 import { useUser } from '@/context/UserContext'
 
 /**
- * `/analyse` is a paid LLM call that also sends a Telegram message, and the
- * same session can be on screen twice in a row (the finish screen, then the
+ * `/analyse` is a paid LLM call, made only when the user taps for it. The same
+ * session can be on screen twice in a row (the finish screen, then the
  * Training tab's "Last session"). These live for the page session so the
- * second mount joins or reuses the first call instead of paying again.
+ * second mount shows or joins the first answer instead of paying again.
  */
 const results = new Map<number, AnalysisType>()
 const inFlight = new Map<number, Promise<AnalysisType>>()
-const autoAttempted = new Set<number>()
 
 interface WorkoutAnalysisProps {
   workoutId: number
   existingAnalysis?: AnalysisType | null
   exercises?: ExerciseLogEntry[]
-  /**
-   * Whether this workout may analyse itself on mount. Only the single most
-   * recent un-analysed workout sets this; everything else waits for a tap.
-   */
-  autoAnalyse?: boolean
   /** Draw the muscle map for this session. */
   showMap?: boolean
-  /** Show the AI part at all (the user's `workout_analysis` preference). */
-  allowAnalysis?: boolean
   /** The finish screen lists new records itself, from the save response. */
   hidePrs?: boolean
-  /** Fires once the analysis has finished (either way) or won't run. */
-  onSettled?: () => void
+  /** Fires when the analysis starts loading (the finish screen ends its record sweep). */
+  onRequest?: () => void
   /** Wrap in a card with this title (and render nothing, not an empty card, when there's nothing). */
   title?: string
 }
 
 export default function WorkoutAnalysis({
-  workoutId, existingAnalysis, exercises, autoAnalyse = false,
-  showMap = false, allowAnalysis = true, hidePrs = false, onSettled, title,
+  workoutId, existingAnalysis, exercises, showMap = false, hidePrs = false, onRequest, title,
 }: WorkoutAnalysisProps) {
   const { user } = useUser()
   const [analysis, setAnalysis] = useState<AnalysisType | null>(existingAnalysis ?? results.get(workoutId) ?? null)
@@ -53,10 +44,11 @@ export default function WorkoutAnalysis({
   const [intensities, setIntensities] = useState<Record<MuscleZone, number>>({} as Record<MuscleZone, number>)
 
   const hasKey = user?.has_api_key === true
-  const settled = useRef(onSettled)
-  settled.current = onSettled
+  const requested = useRef(onRequest)
+  requested.current = onRequest
 
   const runAnalysis = useCallback(async () => {
+    requested.current?.()
     setLoading(true)
     setError(null)
     let request = inFlight.get(workoutId)
@@ -72,25 +64,16 @@ export default function WorkoutAnalysis({
       setError(friendlyError(err, 'Couldn’t look over this session just now.'))
     } finally {
       setLoading(false)
-      settled.current?.()
     }
   }, [workoutId])
 
+  // Never requests on its own: shows a stored or earlier answer, or joins one
+  // another mount already asked for.
   useEffect(() => {
     const known = existingAnalysis ?? results.get(workoutId)
-    if (known) {
-      setAnalysis(known)
-      settled.current?.()
-      return
-    }
-    if (!allowAnalysis) { settled.current?.(); return }
-    // Another mount already asked: wait on that answer rather than paying again.
-    if (inFlight.has(workoutId)) { runAnalysis(); return }
-    // No key means every request 4xxs — don't spend a round trip to find out.
-    if (!autoAnalyse || !hasKey || autoAttempted.has(workoutId)) { settled.current?.(); return }
-    autoAttempted.add(workoutId)
-    runAnalysis()
-  }, [workoutId, existingAnalysis, autoAnalyse, hasKey, allowAnalysis, runAnalysis])
+    if (known) setAnalysis(known)
+    else if (inFlight.has(workoutId)) runAnalysis()
+  }, [workoutId, existingAnalysis, runAnalysis])
 
   useEffect(() => {
     if (!showMap) return
@@ -119,38 +102,36 @@ export default function WorkoutAnalysis({
     : null
 
   let body: React.ReactNode = null
-  if (allowAnalysis) {
-    if (loading) {
-      body = <AiWorking label="Looking over this session…" />
-    } else if (analysis) {
-      body = (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {analysis.takeaway && (
-            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: 'var(--ink)' }}>{analysis.takeaway}</p>
-          )}
-          {analysis.volume_comparison && (
-            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.45, color: 'var(--muted)' }}>{analysis.volume_comparison}</p>
-          )}
-          {!hidePrs && (analysis.prs?.length ?? 0) > 0 && (
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
-              New record{analysis.prs.length > 1 ? 's' : ''}:{' '}
-              {analysis.prs.map((p, i) => (
-                <span key={i}>{i > 0 && ', '}{p.exercise} <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{p.value}</span></span>
-              ))}
-            </p>
-          )}
-        </div>
-      )
-    } else if (error) {
-      body = <ErrorRetry message={error} onRetry={() => { autoAttempted.add(workoutId); runAnalysis() }} />
-    } else if (hasKey) {
-      // Nothing yet: offer the call rather than making it unprompted.
-      body = (
-        <button type="button" className="btn-secondary" onClick={() => { autoAttempted.add(workoutId); runAnalysis() }}>
-          Get feedback on this session
-        </button>
-      )
-    }
+  if (loading) {
+    body = <AiWorking label="Looking over this session…" />
+  } else if (analysis) {
+    body = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {analysis.takeaway && (
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: 'var(--ink)' }}>{analysis.takeaway}</p>
+        )}
+        {analysis.volume_comparison && (
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.45, color: 'var(--muted)' }}>{analysis.volume_comparison}</p>
+        )}
+        {!hidePrs && (analysis.prs?.length ?? 0) > 0 && (
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
+            New record{analysis.prs.length > 1 ? 's' : ''}:{' '}
+            {analysis.prs.map((p, i) => (
+              <span key={i}>{i > 0 && ', '}{p.exercise} <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{p.value}</span></span>
+            ))}
+          </p>
+        )}
+      </div>
+    )
+  } else if (error) {
+    body = <ErrorRetry message={error} onRetry={runAnalysis} />
+  } else if (hasKey) {
+    // No key means every request 4xxs, so the button only shows with one.
+    body = (
+      <button type="button" className="btn-secondary" onClick={runAnalysis}>
+        Get coaching on this session
+      </button>
+    )
   }
 
   if (!map && !body) return null

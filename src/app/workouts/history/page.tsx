@@ -6,6 +6,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import Sheet from '@/components/ui/Sheet'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { toast } from '@/components/ui/Toast'
+import { deferWithUndo } from '@/components/ui/undo'
 import { ChevronRightIcon, TrashIcon } from '@/components/ui/icons'
 import { useHaptic } from '@/components/telegram'
 import VolumeTrendsChart from '@/components/workouts/VolumeTrendsChart'
@@ -23,6 +24,7 @@ const MORE_DAYS = 84
 const MAX_DAYS = 365
 
 const workoutKey = (w: WorkoutLog) => dayKey(new Date(w.workout_date))
+const newestFirst = (a: WorkoutLog, b: WorkoutLog) => new Date(b.workout_date).getTime() - new Date(a.workout_date).getTime()
 
 function weekTitle(start: string): string {
   const thisWeek = weekStartKey()
@@ -35,7 +37,6 @@ function weekTitle(start: string): string {
 export default function WorkoutHistoryPage() {
   const { user, refresh } = useUser()
   const haptic = useHaptic()
-  const showAnalysis = (user?.ai_coaching_prefs as Record<string, boolean> | undefined)?.workout_analysis !== false
 
   const [days, setDays] = useState(FIRST_DAYS)
   const [attempt, setAttempt] = useState(0)
@@ -67,35 +68,28 @@ export default function WorkoutHistoryPage() {
   }, [workouts])
 
   const [open, setOpen] = useState<WorkoutLog | null>(null)
-  const [confirming, setConfirming] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const closeSheet = useCallback(() => setOpen(null), [])
 
-  const closeSheet = useCallback(() => {
-    setOpen(null)
-    setConfirming(false)
-    setDeleteError(null)
-  }, [])
-
-  async function confirmDelete() {
-    if (!open || deleting) return
+  // The row goes at once; the server delete waits out the Undo window.
+  function remove(w: WorkoutLog) {
     haptic.notification('warning')
-    setDeleting(true)
-    setDeleteError(null)
-    try {
-      await deleteWorkout(open.id)
-    } catch (err) {
-      setDeleteError(friendlyError(err, 'Couldn’t delete this session. It’s still saved.'))
-      setDeleting(false)
-      return
-    }
-    const id = open.id
-    setWorkouts(prev => prev.filter(w => w.id !== id))
-    setDeleting(false)
+    const restore = () => setWorkouts(prev => (prev.some(x => x.id === w.id) ? prev : [...prev, w].sort(newestFirst)))
+    setWorkouts(prev => prev.filter(x => x.id !== w.id))
     closeSheet()
-    toast('Session deleted', { type: 'success' })
-    // Today and Training read the week from context.
-    refresh().catch(err => console.error('Failed to refresh after delete:', err))
+    deferWithUndo({
+      message: 'Session deleted',
+      commit: () => {
+        deleteWorkout(w.id).then(
+          // Today and Training read the week from context.
+          () => refresh().catch(err => console.error('Failed to refresh after delete:', err)),
+          err => {
+            toast(friendlyError(err, 'Couldn’t delete this session. It’s back in your list.'))
+            restore()
+          },
+        )
+      },
+      undo: restore,
+    })
   }
 
   const range = days >= MAX_DAYS ? 'the last year' : `the last ${Math.round(days / 7)} weeks`
@@ -176,8 +170,8 @@ export default function WorkoutHistoryPage() {
         </>
       )}
 
-      <Sheet open={open !== null} onClose={closeSheet} title={confirming ? 'Delete this session?' : open?.name ?? ''}>
-        {open && !confirming && (
+      <Sheet open={open !== null} onClose={closeSheet} title={open?.name ?? ''}>
+        {open && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <p style={{ margin: '-8px 0 0', fontSize: 15, color: 'var(--muted)' }}>
               {[
@@ -201,37 +195,21 @@ export default function WorkoutHistoryPage() {
 
             {open.notes && <p style={{ margin: 0, fontSize: 15, color: 'var(--ink)' }}>{open.notes}</p>}
 
-            {/* No auto-run here: an old session is only analysed on a tap. */}
             <WorkoutAnalysis
-              title={showAnalysis && (open.analysis || user?.has_api_key) ? 'How it went' : 'Muscles worked'}
+              title={open.analysis || user?.has_api_key ? 'How it went' : 'Muscles worked'}
               workoutId={open.id}
               existingAnalysis={open.analysis}
               exercises={open.exercises}
               showMap
-              allowAnalysis={showAnalysis}
             />
 
             <button
               type="button"
               className="btn-ghost"
-              onClick={() => setConfirming(true)}
+              onClick={() => remove(open)}
               style={{ alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--over)' }}
             >
               <TrashIcon size={18} /> Delete session
-            </button>
-          </div>
-        )}
-        {open && confirming && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <p style={{ margin: '0 0 10px', fontSize: 15, color: 'var(--muted)' }}>
-              {open.name} on {formatKey(workoutKey(open), { day: 'numeric', month: 'short' })} will be deleted. This can’t be undone.
-            </p>
-            {deleteError && <p role="alert" style={{ margin: '0 0 6px', fontSize: 15, color: 'var(--ink)' }}>{deleteError}</p>}
-            <button type="button" className="btn-secondary" onClick={() => { setConfirming(false); setDeleteError(null) }} disabled={deleting}>
-              Keep it
-            </button>
-            <button type="button" className="btn-ghost" onClick={confirmDelete} disabled={deleting} style={{ color: 'var(--over)' }}>
-              {deleting ? 'Deleting…' : deleteError ? 'Retry delete' : 'Delete session'}
             </button>
           </div>
         )}

@@ -11,7 +11,15 @@
 let node: HTMLDivElement | null = null
 let timer: ReturnType<typeof setTimeout> | null = null
 
-export function toast(message: string, opts?: { type?: 'error' | 'success' }) {
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
+export function toast(
+  message: string,
+  opts?: { type?: 'error' | 'success'; action?: ToastAction; duration?: number },
+) {
   if (typeof document === 'undefined' || !message) return
   const accent = opts?.type === 'success' ? '#8FD3AE' : '#F2A48F'  // light tints that read on the ink pill
 
@@ -48,6 +56,12 @@ export function toast(message: string, opts?: { type?: 'error' | 'success' }) {
   }
 
   const el = node
+  // Sit above any pinned dock (meal composer, "Add a bottle", "Finish workout")
+  // so the toast never covers the button the user is about to tap again.
+  const dock = document.querySelector<HTMLElement>('[data-dock]')
+  el.style.bottom = dock
+    ? `${Math.max(0, window.innerHeight - dock.getBoundingClientRect().top) + 10}px`
+    : 'calc(78px + env(safe-area-inset-bottom))'
   // Status is carried by an icon plus the words, never by colour alone.
   const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   icon.setAttribute('width', '18')
@@ -64,17 +78,44 @@ export function toast(message: string, opts?: { type?: 'error' | 'success' }) {
   icon.appendChild(path)
   const text = document.createElement('span')
   text.textContent = message
-  el.replaceChildren(icon, text)
+  text.style.flex = '1'
+
+  const children: Node[] = [icon, text]
+  const action = opts?.action
+  if (action) {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.textContent = action.label
+    btn.style.cssText = [
+      'flex-shrink:0', 'min-height:36px', 'margin:-8px -8px -8px 4px', 'padding:0 12px',
+      'border:none', 'border-radius:10px', 'background:transparent',
+      // Only the button takes taps; the pill itself never blocks the page.
+      'pointer-events:auto',
+      'color:#8FD3AE', 'font:inherit', 'font-weight:700', 'cursor:pointer',
+    ].join(';')
+    btn.addEventListener('click', () => {
+      hideToast()
+      action.onClick()
+    }, { once: true })
+    children.push(btn)
+  }
+  el.replaceChildren(...children)
   requestAnimationFrame(() => {
     el.style.opacity = '1'
     el.style.transform = 'translateY(0)'
   })
 
   if (timer) clearTimeout(timer)
-  timer = setTimeout(() => {
-    el.style.opacity = '0'
-    el.style.transform = 'translateY(8px)'
-  }, 3000)
+  timer = setTimeout(hideToast, opts?.duration ?? (action ? 5000 : 3000))
+}
+
+/** Hides the toast now, and makes its action button untappable. */
+export function hideToast() {
+  if (timer) { clearTimeout(timer); timer = null }
+  if (!node) return
+  node.style.opacity = '0'
+  node.style.transform = 'translateY(8px)'
+  node.querySelectorAll('button').forEach(b => { b.style.pointerEvents = 'none' })
 }
 
 // Lives in `@/lib/errors` now (it is not toast-specific and server code can use

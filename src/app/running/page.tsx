@@ -4,14 +4,17 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import { toast } from '@/components/ui/Toast'
+import { toastWithUndo } from '@/components/ui/undo'
 import { useHaptic } from '@/components/telegram'
 import { useUser } from '@/context/UserContext'
 import { getRunHistory } from '@/lib/api'
+import { errorMessage } from '@/lib/errors'
 import ThisWeekCard from '@/components/running/BurnSummary'
 import RunningPRs from '@/components/running/RunningPRs'
 import RunsList from '@/components/running/RunsList'
 import LogRunSheet from '@/components/running/LogRunSheet'
 import RunDetailsSheet from '@/components/running/RunDetailsSheet'
+import { formatKm } from '@/components/running/RunCard'
 import { useStravaSync } from '@/components/running/StravaSync'
 import type { RunLog } from '@/types/running'
 
@@ -29,7 +32,7 @@ function OpenLogFromLink({ onOpen }: { onOpen: () => void }) {
 }
 
 export default function RunningPage() {
-  const { runLogs } = useUser()
+  const { runLogs, deleteRun } = useUser()
   const haptic = useHaptic()
   const strava = useStravaSync()
 
@@ -45,6 +48,15 @@ export default function RunningPage() {
       .catch(() => { if (!cancelled) setRecentFailed(true) })
     return () => { cancelled = true }
   }, [runLogs, attempt])
+
+  // Deleted runs wait out their Undo window on the server, so the refetch that
+  // the delete itself triggers would bring them straight back. Hide them here;
+  // Undo and a failed server delete both un-hide via onListChange(run, false).
+  const [hidden, setHidden] = useState<number[]>([])
+  const shown = recent && recent.filter(r => !hidden.includes(r.id))
+  const onListChange = useCallback((run: RunLog, removed: boolean) => {
+    setHidden(h => (removed ? [...h, run.id] : h.filter(id => id !== run.id)))
+  }, [])
 
   const [logOpen, setLogOpen] = useState(false)
   const [openRun, setOpenRun] = useState<RunLog | null>(null)
@@ -79,9 +91,11 @@ export default function RunningPage() {
     return () => clearTimeout(t)
   }, [landedId])
 
-  function handleLogged() {
+  function handleLogged(run: RunLog) {
     haptic.notification('success')
-    toast('Run logged', { type: 'success' })
+    toastWithUndo(`Run logged · ${formatKm(run.distance_meters)}`, () => {
+      deleteRun(run.id, { undoable: false }).catch(err => toast(errorMessage(err, "Couldn't undo. The run is still logged.")))
+    })
     setAwaitLand(true)
     setLogOpen(false)
   }
@@ -106,17 +120,17 @@ export default function RunningPage() {
   // No runs this month: the week card already says so and holds "Log a run", so
   // the empty Recent runs card goes. It stays while Strava is connected, since
   // it carries the sync status and the reconnect link.
-  const noRuns = recent?.length === 0 && !strava.connected
+  const noRuns = shown?.length === 0 && !strava.connected
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <PageHeader title="Runs" back={{ href: '/workouts', label: 'Training' }} />
 
-      <ThisWeekCard runs={recent} onLog={openLog} allRunsLink={noRuns} />
+      <ThisWeekCard runs={shown} onLog={openLog} allRunsLink={noRuns} />
 
       {!noRuns && (
         <RunsList
-          runs={recent}
+          runs={shown}
           failed={recentFailed}
           onRetry={() => setAttempt(a => a + 1)}
           landedId={landedId}
@@ -138,7 +152,7 @@ export default function RunningPage() {
         onStravaSync={handleStravaSync}
         strava={strava}
       />
-      <RunDetailsSheet run={openRun} onClose={closeDetails} />
+      <RunDetailsSheet run={openRun} onClose={closeDetails} onListChange={onListChange} />
     </div>
   )
 }

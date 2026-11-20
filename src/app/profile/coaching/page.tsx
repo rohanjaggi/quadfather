@@ -11,26 +11,32 @@ import { toast } from '@/components/ui/Toast'
 const DEFAULT_PREFS: CoachingPrefs = {
   daily_coach: true,
   weekly_insights: true,
-  nudge_inactivity: true,
-  nudge_recovery: true,
-  nudge_nutrition_gap: true,
-  nudge_steps: true,
-  nudge_consistency: true,
+  // Opt-in, matching `determineNudgeTopic`, which only sends a nudge on a stored `true`.
+  nudge_inactivity: false,
+  nudge_recovery: false,
+  nudge_nutrition_gap: false,
+  nudge_steps: false,
+  nudge_consistency: false,
   pre_workout_suggestions: true,
   workout_analysis: true,
   weekly_exercise_digest: true,
 }
 
-const FEATURE_GROUPS: { label: string; features: { key: keyof CoachingPrefs; title: string; desc: string }[] }[] = [
+const FEATURE_GROUPS: {
+  label: string
+  note?: string
+  features: { key: keyof CoachingPrefs; title: string; desc: string }[]
+}[] = [
   {
     label: 'Messages',
     features: [
-      { key: 'daily_coach', title: 'Daily coach', desc: 'An evening tip based on what you ate' },
-      { key: 'weekly_insights', title: 'Weekly insights', desc: 'Patterns from your last seven days' },
+      { key: 'daily_coach', title: 'Evening summary', desc: 'Your day at 9pm, with a quick way to add anything you forgot' },
+      { key: 'weekly_insights', title: 'Weekly letter', desc: 'Monday morning: your week’s patterns and training' },
     ],
   },
   {
     label: 'Nudges',
+    note: 'Off by default. Turn one on to get a line in your evening summary when it applies.',
     features: [
       { key: 'nudge_inactivity', title: 'No recent workout', desc: 'When you haven’t trained in 5 days' },
       { key: 'nudge_recovery', title: 'Recovery', desc: 'When you’re training too hard' },
@@ -43,17 +49,14 @@ const FEATURE_GROUPS: { label: string; features: { key: keyof CoachingPrefs; tit
     label: 'Training',
     features: [
       { key: 'pre_workout_suggestions', title: 'Set suggestions', desc: 'Weight and rep ideas while you log' },
-      { key: 'workout_analysis', title: 'Workout review', desc: 'A short review after each workout' },
-      { key: 'weekly_exercise_digest', title: 'Weekly training summary', desc: 'Progress and stalled lifts each week' },
     ],
   },
 ]
 
 /**
- * The stored JSON is free-form and predates three of the toggles, so a saved
- * object is merged *over* the defaults rather than replacing them — otherwise a
- * user who saved before the exercise group shipped sees those three read as
- * `undefined` and render as off.
+ * The stored JSON is free-form and may lack newer keys, so a saved object is
+ * merged *over* the defaults rather than replacing them: a missing key shows its
+ * default, not `undefined` (which would render as off).
  */
 function withDefaults(stored: Partial<CoachingPrefs> | undefined): CoachingPrefs {
   return { ...DEFAULT_PREFS, ...stored }
@@ -181,7 +184,7 @@ export default function CoachingPage() {
     <div>
       <PageHeader
         title="Daily coach"
-        subtitle="Tips and check-ins, sent to your Telegram chat."
+        subtitle="Check-ins sent to your Telegram chat."
         back={{ href: '/profile', label: 'Settings' }}
       />
 
@@ -203,6 +206,9 @@ export default function CoachingPage() {
             style={{ paddingBottom: 8, opacity: masterEnabled ? 1 : 0.5, transition: 'opacity 0.3s ease' }}
           >
             <h2 className="card-title" style={{ margin: '0 0 2px' }}>{group.label}</h2>
+            {group.note && (
+              <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--muted)' }}>{group.note}</p>
+            )}
             {group.features.map((f, i) => (
               <Fragment key={f.key}>
                 {i > 0 && divider}

@@ -29,11 +29,13 @@ const stepBtn: React.CSSProperties = {
 const caption: React.CSSProperties = { margin: 0, fontSize: 14, color: 'var(--muted)' }
 
 export default function FoodHistoryPage() {
-  const { user } = useUser()
+  const { user, deleteFood } = useUser()
   const [date, setDate] = useState(() => addDays(dayKey(), -1))
   const [logs, setLogs] = useState<FoodLog[]>([])
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
+  const dateRef = useRef(date)
+  dateRef.current = date
 
   // Fast prev/next taps can land out of order — only the newest request writes.
   const requestIdRef = useRef(0)
@@ -55,6 +57,18 @@ export default function FoodHistoryPage() {
   useEffect(() => {
     fetchLogs(date)
   }, [date, fetchLogs])
+
+  // The row leaves at once; Undo puts it back, unless the user has paged to another day since.
+  function handleDelete(id: number) {
+    const log = logs.find(l => l.id === id)
+    const day = date
+    setLogs(prev => prev.filter(l => l.id !== id))
+    // Undo, or a server delete that fails, both put the row back.
+    const restore = () => {
+      if (log && dateRef.current === day) setLogs(prev => (prev.some(l => l.id === id) ? prev : [...prev, log]))
+    }
+    return deleteFood(id, { onUndo: restore, onFail: restore })
+  }
 
   function prevDay() {
     setDate(d => addDays(d, -1))
@@ -131,7 +145,7 @@ export default function FoodHistoryPage() {
               overIsBad
             />
             <p style={{ ...caption, fontSize: 13, margin: '8px 0 16px' }}>{macroLine(totals)}</p>
-            <MealList logs={logs} />
+            <MealList logs={logs} onDelete={handleDelete} />
           </>
         )}
       </section>

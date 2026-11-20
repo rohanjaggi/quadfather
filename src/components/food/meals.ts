@@ -29,3 +29,25 @@ export function groupByPartOfDay(logs: FoodLog[]): { label: PartOfDay; logs: Foo
     })
     .filter(g => g.logs.length > 0)
 }
+
+/** What a part of day is called when it's one meal: "Same as yesterday's lunch". */
+export const MEAL_NAME: Record<PartOfDay, string> = {
+  Morning: 'breakfast', Midday: 'lunch', Afternoon: 'snack', Evening: 'dinner',
+}
+
+/**
+ * The newest occurrence of each meal, by case-insensitive trimmed name, up to
+ * `limit`. `logs` must already be newest first.
+ */
+export function distinctRecent<T extends { food_name: string }>(logs: T[], limit = 10): T[] {
+  const seen = new Set<string>()
+  const out: T[] = []
+  for (const log of logs) {
+    const key = log.food_name.trim().toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(log)
+    if (out.length === limit) break
+  }
+  return out
+}

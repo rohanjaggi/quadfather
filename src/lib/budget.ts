@@ -122,6 +122,8 @@ export interface DailyBudgetResult extends DailyBudget {
   logs: {
     food: FoodLog[]
     workouts: WorkoutLog[]
+    /** Every run that day, including ones not counted toward the allowance. */
+    runs: RunLog[]
     /** Latest step sync for the day, or null if never synced. */
     step: StepLog | null
   }
@@ -168,6 +170,7 @@ export async function getDailyBudget(
     logs: {
       food: foodLogs,
       workouts: workoutLogs,
+      runs: runLogs,
       step: stepLog,
     },
   }

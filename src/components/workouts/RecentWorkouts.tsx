@@ -1,6 +1,5 @@
 'use client'
 
-import { useRef } from 'react'
 import Link from 'next/link'
 import type { WorkoutLog } from '@/types/workouts'
 import SummaryCard from '@/components/dashboard/SummaryCard'
@@ -21,18 +20,9 @@ export default function RecentWorkouts({ workouts, error, onRetry }: {
   onRetry: () => void
 }) {
   const { user } = useUser()
-  const showAnalysis = (user?.ai_coaching_prefs as Record<string, boolean> | undefined)?.workout_analysis !== false
 
   const loading = workouts === null && !error
   const last = workouts?.[0] ?? null
-
-  // Analysis is a paid LLM call (and sends a Telegram message), so only the
-  // newest session runs on its own, and only if it has none yet. Latched once
-  // so a re-render can never promote a different session into a paid call.
-  const autoAnalyseIdRef = useRef<number | null | undefined>(undefined)
-  if (autoAnalyseIdRef.current === undefined && last) {
-    autoAnalyseIdRef.current = last.analysis ? null : last.id
-  }
 
   const action = <Link href="/workouts/history" style={linkStyle}>History</Link>
 
@@ -72,13 +62,13 @@ export default function RecentWorkouts({ workouts, error, onRetry }: {
           </li>
         ))}
       </ol>
-      {showAnalysis && (last.analysis || user?.has_api_key) && (
+      {/* Analysis is a paid call: it runs only when the user taps for it. */}
+      {(last.analysis || user?.has_api_key) && (
         <div style={{ paddingTop: 14, borderTop: '1px solid var(--line)' }}>
           <WorkoutAnalysis
             workoutId={last.id}
             existingAnalysis={last.analysis}
             exercises={last.exercises}
-            autoAnalyse={last.id === autoAnalyseIdRef.current}
           />
         </div>
       )}

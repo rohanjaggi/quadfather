@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
 import Segmented from '@/components/ui/Segmented'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import RunCard, { RunRowsSkeleton, formatKey } from '@/components/running/RunCard'
+import RunDetailsSheet from '@/components/running/RunDetailsSheet'
 import { getRunHistory } from '@/lib/api'
 import { dayKey } from '@/lib/day'
 import type { RunLog } from '@/types/running'
@@ -69,6 +70,16 @@ export default function RunHistoryPage() {
 
   const months = groupByMonth(runs)
 
+  const [openRun, setOpenRun] = useState<RunLog | null>(null)
+  const closeDetails = useCallback(() => setOpenRun(null), [])
+  // A delete drops the row at once and Undo puts it back; a budget toggle updates it in place.
+  const onListChange = useCallback((run: RunLog, removed: boolean) => {
+    setRuns(prev => {
+      const rest = prev.filter(r => r.id !== run.id)
+      return removed ? rest : [...rest, run].sort((a, b) => new Date(b.run_date).getTime() - new Date(a.run_date).getTime())
+    })
+  }, [])
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <PageHeader title="All runs" back={{ href: '/running', label: 'Runs' }} />
@@ -102,12 +113,14 @@ export default function RunHistoryPage() {
           >
             <ol style={{ listStyle: 'none', margin: '-4px 0 -8px', padding: 0 }}>
               {month.runs.map((run, i) => (
-                <RunCard key={run.id} run={run} first={i === 0} />
+                <RunCard key={run.id} run={run} first={i === 0} onOpen={setOpenRun} />
               ))}
             </ol>
           </SummaryCard>
         ))
       )}
+
+      <RunDetailsSheet run={openRun} onClose={closeDetails} onListChange={onListChange} />
     </div>
   )
 }

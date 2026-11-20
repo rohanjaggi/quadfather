@@ -11,12 +11,10 @@ import MealComposer, { COMPOSER_INPUT_ID, PHOTO_INPUT_ID } from '@/components/fo
 import MealList from '@/components/food/MealList'
 import ManualFoodForm from '@/components/food/ManualFoodForm'
 import MealSuggestions from '@/components/food/MealSuggestions'
-import SavedFoodsCard, { SAVED_FOODS_ID } from '@/components/food/SavedFoodsCard'
+import LogAgainCard, { type LogAgainTab } from '@/components/food/LogAgainCard'
 import WaterCard from '@/components/water/WaterCard'
 import { useLandedMeal } from '@/components/food/useLandedMeal'
 import { useUser } from '@/context/UserContext'
-import { toast } from '@/components/ui/Toast'
-import { errorMessage } from '@/lib/errors'
 import { formatInt } from '@/lib/format'
 import { ChevronRightIcon } from '@/components/ui/icons'
 
@@ -34,6 +32,7 @@ function Food() {
   const mode = useSearchParams().get('mode')
   const { user, summary, foodLogs, deleteFood } = useUser()
   const [manualOpen, setManualOpen] = useState(false)
+  const [againRequest, setAgainRequest] = useState<{ tab: LogAgainTab } | null>(null)
   const openManual = useCallback(() => setManualOpen(true), [])
   const closeManual = useCallback(() => setManualOpen(false), [])
   const landedId = useLandedMeal(foodLogs)
@@ -44,22 +43,10 @@ function Food() {
     if (!mode) return
     if (mode === 'photo') document.getElementById(PHOTO_INPUT_ID)?.click()
     else if (mode === 'describe') document.getElementById(COMPOSER_INPUT_ID)?.focus()
-    else if (mode === 'saved') document.getElementById(SAVED_FOODS_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    else if (mode === 'again' || mode === 'saved') setAgainRequest({ tab: mode === 'saved' ? 'saved' : 'recent' })
     else if (mode === 'manual') setManualOpen(true)
     router.replace('/food', { scroll: false })
   }, [mode, router])
-
-  // Shows the failure, then RETHROWS: `SwipeToDelete` awaits `onDelete` and
-  // restores the row when it rejects. Swallowing the error here would leave a
-  // meal that still exists hidden until the next refresh.
-  async function handleDeleteMeal(id: number) {
-    try {
-      await deleteFood(id)
-    } catch (err) {
-      toast(errorMessage(err, 'Could not delete that meal'))
-      throw err
-    }
-  }
 
   let subtitle: React.ReactNode
   if (summary) {
@@ -105,11 +92,12 @@ function Food() {
               : 'Nothing logged yet today. Enter your first meal below.'}
           </p>
         ) : (
-          <MealList logs={foodLogs} landedId={landedId} onDelete={handleDeleteMeal} />
+          // Undoable: the row leaves at once and the toast offers Undo.
+          <MealList logs={foodLogs} landedId={landedId} onDelete={deleteFood} />
         )}
       </SummaryCard>
 
-      <SavedFoodsCard />
+      <LogAgainCard requested={againRequest} />
       <WaterCard />
       <MealSuggestions />
 

@@ -12,9 +12,10 @@ import { useHaptic } from '@/components/telegram'
 import { formatTime } from '@/lib/format'
 import { toast } from '@/components/ui/Toast'
 import { errorMessage } from '@/lib/errors'
-import type { WaterLog } from '@/types/api'
+import { toastLogged } from '@/components/food/logged'
+import type { WaterLog, WaterLogCreate } from '@/types/api'
 
-type Busy = null | 'add' | 'custom' | 'delete'
+type Busy = null | 'add' | 'custom'
 
 const caption: React.CSSProperties = { margin: 0, fontSize: 13, color: 'var(--muted)' }
 
@@ -47,18 +48,16 @@ export default function WaterPage() {
   const goal = user?.goals.daily_water_goal ?? 3
   const bottleSize = user?.water_bottle_size ?? 0.5
 
-  /**
-   * Runs one water mutation at a time. Rejects when another is in flight or it
-   * fails (after a toast), so `SwipeToDelete` can put a row back.
-   */
-  async function mutate(kind: Exclude<Busy, null>, action: () => Promise<void>, failMessage: string) {
+  /** Logs water, one request at a time; rejects (after a toast) when another is in flight or it fails. */
+  async function add(kind: Exclude<Busy, null>, data: WaterLogCreate) {
     if (inFlight.current) throw new Error('Another water change is still saving')
     inFlight.current = true
     setBusy(kind)
     try {
-      await action()
+      const log = await logWater(data)
+      toastLogged(`Water logged · ${formatLiters(log.amount_liters)} L`, () => deleteWater(log.id, { undoable: false }))
     } catch (err) {
-      toast(errorMessage(err, failMessage))
+      toast(errorMessage(err, 'Could not log water'))
       throw err
     } finally {
       inFlight.current = false
@@ -68,18 +67,18 @@ export default function WaterPage() {
 
   function handleAdd() {
     haptic.impact('light')
-    mutate('add', () => logWater({ bottles: 1 }), 'Could not log water').catch(() => {})
+    add('add', { bottles: 1 }).catch(() => {})
   }
 
   function handleCustomAdd(e: React.FormEvent) {
     e.preventDefault()
     const ml = parseFloat(customAmount)
     if (!(ml > 0)) return
-    mutate('custom', () => logWater({ amount_liters: ml / 1000 }), 'Could not log water')
-      .then(closeCustom, () => {})
+    add('custom', { amount_liters: ml / 1000 }).then(closeCustom, () => {})
   }
 
-  const removeEntry = (id: number) => mutate('delete', () => deleteWater(id), 'Could not remove that log')
+  // Undoable: the row leaves at once and the toast offers Undo.
+  const removeEntry = (id: number) => deleteWater(id)
 
   const customMl = parseFloat(customAmount)
   const customValid = customMl > 0

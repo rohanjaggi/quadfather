@@ -67,7 +67,10 @@ function toWeight(raw: string): number | null {
 
 interface WorkoutFormProps {
   initialName?: string
-  initialExercises?: { exercise_name: string; sets: ExerciseSet[] }[]
+  initialExercises?: { exercise_name: string; exercise_id?: number | null; sets: ExerciseSet[] }[]
+  /** Set when Undo reopens a just-saved workout. */
+  initialDuration?: number
+  initialNotes?: string
   templateId?: number
   onSave: (data: { name: string; exercises: ExerciseLogEntry[]; duration_minutes?: number; notes?: string; template_id?: number }) => Promise<void>
   /** "Start over": back to choosing how to start. */
@@ -84,7 +87,7 @@ const numberInput: React.CSSProperties = {
   fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em', minWidth: 0,
 }
 
-export default function WorkoutForm({ initialName, initialExercises, templateId, onSave, onClose }: WorkoutFormProps) {
+export default function WorkoutForm({ initialName, initialExercises, initialDuration, initialNotes, templateId, onSave, onClose }: WorkoutFormProps) {
   const { user } = useUser()
   const showSuggestions = (user?.ai_coaching_prefs as Record<string, boolean> | undefined)?.pre_workout_suggestions !== false
 
@@ -96,15 +99,15 @@ export default function WorkoutForm({ initialName, initialExercises, templateId,
     (initialExercises ?? []).map(ex => ({
       uid: uid(),
       exercise_name: ex.exercise_name,
-      exercise_id: null,
+      exercise_id: ex.exercise_id ?? null,
       sets: ex.sets.length > 0 ? ex.sets.map(toDraftSet) : [blankSet()],
       resolved: ex.exercise_name.trim().length > 0,
       suggest: '',
     })),
   )
   const [adding, setAdding] = useState('')
-  const [duration, setDuration] = useState('')
-  const [notes, setNotes] = useState('')
+  const [duration, setDuration] = useState(initialDuration ? String(initialDuration) : '')
+  const [notes, setNotes] = useState(initialNotes ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   /** Only a failed save gets "Retry saving"; a validation hint keeps "Finish workout". */
@@ -355,7 +358,7 @@ export default function WorkoutForm({ initialName, initialExercises, templateId,
       </section>
 
       {/* Pinned above the tab bar; the form's bottom padding keeps it off the last inputs. */}
-      <div style={{
+      <div data-dock style={{
         position: 'fixed', left: 0, right: 0, zIndex: 20,
         bottom: 'calc(84px + env(safe-area-inset-bottom))',
         padding: '18px 18px 8px',

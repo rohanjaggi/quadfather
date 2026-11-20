@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { groupByPartOfDay, macroLine, partOfDay } from './meals'
+import { distinctRecent, groupByPartOfDay, macroLine, partOfDay } from './meals'
 import type { FoodLog } from '@/types/api'
 
 // Built from local wall-clock times so the test holds in any device timezone.
@@ -28,4 +28,16 @@ test('groupByPartOfDay orders by time, drops empty parts, sums kcal', () => {
 test('macroLine reads in plain words', () => {
   assert.equal(macroLine({ protein: 32.4, carbohydrates: 80, fats: 18 }), '32 g protein · 80 g carbs · 18 g fat')
   assert.equal(macroLine({ protein: 1, carbohydrates: 2, fats: 3, fiber: 4 }, true), '1 g protein · 2 g carbs · 3 g fat · 4 g fibre')
+})
+
+test('distinctRecent keeps the newest of each name, ignoring case and spaces, up to the limit', () => {
+  const logs = [
+    { id: 5, food_name: 'Kopi ' },
+    { id: 4, food_name: 'Chicken rice' },
+    { id: 3, food_name: 'kopi' },
+    { id: 2, food_name: 'Toast' },
+    { id: 1, food_name: 'CHICKEN RICE' },
+  ]
+  assert.deepEqual(distinctRecent(logs).map(l => l.id), [5, 4, 2])
+  assert.deepEqual(distinctRecent(logs, 2).map(l => l.id), [5, 4])
 })

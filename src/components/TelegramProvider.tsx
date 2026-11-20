@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from 'react'
 import WebApp from '@twa-dev/sdk'
-import { BackContext, HapticContext, type BackAPI, type HapticAPI } from '@/components/telegram'
+import { BackContext, HapticContext, enterFullscreen, type BackAPI, type HapticAPI } from '@/components/telegram'
 
 /**
  * The app's own background, hard-coded in `globals.css` (`body` background-color
@@ -43,6 +43,8 @@ export default function TelegramProvider({ children }: { children: React.ReactNo
     if (typeof WebApp.disableVerticalSwipes === 'function') {
       tryWebAppCall(() => WebApp.disableVerticalSwipes())
     }
+    // Bot API 8.0: open like an app, edge to edge. No-op on older clients.
+    return enterFullscreen()
   }, [])
 
   const haptic = useMemo<HapticAPI>(() => {

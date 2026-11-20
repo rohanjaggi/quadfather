@@ -27,15 +27,15 @@ export function checkCronAuth(request: NextRequest): NextResponse | null {
 }
 
 /**
- * Authenticate the cron, then run `send` for every AI-enabled user with a key who hasn't
- * switched `pref` off. `send` returns whether a message went out; one user's failure never
- * stops the loop.
+ * Authenticate the cron, then run `send` for every AI-enabled user who hasn't switched `pref`
+ * off. `ai` is null when the user has no usable key, so routes that call a model must check it.
+ * `send` returns whether a message went out; one user's failure never stops the loop.
  */
 export async function forEachCronUser(
   request: NextRequest,
   pref: string,
   label: string,
-  send: (user: User, ai: AICredentials) => Promise<boolean>,
+  send: (user: User, ai: AICredentials | null) => Promise<boolean>,
 ): Promise<NextResponse> {
   const authFailure = checkCronAuth(request)
   if (authFailure) return authFailure
@@ -56,9 +56,16 @@ export async function forEachCronUser(
     if (coachPrefs?.[pref] === false) continue
 
     try {
-      // Inside the per-user try: decrypting the stored key throws on a rotated ENCRYPTION_KEY or corrupt ciphertext.
-      const ai = findUserAICredentials(user)
-      if (ai && (await send(user, ai))) sent++
+      // A stored key that can't be decrypted (rotated ENCRYPTION_KEY, corrupt
+      // ciphertext) only costs this user the AI parts: crons that need no AI
+      // (the evening summary) still send, and AI crons return early on null.
+      let creds: ReturnType<typeof findUserAICredentials> = null
+      try {
+        creds = findUserAICredentials(user)
+      } catch (err) {
+        console.error(`${label}: could not decrypt AI key for user ${user.id}:`, err)
+      }
+      if (await send(user, creds)) sent++
     } catch (err) {
       console.error(`${label} failed for user ${user.id}:`, err)
     }

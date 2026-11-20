@@ -5,8 +5,9 @@ import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
 import Sheet from '@/components/ui/Sheet'
 import ManualFoodForm, { type FoodValues } from '@/components/food/ManualFoodForm'
-import { savedFoodLog } from '@/components/food/SavedFoodsCard'
+import { savedFoodLog } from '@/components/food/LogAgainCard'
 import { macroLine } from '@/components/food/meals'
+import { toastMealLogged } from '@/components/food/logged'
 import { useUser } from '@/context/UserContext'
 import { useHaptic } from '@/components/telegram'
 import { toast } from '@/components/ui/Toast'
@@ -17,7 +18,7 @@ import type { SavedFood } from '@/types/api'
 const caption: React.CSSProperties = { margin: 0, fontSize: 13, color: 'var(--muted)' }
 
 export default function FavouritesPage() {
-  const { savedFoods, logFood } = useUser()
+  const { savedFoods, logFood, deleteFood } = useUser()
   const haptic = useHaptic()
   const [pendingId, setPendingId] = useState<number | null>(null)
   const [openId, setOpenId] = useState<number | null>(null)
@@ -29,9 +30,9 @@ export default function FavouritesPage() {
     setPendingId(food.id)
     haptic.impact('light')
     try {
-      await logFood(savedFoodLog(food))
+      const log = await logFood(savedFoodLog(food))
       haptic.notification('success')
-      toast(`Logged · ${formatInt(food.calories)} kcal`, { type: 'success' })
+      toastMealLogged(log, deleteFood)
     } catch (err) {
       haptic.notification('error')
       toast(errorMessage(err, `Could not log ${food.name}`))
@@ -94,11 +95,9 @@ export default function FavouritesPage() {
   )
 }
 
-/** Edit a saved food, or delete it after a confirm step. */
+/** Edit a saved food, or delete it (the toast offers Undo). */
 function SavedFoodEditor({ food, onDone }: { food: SavedFood; onDone: () => void }) {
   const { updateSavedFood, deleteSavedFood } = useUser()
-  const [confirming, setConfirming] = useState(false)
-  const [deleting, setDeleting] = useState(false)
 
   async function handleSave(v: FoodValues) {
     await updateSavedFood(food.id, {
@@ -112,32 +111,10 @@ function SavedFoodEditor({ food, onDone }: { food: SavedFood; onDone: () => void
     onDone()
   }
 
-  async function handleDelete() {
-    if (deleting) return
-    setDeleting(true)
-    try {
-      await deleteSavedFood(food.id)
-      onDone()
-    } catch (err) {
-      toast(errorMessage(err, 'Could not delete that saved food'))
-      setDeleting(false)
-    }
-  }
-
-  if (confirming) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <p style={{ margin: '0 0 6px', fontSize: 15 }}>
-          Delete &ldquo;{food.name}&rdquo; from saved foods? Meals you&apos;ve already logged stay.
-        </p>
-        <button type="button" className="btn-secondary" onClick={handleDelete} disabled={deleting} style={{ color: 'var(--over)' }}>
-          {deleting ? 'Deleting…' : 'Delete'}
-        </button>
-        <button type="button" className="btn-ghost" onClick={() => setConfirming(false)} disabled={deleting}>
-          Keep it
-        </button>
-      </div>
-    )
+  // Closing first matters: Undo puts the food back, and a still-set id would reopen this sheet.
+  function handleDelete() {
+    onDone()
+    deleteSavedFood(food.id)
   }
 
   return (
@@ -147,7 +124,7 @@ function SavedFoodEditor({ food, onDone }: { food: SavedFood; onDone: () => void
         onApply={handleSave}
         submitLabel="Save changes"
       />
-      <button type="button" className="btn-ghost" onClick={() => setConfirming(true)} style={{ color: 'var(--over)' }}>
+      <button type="button" className="btn-ghost" onClick={handleDelete} style={{ color: 'var(--over)' }}>
         Delete from saved foods
       </button>
     </div>

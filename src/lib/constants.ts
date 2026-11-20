@@ -12,3 +12,8 @@ export const EXERCISE_DAMPENING = 0.5
 
 /** Default bodyweight used when the user hasn't entered one. */
 export const DEFAULT_BODYWEIGHT_KG = 70
+
+/** Estimated kcal burned running `km` at `weightKg` (~1.036 kcal per kg per km), rounded. */
+export function runKcal(km: number, weightKg: number): number {
+  return Math.round(km * weightKg * 1.036)
+}

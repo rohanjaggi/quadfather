@@ -1,5 +1,6 @@
 'use client'
 
+import { formatTime } from '@/lib/format'
 import type { FoodLog, WaterLog } from '@/types/api'
 import type { WorkoutLog } from '@/types/workouts'
 
@@ -10,10 +11,6 @@ interface ActivityItem {
   detail: string
   time: string
   timestamp: number
-}
-
-function formatTime(isoString: string) {
-  return new Date(isoString).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
 function mergeActivity(foodLogs: FoodLog[], waterLogs: WaterLog[], workoutLogs: WorkoutLog[]): ActivityItem[] {

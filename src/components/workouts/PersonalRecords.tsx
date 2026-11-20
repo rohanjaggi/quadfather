@@ -15,11 +15,13 @@ export default function PersonalRecords({ period }: Props) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let stale = false
     setLoading(true)
     getWorkoutPRs(period)
-      .then(data => setPrs(data.prs))
+      .then(data => { if (!stale) setPrs(data.prs) })
       .catch(console.error)
-      .finally(() => setLoading(false))
+      .finally(() => { if (!stale) setLoading(false) })
+    return () => { stale = true }
   }, [period])
 
   const displayPrs = prs.slice(0, 3)

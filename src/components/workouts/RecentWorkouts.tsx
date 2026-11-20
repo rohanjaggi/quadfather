@@ -6,6 +6,7 @@ import { getWorkouts, deleteWorkout } from '@/lib/api'
 import type { WorkoutLog } from '@/types/workouts'
 import WorkoutAnalysis from './WorkoutAnalysis'
 import { useUser } from '@/context/UserContext'
+import { dayKey } from '@/lib/day'
 import SwipeToDelete, { SwipeDeleteProvider } from '@/components/SwipeToDelete'
 import { toast, errorMessage } from '@/components/ui/Toast'
 
@@ -78,12 +79,7 @@ export default function RecentWorkouts() {
       <SwipeDeleteProvider>
         {visible.map(w => {
           const totalSets = w.exercises.reduce((s, ex) => s + ex.sets.length, 0)
-          // `workout_date` is a UTC-day timestamp and the rest of the app reads
-          // it as one (`workout_date.startsWith(today)` on the dashboard,
-          // `split('T')[0]` in `lib/volume`). Formatting it in local time
-          // rendered the previous day for anyone west of UTC, so the day part
-          // is taken as-is and formatted in UTC.
-          const date = new Date(`${w.workout_date.split('T')[0]}T00:00:00Z`)
+          const date = new Date(`${dayKey(new Date(w.workout_date))}T00:00:00Z`)
             .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
           return (
             <SwipeToDelete key={w.id} id={`workout-${w.id}`} onDelete={() => handleDelete(w.id)} borderRadius="14px">

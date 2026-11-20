@@ -3,20 +3,16 @@ import { prisma } from "./prisma";
 import { analyseMeal, parseFood } from "./ai";
 import type { MealAnalysisResult } from "./ai";
 import type { AIProvider } from "./models";
-import { encrypt, decrypt } from "./crypto";
+import { findUserAICredentials } from "./auth";
+import { encrypt } from "./crypto";
 import { escapeHtml } from "./html";
-import { getDailyBudget, startOfUtcDay } from "./budget";
+import { getDailyBudget } from "./budget";
+import { buildDailyCoach, buildWeeklyInsights } from "./coach";
+import { dayRange } from "./day";
 
 const BOT_TOKEN = process.env.BOTFATHER_TOKEN ?? "";
 
-/**
- * Base URL for the Mini App the inline buttons open. There is no sensible
- * default: the old `https://your-app.vercel.app` placeholder produced buttons
- * that opened a stranger's domain (or nothing) with no error anywhere. When it
- * is unset we complain once at module load and simply omit the buttons — the
- * bot's in-chat commands (/today, /log_meal, /log_water, /coach, /insights)
- * keep working.
- */
+/** Mini App base URL for inline buttons. Unset: log once and omit the buttons; in-chat commands still work. */
 const MINI_APP_URL = process.env.MINI_APP_URL ?? "";
 if (!MINI_APP_URL) {
   console.error(
@@ -24,21 +20,14 @@ if (!MINI_APP_URL) {
   );
 }
 
-const VALID_PROVIDERS: AIProvider[] = ["openai", "anthropic", "gemini"];
-
-const DAY_MS = 86400000;
-
 let _bot: Bot | null = null;
 
-function initBot(): Bot {
+export function getBot(): Bot {
   if (_bot) return _bot;
   _bot = new Bot(BOT_TOKEN);
   _bot.catch(async (err) => {
     console.error("Bot error:", err);
-    // Reached via `bot.handleUpdates` when long-polling, and via the explicit
-    // `bot.errorHandler(err)` call the webhook route makes after
-    // `handleUpdate` rejects — that is what keeps this reply user-visible even
-    // though the webhook has already acknowledged Telegram.
+    // Reached via `bot.handleUpdates` (long-polling) and the webhook route's explicit `bot.errorHandler(err)`.
     try {
       await err.ctx.reply(
         "Something went wrong handling that. Please try again in a moment.",
@@ -51,8 +40,9 @@ function initBot(): Bot {
   return _bot;
 }
 
-export function getBot(): Bot {
-  return initBot();
+/** Push an HTML message to a user outside any chat update (crons, workout analysis). */
+export async function sendHtml(telegramId: bigint, html: string): Promise<void> {
+  await getBot().api.sendMessage(Number(telegramId), html, { parse_mode: "HTML" });
 }
 
 /** `undefined` when `MINI_APP_URL` is unset — grammY then sends no keyboard. */
@@ -67,11 +57,7 @@ function progressBar(current: number, goal: number, width = 10): string {
   return "\u{2588}".repeat(filled) + "\u{2591}".repeat(width - filled);
 }
 
-/**
- * Today's headline numbers, derived from the canonical daily budget so the bot
- * always agrees with the dashboard (the calorie goal includes the dampened
- * run/workout credit and the step allowance).
- */
+/** Today's headline numbers from the canonical daily budget, so the bot agrees with the dashboard. */
 async function getSummary(telegramId: number) {
   const user = await prisma.user.findUnique({
     where: { telegram_id: telegramId },
@@ -97,11 +83,7 @@ async function getSummary(telegramId: number) {
   };
 }
 
-/**
- * `FoodLog.food_name` is `VarChar(100)` and `source` is `VarChar(20)`; anything
- * past `MAX_MACRO` in a single meal is a model hallucination, not food.
- * Mirrors the bounds POST /api/foods enforces.
- */
+/** `FoodLog.food_name` is VarChar(100), `source` VarChar(20); mirrors the bounds POST /api/foods enforces. */
 const MAX_NAME = 100;
 const MAX_SOURCE = 20;
 const MAX_MACRO = 100_000;
@@ -111,15 +93,7 @@ function clampMacro(value: number): number {
   return Math.min(Math.max(value, 0), MAX_MACRO);
 }
 
-/**
- * Row payload for a bot-side `FoodLog.create`.
- *
- * The bot writes to Prisma directly instead of going through POST /api/foods, so
- * none of that route's validation applied: a 120-character AI food name threw a
- * raw Prisma "value too long" *after* the analysis had been paid for, and a
- * hallucinated 9-digit calorie count went straight into the daily totals. Build
- * the row here so both call sites (photo and /log_meal) get the same bounds.
- */
+/** Row payload for a bot-side `FoodLog.create`; the bot bypasses POST /api/foods, so bounds are applied here. */
 function foodLogData(
   userId: number,
   result: MealAnalysisResult,
@@ -145,12 +119,7 @@ const CONFIDENCE_EMOJI: Record<string, string> = {
   low: "\u{1F534}",
 };
 
-/**
- * Build both renderings of a "meal logged" confirmation: the HTML one we
- * normally send, and a plain-text fallback used when Telegram rejects the
- * HTML message. The food log is already written by the time we get here, so
- * the user must never be told the analysis failed.
- */
+/** Both renderings of a "meal logged" confirmation: HTML, and plain text for when Telegram rejects the HTML. */
 function mealConfirmation(result: MealAnalysisResult): {
   html: string;
   plain: string;
@@ -178,13 +147,8 @@ function mealConfirmation(result: MealAnalysisResult): {
 }
 
 /**
- * Telegram rejects any message body over 4096 characters. Stay clear of the
- * limit — an LLM reply that overshoots must degrade to a truncated message, not
- * to a stuck "Thinking…" placeholder.
- *
- * Exported because the cron digests send AI prose straight to `sendMessage` with
- * no placeholder to fall back on: over the limit, Telegram 400s and the user
- * simply never receives that morning's digest.
+ * Telegram rejects message bodies over 4096 characters. Exported because the cron
+ * digests send AI prose with no placeholder to fall back on.
  */
 export const TELEGRAM_TEXT_LIMIT = 4000;
 
@@ -192,14 +156,7 @@ export function clamp(text: string, limit: number = TELEGRAM_TEXT_LIMIT): string
   return text.length > limit ? `${text.slice(0, limit - 1)}\u{2026}` : text;
 }
 
-/**
- * `clamp` for a string whose body has already been HTML-escaped.
- *
- * A blind slice can land inside an escape sequence ("&am"), and Telegram rejects
- * that with the same 400 the clamp exists to prevent — so drop any dangling
- * partial entity at the cut. Only entities can be split here: the sole raw tags
- * are in the caller's own header, ahead of the escaped body.
- */
+/** `clamp` for an already-escaped body: drops a dangling partial entity ("&am") at the cut, which Telegram 400s on. */
 export function clampHtml(text: string, limit: number = TELEGRAM_TEXT_LIMIT): string {
   if (text.length <= limit) return text;
   const head = text.slice(0, limit - 1).replace(/&[a-zA-Z#0-9]{0,9}$/, "");
@@ -207,19 +164,17 @@ export function clampHtml(text: string, limit: number = TELEGRAM_TEXT_LIMIT): st
 }
 
 /**
- * Replace a "thinking…" placeholder with real content, in three stages:
- * HTML edit → the same text with no `parse_mode` → a fresh plain reply (and
- * then remove the placeholder so it is not left hanging). Every failure is
- * swallowed: callers use this only once the underlying work has succeeded, so
- * a Telegram parse/length error must never look like the work failed.
+ * Replace a "thinking…" placeholder: HTML edit, then plain edit, then a fresh reply
+ * (deleting the placeholder). Failures are swallowed so a Telegram error never
+ * looks like the work failed.
  */
 async function deliverText(
   ctx: Context,
-  chatId: number,
   messageId: number,
   html: string,
   plain: string,
 ): Promise<void> {
+  const chatId = ctx.chat!.id;
   const htmlText = clamp(html);
   const plainText = clamp(plain);
 
@@ -246,26 +201,12 @@ async function deliverText(
     return;
   }
 
-  // The content landed in a new message, so drop the placeholder. Deleting
-  // first would risk leaving the user with nothing if the reply also failed.
+  // Delete the placeholder only after the reply landed, so a failure can't leave the user with nothing.
   try {
     await ctx.api.deleteMessage(chatId, messageId);
   } catch (err) {
     console.error("Placeholder cleanup failed:", err);
   }
-}
-
-/**
- * Deliver a confirmation for something already persisted. The food log is
- * written by the time we get here, so the user must never be told it failed.
- */
-async function deliverConfirmation(
-  ctx: Context,
-  messageId: number,
-  html: string,
-  plain: string,
-): Promise<void> {
-  await deliverText(ctx, ctx.chat!.id, messageId, html, plain);
 }
 
 /** Best-effort message edit — used for error paths that must not throw. */
@@ -282,40 +223,32 @@ async function safeEdit(
   }
 }
 
-interface ResolvedAI {
-  provider: AIProvider;
-  apiKey: string;
-  model: string | null;
-  /** `own` = the user's BYOK key; `server` = this deployment's fallback key. */
-  source: "own" | "server";
+/** The sender's account row, or null after telling them to open the Mini App (only it creates the row). */
+async function requireUser(ctx: Context) {
+  const user = await prisma.user.findUnique({
+    where: { telegram_id: ctx.from!.id },
+  });
+  if (!user) {
+    await ctx.reply(
+      "You need to open the app first to set up your account.",
+      { reply_markup: appButton("Open Quadfather", "") },
+    );
+  }
+  return user;
 }
 
-async function getUserAI(telegramId: number): Promise<ResolvedAI | null> {
-  const user = await prisma.user.findUnique({
-    where: { telegram_id: telegramId },
-  });
+/** `requireUser` plus an AI key (the user's own or the shared server key). */
+async function requireUserAI(ctx: Context) {
+  const user = await requireUser(ctx);
   if (!user) return null;
-
-  if (user.ai_provider && user.ai_api_key) {
-    return {
-      provider: user.ai_provider as AIProvider,
-      apiKey: decrypt(user.ai_api_key),
-      model: user.ai_model,
-      source: "own",
-    };
+  const ai = findUserAICredentials(user);
+  if (!ai) {
+    await ctx.reply(
+      "You need to set up an API key first.\n\nUse /key to get started.",
+    );
+    return null;
   }
-
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    return { provider: "gemini", apiKey: geminiKey, model: null, source: "server" };
-  }
-
-  const openrouterKey = process.env.OPENROUTER_API_KEY;
-  if (openrouterKey) {
-    return { provider: "openrouter", apiKey: openrouterKey, model: null, source: "server" };
-  }
-
-  return null;
+  return { user, ai };
 }
 
 function registerHandlers(bot: Bot) {
@@ -414,8 +347,7 @@ function registerHandlers(bot: Bot) {
       text =
         `\u{1F4A7} <b>Water today:</b> ${wat.total}L / ${wat.goal}L  (${watPct}%)\n` +
         `<code>${progressBar(wat.total, wat.goal)}</code>\n\n` +
-        // No MINI_APP_URL means `appButton` returns undefined and there is no
-        // button to tap — point at the in-chat command instead of at nothing.
+        // No MINI_APP_URL means no button; point at the in-chat command.
         (MINI_APP_URL
           ? "Tap below to log your next bottle."
           : "Use /log_water to log your next bottle.");
@@ -430,16 +362,8 @@ function registerHandlers(bot: Bot) {
   });
 
   bot.command("log_water", async (ctx) => {
-    const user = await prisma.user.findUnique({
-      where: { telegram_id: ctx.from!.id },
-    });
-    if (!user) {
-      await ctx.reply(
-        "You need to open the app first to set up your account.",
-        { reply_markup: appButton("Open Quadfather", "") },
-      );
-      return;
-    }
+    const user = await requireUser(ctx);
+    if (!user) return;
 
     const bottleSize = user.water_bottle_size;
     await prisma.waterLog.create({
@@ -451,13 +375,10 @@ function registerHandlers(bot: Bot) {
       },
     });
 
-    // The bottle is saved. Everything below is presentation, so a failure in the
-    // running-total query or in Telegram itself must not reach `bot.catch` — its
-    // generic "please try again" made users re-tap and log the bottle twice.
+    // Everything below is presentation; a failure must not reach `bot.catch`, whose "try again" made users double-log.
     try {
-      const todayStart = startOfUtcDay();
       const todayLogs = await prisma.waterLog.findMany({
-        where: { user_id: user.id, logged_at: { gte: todayStart } },
+        where: { user_id: user.id, logged_at: { gte: dayRange().start } },
       });
       const totalLiters = todayLogs.reduce((s, l) => s + l.amount_liters, 0);
       const pct = user.daily_water_goal > 0
@@ -490,30 +411,15 @@ function registerHandlers(bot: Bot) {
       return;
     }
 
-    const ai = await getUserAI(ctx.from!.id);
-    if (!ai) {
-      await ctx.reply(
-        "You need to set up an API key first.\n\nUse /key to get started.",
-      );
-      return;
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { telegram_id: ctx.from!.id },
-    });
-    if (!user) {
-      await ctx.reply(
-        "You need to open the app first to set up your account.",
-        { reply_markup: appButton("Open Quadfather", "") },
-      );
-      return;
-    }
+    const found = await requireUserAI(ctx);
+    if (!found) return;
+    const { user, ai } = found;
 
     const thinking = await ctx.reply("\u{1F50D} Analysing...");
 
     let result: MealAnalysisResult;
     try {
-      result = await parseFood(ai.provider, ai.apiKey, ai.model, description);
+      result = await parseFood(ai, description);
 
       await prisma.foodLog.create({
         data: foodLogData(user.id, result, ai.provider, description),
@@ -529,9 +435,9 @@ function registerHandlers(bot: Bot) {
       return;
     }
 
-    // The meal is logged — from here on a failure must never say "try again".
+    // The meal is logged; a failure from here must never say "try again".
     const { html, plain } = mealConfirmation(result);
-    await deliverConfirmation(ctx, thinking.message_id, html, plain);
+    await deliverText(ctx, thinking.message_id, html, plain);
   });
 
   bot.command("trends", async (ctx) => {
@@ -555,13 +461,14 @@ function registerHandlers(bot: Bot) {
   });
 
   bot.command("key", async (ctx) => {
-    const ai = await getUserAI(ctx.from!.id);
-    // `getUserAI` falls back to this deployment's shared key, so "you have a
-    // <provider> key set" was a lie for anyone who had never saved one.
+    const user = await requireUser(ctx);
+    if (!user) return;
+    const ai = findUserAICredentials(user);
+    // The lookup falls back to the shared key, so also check the user's own.
     let status = "";
-    if (ai?.source === "own") {
+    if (ai && user.ai_provider && user.ai_api_key) {
       status = `\u{2705} You're using <b>your own ${escapeHtml(ai.provider)}</b> key.\n\n`;
-    } else if (ai?.source === "server") {
+    } else if (ai) {
       status =
         `\u{2139}\u{FE0F} You haven't set a key, so you're on the <b>shared server key</b> ` +
         `(${escapeHtml(ai.provider)}). Send your own below to use it instead.\n\n`;
@@ -579,23 +486,14 @@ function registerHandlers(bot: Bot) {
   });
 
   bot.command("coach", async (ctx) => {
-    const ai = await getUserAI(ctx.from!.id);
-    if (!ai) {
-      await ctx.reply("You need to set up an API key first.\n\nUse /key to get started.");
-      return;
-    }
-
-    const user = await prisma.user.findUnique({ where: { telegram_id: ctx.from!.id } });
-    if (!user) {
-      await ctx.reply("You need to open the app first.", { reply_markup: appButton("Open Quadfather", "") });
-      return;
-    }
+    const found = await requireUserAI(ctx);
+    if (!found) return;
+    const { user, ai } = found;
 
     const thinking = await ctx.reply("\u{1F9E0} Thinking...");
 
     try {
-      // Canonical budget: runs + workouts (dampened) + step allowance, exactly
-      // like the dashboard and the daily-coach cron.
+      // Canonical budget, as on the dashboard and the daily-coach cron.
       const budget = await getDailyBudget(user);
 
       if (budget.logs.food.length === 0) {
@@ -603,42 +501,11 @@ function registerHandlers(bot: Bot) {
         return;
       }
 
-      const { generateDailyCoach } = await import("./ai");
-
-      const consumed = {
-        calories: Math.round(budget.food.calories),
-        protein: Math.round(budget.food.protein),
-        carbs: Math.round(budget.food.carbohydrates),
-        fats: Math.round(budget.food.fats),
-      };
-      const meals = budget.logs.food.map(l => l.food_name).filter((n): n is string => !!n);
-      // Raw burn is what the coach talks about; the dampened credit is already
-      // baked into `total_goal` / `remaining`.
-      const exerciseCalories = budget.runs_raw + budget.workouts_raw;
-      const dietaryRestrictions: string[] = user.dietary_restrictions
-        ? JSON.parse(user.dietary_restrictions) : [];
-
-      const message = await generateDailyCoach(ai.provider, ai.apiKey, ai.model, {
-        goals: { calories: Math.round(budget.total_goal), protein: user.daily_protein_goal },
-        consumed,
-        meals,
-        waterConsumed: budget.water_liters,
-        waterGoal: user.daily_water_goal,
-        exerciseCalories,
-        dietaryRestrictions,
-        // Same shape the daily-coach cron sends. No streak here: it would need
-        // a 30-day step history fetch for a single conversational aside.
-        steps: {
-          today: budget.steps,
-          goal: user.daily_step_goal,
-          streak: 0,
-          extraAllowance: budget.steps_credit,
-        },
-      });
+      // No streak: it would need a 30-day step history fetch.
+      const message = await buildDailyCoach(user, ai, budget, 0);
 
       await deliverText(
         ctx,
-        ctx.chat!.id,
         thinking.message_id,
         `\u{1F4AC} <b>Daily Coach</b>\n\n${escapeHtml(message)}`,
         `\u{1F4AC} Daily Coach\n\n${message}`,
@@ -650,81 +517,22 @@ function registerHandlers(bot: Bot) {
   });
 
   bot.command("insights", async (ctx) => {
-    const ai = await getUserAI(ctx.from!.id);
-    if (!ai) {
-      await ctx.reply("You need to set up an API key first.\n\nUse /key to get started.");
-      return;
-    }
-
-    const user = await prisma.user.findUnique({ where: { telegram_id: ctx.from!.id } });
-    if (!user) {
-      await ctx.reply("You need to open the app first.", { reply_markup: appButton("Open Quadfather", "") });
-      return;
-    }
+    const found = await requireUserAI(ctx);
+    if (!found) return;
+    const { user, ai } = found;
 
     const thinking = await ctx.reply("\u{1F4CA} Analysing your week...");
 
     try {
-      // The 7 *complete* previous UTC days: [day-7 00:00, today 00:00).
-      // Today is excluded — it is still in progress and would drag averages
-      // down. Mirrors /api/cron/weekly-insights.
-      const todayStart = startOfUtcDay();
-      const weekStart = new Date(todayStart.getTime() - 7 * DAY_MS);
+      const insights = await buildWeeklyInsights(user, ai);
 
-      const [foodLogs, waterLogs, runLogs, workoutLogs] = await Promise.all([
-        prisma.foodLog.findMany({ where: { user_id: user.id, logged_at: { gte: weekStart, lt: todayStart } } }),
-        prisma.waterLog.findMany({ where: { user_id: user.id, logged_at: { gte: weekStart, lt: todayStart } } }),
-        prisma.runLog.findMany({ where: { user_id: user.id, run_date: { gte: weekStart, lt: todayStart } } }),
-        // Gym sessions count as exercise too. Without them the bot sent the
-        // same prompt as the cron but with runs-only totals, so /insights and
-        // the Monday digest disagreed on the same week.
-        prisma.workoutLog.findMany({ where: { user_id: user.id, workout_date: { gte: weekStart, lt: todayStart } } }),
-      ]);
-
-      if (foodLogs.length === 0) {
+      if (insights === null) {
         await safeEdit(ctx, thinking.message_id, "Not enough data yet \u{2014} log meals for a few days and try again!");
         return;
       }
 
-      const { generateWeeklyInsights } = await import("./ai");
-
-      const days: { date: string; calories: number; protein: number; water: number }[] = [];
-      for (let i = 7; i >= 1; i--) {
-        const dayStart = new Date(todayStart.getTime() - i * DAY_MS);
-        const dayEnd = new Date(dayStart.getTime() + DAY_MS - 1);
-        const dateStr = dayStart.toISOString().split('T')[0];
-
-        const dayFood = foodLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
-        const dayWater = waterLogs.filter(l => l.logged_at >= dayStart && l.logged_at <= dayEnd);
-
-        days.push({
-          date: dateStr,
-          calories: Math.round(dayFood.reduce((s, l) => s + (l.calories ?? 0), 0)),
-          protein: Math.round(dayFood.reduce((s, l) => s + (l.protein ?? 0), 0)),
-          water: dayWater.reduce((s, l) => s + l.amount_liters, 0),
-        });
-      }
-
-      // Runs + gym sessions, over the same [weekStart, todayStart) window —
-      // mirrors /api/cron/weekly-insights.
-      const exerciseTotal =
-        runLogs.reduce((s, r) => s + r.calories_burned, 0) +
-        workoutLogs.reduce((s, w) => s + (w.calories_burned ?? 0), 0);
-      const exerciseSessions = runLogs.length + workoutLogs.length;
-      const dietaryRestrictions: string[] = user.dietary_restrictions
-        ? JSON.parse(user.dietary_restrictions) : [];
-
-      const insights = await generateWeeklyInsights(ai.provider, ai.apiKey, ai.model, {
-        goals: { calories: user.daily_calorie_goal, protein: user.daily_protein_goal, water: user.daily_water_goal },
-        days,
-        exerciseTotal,
-        exerciseSessions,
-        dietaryRestrictions,
-      });
-
       await deliverText(
         ctx,
-        ctx.chat!.id,
         thinking.message_id,
         `\u{1F4CA} <b>Weekly Insights</b>\n\n${escapeHtml(insights)}`,
         `\u{1F4CA} Weekly Insights\n\n${insights}`,
@@ -745,7 +553,6 @@ function registerHandlers(bot: Bot) {
     const provider = match[1].toLowerCase() as AIProvider;
     const apiKey = match[2];
 
-    if (!VALID_PROVIDERS.includes(provider)) return;
     if (apiKey.length < 10) {
       await ctx.reply("That key looks too short. Please try again.");
       return;
@@ -758,9 +565,7 @@ function registerHandlers(bot: Bot) {
     }
 
     try {
-      // Mirrors /api/users/me/key: the key is encrypted at rest, and the model
-      // is cleared so a stale model from the previous provider can't 404 every
-      // call (e.g. openai/gpt-5.4-mini left behind after switching to gemini).
+      // Key is encrypted at rest; the model is cleared so a stale one can't 404 every call.
       const encrypted = encrypt(apiKey);
       const { count } = await prisma.user.updateMany({
         where: { telegram_id: ctx.from!.id },
@@ -768,8 +573,7 @@ function registerHandlers(bot: Bot) {
       });
 
       if (count === 0) {
-        // Only the mini-app (POST /api/users) creates the account row — /start
-        // does not — so telling the user to /start would loop them forever.
+        // Only the mini-app creates the account row, so telling users to /start would loop.
         await ctx.reply(
           MINI_APP_URL
             ? "I couldn't find your account \u{2014} open the app once (button below), then send your key again."
@@ -793,24 +597,9 @@ function registerHandlers(bot: Bot) {
   });
 
   bot.on("message:photo", async (ctx) => {
-    const ai = await getUserAI(ctx.from!.id);
-    if (!ai) {
-      await ctx.reply(
-        "You need to set up an API key first.\n\nUse /key to get started.",
-      );
-      return;
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { telegram_id: ctx.from!.id },
-    });
-    if (!user) {
-      await ctx.reply(
-        "You need to open the app first to set up your account.",
-        { reply_markup: appButton("Open Quadfather", "") },
-      );
-      return;
-    }
+    const found = await requireUserAI(ctx);
+    if (!found) return;
+    const { user, ai } = found;
 
     const thinking = await ctx.reply("\u{1F50D} Analysing your meal\u{2026}");
 
@@ -827,14 +616,11 @@ function registerHandlers(bot: Bot) {
           `Telegram file download failed: ${res.status} ${res.statusText}`,
         );
       }
-      const imageBytes = Buffer.from(await res.arrayBuffer());
+      const base64 = Buffer.from(await res.arrayBuffer()).toString("base64");
 
       result = await analyseMeal(
-        ai.provider,
-        ai.apiKey,
-        ai.model,
-        imageBytes,
-        "image/jpeg",
+        ai,
+        { base64, mimeType: "image/jpeg" },
         ctx.message!.caption ?? "",
       );
 
@@ -853,15 +639,14 @@ function registerHandlers(bot: Bot) {
       return;
     }
 
-    // The meal is logged — from here on a failure must never say "try again".
+    // The meal is logged; a failure from here must never say "try again".
     const { html, plain } = mealConfirmation(result);
-    await deliverConfirmation(ctx, thinking.message_id, html, plain);
+    await deliverText(ctx, thinking.message_id, html, plain);
   });
 }
 
 export async function setupBotCommands() {
-  const bot = initBot();
-  await bot.api.setMyCommands([
+  await getBot().api.setMyCommands([
     { command: "log_water", description: "Log one bottle of water instantly" },
     { command: "log_meal", description: "Log a meal from text description" },
     { command: "today", description: "View today's macros & hydration" },

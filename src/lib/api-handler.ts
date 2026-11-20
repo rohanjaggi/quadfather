@@ -1,62 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma, type User } from '@prisma/client'
-import { timingSafeEqual } from 'crypto'
 import {
   getAuthenticatedUser,
   getAuthenticatedUserFlexible,
 } from '@/lib/auth'
+import { ACCEPTED_IMAGE_TYPES } from '@/lib/image'
+import {
+  ApiError,
+  badRequest,
+  conflict,
+  notFound,
+  unprocessable,
+  timingSafeEqualStr,
+} from '@/lib/api-error'
 
-/**
- * Shared plumbing for API route handlers.
- *
- *  - `ApiError` — throw from anywhere inside a handler to produce a clean
- *    `{ detail }` response with the given status (400/401/404/409/422/…).
- *  - `withUser(handler)` — authenticates via Telegram initData, runs the
- *    handler, and maps every error (ApiError, auth failures, Prisma known
- *    errors, anything else) to a response. Unknown errors are logged server
- *    side and returned as a generic 500 — never echo raw Prisma/provider text.
- *  - `withFlexibleUser(handler)` — same, but also accepts the Shortcut bearer
- *    token (`Authorization: Bearer …`).
- *  - `parseJsonBody(request)` — 400 on malformed JSON instead of 500.
- *  - `requireInt`, `optionalInt`, `optionalNumber`, `requireString`,
- *    `optionalBoolean`, `optionalEnum`, `parseDateParam` — small validators
- *    that throw ApiError(422).
- *  - `callAIProvider(label, fn)` — runs an AI call and turns any provider
- *    failure into a fixed 502 so key/prompt text never reaches the client.
- *  - `parseJsonStringArray(raw)` — tolerant reader for JSON-array columns.
- *  - `timingSafeEqualStr(a, b)` — constant-time secret comparison.
- */
+export { ApiError, badRequest, notFound, conflict, unprocessable, timingSafeEqualStr }
 
-export class ApiError extends Error {
-  readonly status: number
-  constructor(status: number, message: string) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-  }
-}
-
-export const badRequest = (msg: string) => new ApiError(400, msg)
-export const unauthorized = (msg = 'Unauthorized') => new ApiError(401, msg)
-export const forbidden = (msg = 'Forbidden') => new ApiError(403, msg)
-export const notFound = (msg = 'Not found') => new ApiError(404, msg)
-export const conflict = (msg: string) => new ApiError(409, msg)
-export const unprocessable = (msg: string) => new ApiError(422, msg)
-
-/** Messages thrown by `src/lib/auth.ts` that mean "not authenticated". */
-const AUTH_ERROR_PATTERNS = [
-  'initData',
-  'hash',
-  'Missing or invalid Authorization header',
-  'Invalid access token',
-  'Invalid bot token',
-]
-
-/** Map any thrown value to a JSON response. Safe to call from any route. */
-export function handleRouteError(e: unknown): NextResponse {
-  // Next.js control-flow errors (dynamic-usage probes at build time, notFound/
-  // redirect bail-outs) must propagate to the framework — swallowing the
-  // build-time probe would let a route be statically cached with a 500.
+/** Map any thrown value to a JSON response. */
+function handleRouteError(e: unknown): NextResponse {
+  // Next.js control-flow errors (build-time dynamic probes, notFound/redirect) must propagate,
+  // or a route could be statically cached with a 500.
   if (
     typeof e === 'object' &&
     e !== null &&
@@ -96,18 +59,6 @@ export function handleRouteError(e: unknown): NextResponse {
     return NextResponse.json({ detail: 'Invalid request payload' }, { status: 422 })
   }
 
-  const message = e instanceof Error ? e.message : String(e)
-
-  if (message === 'User not found') {
-    return NextResponse.json({ detail: message }, { status: 404 })
-  }
-  if (AUTH_ERROR_PATTERNS.some(p => message.includes(p))) {
-    return NextResponse.json({ detail: message }, { status: 401 })
-  }
-  if (message.includes('No API key')) {
-    return NextResponse.json({ detail: message }, { status: 400 })
-  }
-
   console.error('Unhandled route error:', e)
   return NextResponse.json({ detail: 'Internal error' }, { status: 500 })
 }
@@ -120,48 +71,40 @@ type UserHandler<C> = (
   context: C,
 ) => Promise<Response> | Response
 
-/**
- * Wrap a handler with Telegram-initData auth + uniform error mapping.
- *
- * ```ts
- * export const GET = withUser(async (request, user) => { ... })
- * export const DELETE = withUser<{ params: { id: string } }>(async (req, user, { params }) => { ... })
- * ```
- */
-export function withUser<C = RouteContext>(handler: UserHandler<C>) {
-  return async (request: NextRequest, context: C): Promise<Response> => {
+function wrap<A extends unknown[]>(
+  run: (request: NextRequest, ...rest: A) => Promise<Response> | Response,
+) {
+  return async (request: NextRequest, ...rest: A): Promise<Response> => {
     try {
-      const user = await getAuthenticatedUser(request)
-      return await handler(request, user, context)
+      return await run(request, ...rest)
     } catch (e) {
       return handleRouteError(e)
     }
   }
 }
 
+/**
+ * Wrap a handler with Telegram-initData auth + uniform error mapping.
+ * `withUser<{ params: { id: string } }>(async (req, user, { params }) => ...)` types route params.
+ */
+export function withUser<C = RouteContext>(handler: UserHandler<C>) {
+  return wrap(async (request: NextRequest, context: C) =>
+    handler(request, await getAuthenticatedUser(request), context),
+  )
+}
+
 /** Like `withUser`, but also accepts the Shortcut bearer token. */
 export function withFlexibleUser<C = RouteContext>(handler: UserHandler<C>) {
-  return async (request: NextRequest, context: C): Promise<Response> => {
-    try {
-      const user = await getAuthenticatedUserFlexible(request)
-      return await handler(request, user, context)
-    } catch (e) {
-      return handleRouteError(e)
-    }
-  }
+  return wrap(async (request: NextRequest, context: C) =>
+    handler(request, await getAuthenticatedUserFlexible(request), context),
+  )
 }
 
 /** Wrap an unauthenticated handler with uniform error mapping only. */
 export function withErrorHandling<C = RouteContext>(
   handler: (request: NextRequest, context: C) => Promise<Response> | Response,
 ) {
-  return async (request: NextRequest, context: C): Promise<Response> => {
-    try {
-      return await handler(request, context)
-    } catch (e) {
-      return handleRouteError(e)
-    }
-  }
+  return wrap(handler)
 }
 
 /** Parse a JSON body; 400 on malformed JSON, 422 if it isn't an object. */
@@ -180,76 +123,110 @@ export async function parseJsonBody<T = Record<string, unknown>>(
   return body as T
 }
 
-/** Integer from a route param / query string / body value; 422 otherwise. */
-export function requireInt(
-  value: unknown,
-  name: string,
-  opts: { min?: number; max?: number } = {},
-): number {
-  // `Number()` accepts far more than an integer literal: `'1e3'` → 1000,
-  // `'0x10'` → 16, `'  12  '` → 12 — and all three pass `Number.isInteger`.
-  // The exponent form is the dangerous one: `?id=1e20` used to parse cleanly
-  // and reach Prisma as a value nowhere near an `Int` column, which surfaces
-  // as P2033 and a generic 500 instead of a 422. Require a canonical decimal
-  // integer instead.
+/** An uploaded image as the vision models take it. */
+export interface ImageInput {
+  base64: string
+  mimeType: string
+}
+
+/** Under Vercel's 4.5 MB request-body limit, so an oversized photo gets this 413 rather than the platform's. */
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024
+
+/**
+ * Read the multipart `image` field. Unsupported formats (HEIC, BMP, TIFF) are
+ * rejected here since providers fail on them opaquely. `form` is returned for other fields.
+ */
+export async function readImageUpload(
+  request: Request,
+): Promise<{ image: ImageInput; form: FormData }> {
+  let form: FormData
+  try {
+    form = await request.formData()
+  } catch {
+    throw badRequest('Malformed multipart form data')
+  }
+
+  const file = form.get('image')
+  if (!file || typeof file === 'string') {
+    throw unprocessable('An image file is required')
+  }
+  if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+    throw unprocessable('Image must be a JPEG, PNG, WebP or GIF')
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    throw new ApiError(413, 'Image must be smaller than 4 MB')
+  }
+
+  const base64 = Buffer.from(await file.arrayBuffer()).toString('base64')
+  return { image: { base64, mimeType: file.type }, form }
+}
+
+interface Range {
+  min?: number
+  max?: number
+}
+
+function checkRange(n: number, name: string, { min, max }: Range): number {
+  if (min !== undefined && n < min) throw unprocessable(`${name} must be ≥ ${min}`)
+  if (max !== undefined && n > max) throw unprocessable(`${name} must be ≤ ${max}`)
+  return n
+}
+
+/** Numbers and non-blank numeric strings; NaN for anything else. */
+function toNumber(value: unknown): number {
+  if (typeof value === 'number') return value
+  return typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN
+}
+
+/** Integer from a param/query/body value; 422 otherwise. Canonical decimals only: `Number()` takes '1e3' and '0x10'. */
+export function requireInt(value: unknown, name: string, opts: Range = {}): number {
   if (typeof value === 'string' && !/^-?\d+$/.test(value.trim()))
     throw unprocessable(`${name} must be an integer`)
-  const n =
-    typeof value === 'number'
-      ? value
-      : typeof value === 'string' && value.trim() !== ''
-        ? Number(value)
-        : NaN
+  const n = toNumber(value)
   if (!Number.isInteger(n)) throw unprocessable(`${name} must be an integer`)
-  // A canonical but huge decimal (`?id=99999999999999999999`) parses to a
-  // number well outside Postgres `Int` range and would reach Prisma as P2033
-  // → generic 500. Reject anything beyond the safe-integer range here; callers
-  // that need a tighter bound (e.g. an `Int` column) still pass an explicit max.
+  // Beyond the safe-integer range a canonical decimal would still reach Prisma as P2033.
   if (!Number.isSafeInteger(n)) throw unprocessable(`${name} is out of range`)
-  if (opts.min !== undefined && n < opts.min)
-    throw unprocessable(`${name} must be ≥ ${opts.min}`)
-  if (opts.max !== undefined && n > opts.max)
-    throw unprocessable(`${name} must be ≤ ${opts.max}`)
-  return n
+  return checkRange(n, name, opts)
 }
 
 /** `undefined`/`null` → `undefined`; otherwise validated integer. */
 export function optionalInt(
   value: unknown,
   name: string,
-  opts: { min?: number; max?: number } = {},
+  opts: Range = {},
 ): number | undefined {
   if (value === undefined || value === null || value === '') return undefined
   return requireInt(value, name, opts)
 }
 
 /** Finite number (accepts numeric strings); 422 otherwise. */
-export function requireNumber(
-  value: unknown,
-  name: string,
-  opts: { min?: number; max?: number } = {},
-): number {
-  const n =
-    typeof value === 'number'
-      ? value
-      : typeof value === 'string' && value.trim() !== ''
-        ? Number(value)
-        : NaN
+export function requireNumber(value: unknown, name: string, opts: Range = {}): number {
+  const n = toNumber(value)
   if (!Number.isFinite(n)) throw unprocessable(`${name} must be a number`)
-  if (opts.min !== undefined && n < opts.min)
-    throw unprocessable(`${name} must be ≥ ${opts.min}`)
-  if (opts.max !== undefined && n > opts.max)
-    throw unprocessable(`${name} must be ≤ ${opts.max}`)
-  return n
+  return checkRange(n, name, opts)
 }
 
 export function optionalNumber(
   value: unknown,
   name: string,
-  opts: { min?: number; max?: number } = {},
+  opts: Range = {},
 ): number | undefined {
   if (value === undefined || value === null || value === '') return undefined
   return requireNumber(value, name, opts)
+}
+
+/**
+ * Read a key that maps to a *nullable* column. Absent → `undefined` (leave the
+ * column alone); `null` or `''` → `null` (clear it); anything else → `parse(value)`.
+ */
+export function nullable<T>(
+  body: Record<string, unknown>,
+  key: string,
+  parse: (value: unknown) => T,
+): T | null | undefined {
+  if (!(key in body)) return undefined
+  const value = body[key]
+  return value === null || value === '' ? null : parse(value)
 }
 
 /** Non-empty trimmed string with an optional max length; 422 otherwise. */
@@ -297,13 +274,7 @@ export function optionalEnum<T extends string>(
   return value as T
 }
 
-/**
- * Read a `String?` column that stores a JSON array of strings.
- *
- * Legacy rows may hold a bare JSON string (`"\"vegan\""` — what the old
- * unvalidated goals PUT wrote) or invalid JSON; both degrade to `[]` rather
- * than throwing a 500 out of a read path.
- */
+/** Read a `String?` column holding a JSON string array; legacy bare-string or invalid JSON degrades to `[]`. */
 export function parseJsonStringArray(raw: string | null | undefined): string[] {
   if (!raw) return []
   try {
@@ -316,16 +287,12 @@ export function parseJsonStringArray(raw: string | null | undefined): string[] {
 }
 
 /** The only thing a client is ever told about an upstream AI failure. */
-export const AI_PROVIDER_ERROR_DETAIL =
+const AI_PROVIDER_ERROR_DETAIL =
   'AI provider error — check your API key in Settings'
 
 /**
- * Run a call to an AI provider, mapping any failure to a fixed 502.
- *
- * Provider SDK errors put the API key, model id and prompt fragments into
- * `.message` (e.g. "Incorrect API key provided: sk-…"), so the original is
- * logged server-side and never returned. `ApiError`s thrown by our own code
- * inside `fn` pass through untouched.
+ * Run an AI provider call, mapping any failure to a fixed 502: SDK errors carry the
+ * API key and prompt fragments in `.message`, so they are logged, never returned.
  */
 export async function callAIProvider<T>(
   label: string,
@@ -351,13 +318,8 @@ export function parseDateParam(value: string | null | undefined, name = 'date'):
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) throw unprocessable(`${name} must be a valid date`)
 
-  // `new Date('2026-02-31')` is *not* an Invalid Date — it silently rolls over
-  // to Mar 3, so a typo'd day filed logs under, or queried, the wrong date.
-  // Round-trip the parsed UTC fields against the input to catch that.
-  //
-  // Only for the bare `YYYY-MM-DD` form: a full ISO datetime may carry an
-  // offset (`2026-08-20T01:00:00+08:00`), where the UTC calendar day
-  // legitimately differs from the one written in the string.
+  // `new Date('2026-02-31')` silently rolls over; round-trip the UTC fields to catch it.
+  // Bare `YYYY-MM-DD` only: a full ISO datetime may carry an offset.
   const dateOnly = DATE_ONLY_PARAM.exec(value)
   if (dateOnly) {
     const [, year, month, day] = dateOnly
@@ -371,12 +333,4 @@ export function parseDateParam(value: string | null | undefined, name = 'date'):
   }
 
   return d
-}
-
-/** Constant-time string comparison for shared secrets (length mismatch → false). */
-export function timingSafeEqualStr(a: string, b: string): boolean {
-  const ab = Buffer.from(a, 'utf8')
-  const bb = Buffer.from(b, 'utf8')
-  if (ab.length !== bb.length || ab.length === 0) return false
-  return timingSafeEqual(ab, bb)
 }

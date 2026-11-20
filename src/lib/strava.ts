@@ -1,19 +1,17 @@
 import { createHmac } from 'crypto'
+import type { RunLog } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { encrypt, decrypt } from '@/lib/crypto'
+import { runKcal } from '@/lib/constants'
 
 const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID ?? ''
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET ?? ''
 const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI ?? ''
 
 /**
- * Sign the OAuth `state` handed to Strava. Used by `/api/strava/connect` to
- * mint it and by `/api/strava/callback` to re-derive and compare it.
- *
- * There is deliberately no `verifyStravaState` here: the only verifier lives in
- * the callback route, which compares in constant time and refuses to run at all
- * when `ENCRYPTION_KEY` is unset. The variant that used to sit here did neither,
- * so anyone could sign a state for any Telegram id on a deployment with no key.
+ * Sign the OAuth `state` handed to Strava (minted by `/api/strava/connect`). There is no
+ * verifier here on purpose: the only one lives in the callback route, which compares in
+ * constant time and refuses an unset `ENCRYPTION_KEY`.
  */
 export function signStravaState(telegramId: string): string {
   const key = process.env.ENCRYPTION_KEY ?? ''
@@ -21,12 +19,7 @@ export function signStravaState(telegramId: string): string {
   return `${telegramId}.${sig}`
 }
 
-/**
- * Strava returns the granted scopes as a comma-separated list on the OAuth
- * callback (e.g. `read,activity:read_all`). Reading activities requires either
- * `activity:read` or `activity:read_all`; anything less means the athlete
- * activity endpoints will 401.
- */
+/** Strava returns granted scopes comma-separated (`read,activity:read_all`); activity endpoints 401 without `activity:read` or `activity:read_all`. */
 export function hasActivityReadScope(scope: string | null | undefined): boolean {
   if (!scope) return false
   return scope
@@ -132,15 +125,9 @@ interface StravaActivity {
   sport_type: string
   distance: number
   moving_time: number
-  elapsed_time: number
   total_elevation_gain: number
-  average_speed: number
-  max_speed: number
   average_heartrate?: number
-  max_heartrate?: number
-  calories: number
   start_date: string
-  start_date_local: string
 }
 
 const ACTIVITIES_PER_PAGE = 30
@@ -181,30 +168,29 @@ export async function fetchAllStravaActivities(
   return all
 }
 
-export function stravaActivityToRunData(activity: StravaActivity) {
+export function stravaActivityToRunData(activity: StravaActivity, weightKg: number) {
   const pacePerKm = activity.distance > 0
     ? (activity.moving_time / 60) / (activity.distance / 1000)
     : null
 
-  // Explicit `null` rather than `undefined`: these rows are inserted with
-  // `createMany`, which is happiest when every row carries the same key set.
+  // Explicit `null` so every `createMany` row carries the same key set.
   return {
     strava_activity_id: BigInt(activity.id),
     distance_meters: activity.distance,
     duration_seconds: activity.moving_time,
-    calories_burned: activity.calories || estimateCalories(activity.distance, activity.moving_time),
+    calories_burned: runKcal(activity.distance / 1000, weightKg),
     pace_per_km: pacePerKm ? Math.round(pacePerKm * 100) / 100 : null,
     average_heartrate: activity.average_heartrate ?? null,
     elevation_gain: activity.total_elevation_gain,
     name: activity.name,
     source: 'strava' as const,
-    run_date: new Date(activity.start_date_local),
+    run_date: new Date(activity.start_date),
   }
 }
 
-function estimateCalories(distanceMeters: number, durationSeconds: number): number {
-  const km = distanceMeters / 1000
-  return Math.round(km * 70)
+/** A run row ready for `NextResponse.json`, which throws on the BigInt Strava id. */
+export function serializeRun(run: RunLog) {
+  return { ...run, strava_activity_id: run.strava_activity_id?.toString() ?? null }
 }
 
 export async function deauthorizeStrava(accessToken: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   conflict,
@@ -9,6 +10,7 @@ import {
   requireString,
   withUser,
 } from "@/lib/api-handler";
+import { SAVED_FOOD_SELECT } from "@/lib/selects";
 
 /** Column widths: `name`/`serving_label` are VarChar(100), `source` VarChar(20). */
 const MAX_NAME = 100;
@@ -20,23 +22,10 @@ export const GET = withUser(async (request, user) => {
   const foods = await prisma.savedFood.findMany({
     where: { user_id: user.id },
     orderBy: { name: "asc" },
+    select: SAVED_FOOD_SELECT,
   });
 
-  return NextResponse.json(
-    foods.map((f) => ({
-      id: f.id,
-      name: f.name,
-      description: f.description,
-      calories: f.calories,
-      protein: f.protein,
-      carbohydrates: f.carbohydrates,
-      fats: f.fats,
-      fiber: f.fiber,
-      serving_label: f.serving_label,
-      source: f.source,
-      created_at: f.created_at.toISOString(),
-    })),
-  );
+  return NextResponse.json(foods);
 });
 
 export const POST = withUser(async (request, user) => {
@@ -44,13 +33,6 @@ export const POST = withUser(async (request, user) => {
 
   const name = requireString(body.name, "name").slice(0, MAX_NAME);
   const macro = (key: string) => requireNumber(body[key], key, { min: 0, max: MAX_MACRO });
-
-  // Pre-check only for the friendlier message — two taps racing each other
-  // still land on the `uq_user_food_name` index, which the wrapper maps to 409.
-  const existing = await prisma.savedFood.findFirst({
-    where: { user_id: user.id, name },
-  });
-  if (existing) throw conflict("A saved food with this name already exists");
 
   const food = await prisma.savedFood.create({
     data: {
@@ -67,22 +49,13 @@ export const POST = withUser(async (request, user) => {
       source:
         optionalString(body.source, "source")?.trim().slice(0, MAX_SOURCE) || "manual",
     },
+    select: SAVED_FOOD_SELECT,
+  }).catch((e) => {
+    // A duplicate name hits the `uq_user_food_name` unique index.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")
+      throw conflict("A saved food with this name already exists");
+    throw e;
   });
 
-  return NextResponse.json(
-    {
-      id: food.id,
-      name: food.name,
-      description: food.description,
-      calories: food.calories,
-      protein: food.protein,
-      carbohydrates: food.carbohydrates,
-      fats: food.fats,
-      fiber: food.fiber,
-      serving_label: food.serving_label,
-      source: food.source,
-      created_at: food.created_at.toISOString(),
-    },
-    { status: 201 },
-  );
+  return NextResponse.json(food, { status: 201 });
 });

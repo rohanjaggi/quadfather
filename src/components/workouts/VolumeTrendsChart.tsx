@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import type { WorkoutLog } from '@/types/workouts'
 import { aggregateVolumeByDay, aggregateVolumeByWeek, type DailyVolume } from '@/lib/volume'
+import { addDays, dayKey } from '@/lib/day'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 
 interface Props {
@@ -36,16 +37,13 @@ export default function VolumeTrendsChart({ workouts, period }: Props) {
   }
 
   function formatLabel(dateStr: string) {
-    const d = new Date(dateStr)
+    const d = new Date(`${dateStr}T00:00:00Z`)
     if (period === 7) {
-      const today = new Date()
-      const yesterday = new Date(today)
-      yesterday.setDate(today.getDate() - 1)
-      if (d.toDateString() === today.toDateString()) return 'Today'
-      if (d.toDateString() === yesterday.toDateString()) return 'Yday'
-      return d.toLocaleDateString('en-GB', { weekday: 'short' })
+      if (dateStr === dayKey()) return 'Today'
+      if (dateStr === addDays(dayKey(), -1)) return 'Yday'
+      return d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })
     }
-    return `Wk ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+    return `Wk ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
   }
 
   function formatVolume(v: number) {

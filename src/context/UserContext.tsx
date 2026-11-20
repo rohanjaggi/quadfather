@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import * as api from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
+import { dayKey } from '@/lib/day'
 import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, PersonalUpdate, SavedFood, SavedFoodCreate } from '@/types/api'
 import type { RunLog, RunLogCreate } from '@/types/running'
 import type { StepLog, WorkoutLog } from '@/types/workouts'
@@ -51,7 +52,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [waterLogs, setWaterLogs] = useState<WaterLog[]>([])
   const [savedFoods, setSavedFoods] = useState<SavedFood[]>([])
   const [runLogs, setRunLogs] = useState<RunLog[]>([])
-  const [todaySteps, setTodaySteps] = useState(0)
   const [weeklySteps, setWeeklySteps] = useState<StepLog[]>([])
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
@@ -59,10 +59,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [refreshError, setRefreshError] = useState<string | null>(null)
 
   /**
-   * Re-fetches every list. Deliberately `allSettled`, not `Promise.all`: these
-   * are eight independent endpoints, and under `all` a single transient 500
-   * threw away the seven good responses too — one bad list blanked the whole
-   * dashboard, and a food that had genuinely been logged never appeared.
+   * Re-fetches every day-scoped list. Deliberately `allSettled`, not
+   * `Promise.all`: these are six independent endpoints, and under `all` a
+   * single transient 500 threw away the good responses too — one bad list
+   * blanked the whole dashboard, and a food that had genuinely been logged
+   * never appeared.
    *
    * Each fulfilled result is applied on its own, a rejected one simply leaves
    * that slice at its previous value (never blanked), and `refreshError`
@@ -71,13 +72,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
    * keep working unchanged.
    */
   const refresh = useCallback(async () => {
-    const [summaryRes, foodRes, waterRes, savedRes, runRes, stepRes, weekStepRes, workoutRes] = await Promise.allSettled([
+    const [summaryRes, foodRes, waterRes, runRes, weekStepRes, workoutRes] = await Promise.allSettled([
       api.getDailySummary(),
       api.getFoodLogs(),
       api.getWaterLogs(),
-      api.getSavedFoods(),
-      api.getRunLogs(new Date().toLocaleDateString('en-CA')),
-      api.getSteps(1),
+      api.getRunLogs(),
       api.getSteps(7),
       api.getWorkouts(7),
     ])
@@ -85,14 +84,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (summaryRes.status === 'fulfilled') setSummary(summaryRes.value)
     if (foodRes.status === 'fulfilled') setFoodLogs(foodRes.value)
     if (waterRes.status === 'fulfilled') setWaterLogs(waterRes.value)
-    if (savedRes.status === 'fulfilled') setSavedFoods(savedRes.value)
     if (runRes.status === 'fulfilled') setRunLogs(runRes.value)
-    if (stepRes.status === 'fulfilled') setTodaySteps(stepRes.value.length > 0 ? stepRes.value[0].steps : 0)
     if (weekStepRes.status === 'fulfilled') setWeeklySteps(weekStepRes.value)
     if (workoutRes.status === 'fulfilled') setWeeklyWorkouts(workoutRes.value)
 
     const settled: PromiseSettledResult<unknown>[] = [
-      summaryRes, foodRes, waterRes, savedRes, runRes, stepRes, weekStepRes, workoutRes,
+      summaryRes, foodRes, waterRes, runRes, weekStepRes, workoutRes,
     ]
     const rejected = settled.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
     if (rejected.length > 0) {
@@ -118,13 +115,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Full boot: user + all lists. Also used by the auth gate's Retry button.
+  // Saved foods load here only: their mutations below update local state.
   const bootstrap = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
       const userData = await api.registerUser()
       setUser(userData)
-      await refresh()
+      const [savedRes] = await Promise.allSettled([api.getSavedFoods(), refresh()])
+      if (savedRes.status === 'fulfilled') setSavedFoods(savedRes.value)
+      else {
+        console.error('Failed to load saved foods:', savedRes.reason)
+        setRefreshError(errorMessage(savedRes.reason, 'Some data could not be refreshed'))
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
@@ -165,7 +168,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const updatePersonal = useCallback(async (data: PersonalUpdate) => {
     await api.updatePersonal(data)
     await refreshUser()
-  }, [refreshUser])
+    await refresh()
+  }, [refresh, refreshUser])
 
   const saveFood = useCallback(async (data: SavedFoodCreate): Promise<SavedFood> => {
     const saved = await api.saveFood(data)
@@ -175,7 +179,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const updateSavedFood = useCallback(async (id: number, data: Partial<SavedFoodCreate>) => {
     const updated = await api.updateSavedFood(id, data)
-    setSavedFoods(prev => prev.map(f => f.id === id ? updated : f))
+    setSavedFoods(prev => prev.map(f => f.id === id ? updated : f).sort((a, b) => a.name.localeCompare(b.name)))
   }, [])
 
   const deleteSavedFood = useCallback(async (id: number) => {
@@ -197,6 +201,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     await api.toggleRunAllowance(id, added)
     await refresh()
   }, [refresh])
+
+  const todaySteps = weeklySteps.find(s => s.date.slice(0, 10) === dayKey())?.steps ?? 0
 
   return (
     <UserContext.Provider value={{

@@ -6,43 +6,34 @@ import MealCard from '@/components/food/MealCard'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { getFoodLogs } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
+import { addDays, dayKey } from '@/lib/day'
 import type { FoodLog } from '@/types/api'
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-CA')
+/** Formats a `YYYY-MM-DD` key as that calendar date, whatever the device timezone. */
+function formatKey(key: string, options: Intl.DateTimeFormatOptions): string {
+  return new Date(`${key}T00:00:00Z`).toLocaleDateString('en-GB', { ...options, timeZone: 'UTC' })
 }
 
-function displayDate(date: Date): string {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-
-  const diff = Math.round((today.getTime() - d.getTime()) / 86400000)
-  if (diff === 0) return 'Today'
-  if (diff === 1) return 'Yesterday'
-
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+function displayDate(key: string): string {
+  if (key === dayKey()) return 'Today'
+  if (key === addDays(dayKey(), -1)) return 'Yesterday'
+  return formatKey(key, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 export default function FoodHistoryPage() {
   const { user } = useUser()
-  const [date, setDate] = useState(() => {
-    const d = new Date()
-    d.setDate(d.getDate() - 1)
-    return d
-  })
+  const [date, setDate] = useState(() => addDays(dayKey(), -1))
   const [logs, setLogs] = useState<FoodLog[]>([])
   const [loading, setLoading] = useState(true)
 
   // Fast prev/next taps can land out of order — only the newest request writes.
   const requestIdRef = useRef(0)
 
-  const fetchLogs = useCallback(async (d: Date) => {
+  const fetchLogs = useCallback(async (d: string) => {
     const requestId = ++requestIdRef.current
     setLoading(true)
     try {
-      const data = await getFoodLogs(formatDate(d))
+      const data = await getFoodLogs(d)
       if (requestIdRef.current === requestId) setLogs(data)
     } catch {
       if (requestIdRef.current === requestId) setLogs([])
@@ -56,19 +47,12 @@ export default function FoodHistoryPage() {
   }, [date, fetchLogs])
 
   function prevDay() {
-    setDate(d => {
-      const next = new Date(d)
-      next.setDate(next.getDate() - 1)
-      return next
-    })
+    setDate(d => addDays(d, -1))
   }
 
   function nextDay() {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
-    if (next > tomorrow) return
+    const next = addDays(date, 1)
+    if (next > dayKey()) return
     setDate(next)
   }
 
@@ -82,7 +66,7 @@ export default function FoodHistoryPage() {
     { calories: 0, protein: 0, carbs: 0, fats: 0 },
   )
 
-  const isToday = formatDate(date) === formatDate(new Date())
+  const isToday = date === dayKey()
 
   // The user's configured goals — these bars used to be scaled against
   // hard-coded 2200 kcal / 150 / 250 / 70 g.
@@ -147,16 +131,13 @@ export default function FoodHistoryPage() {
           {/*
             Always shown: it is the only place the year appears, and the label
             above it is either relative ("Today") or year-less ("Wed, 19 Aug").
-            It used to be guarded on `displayDate(date) !== formatDate(date)`,
-            comparing "Today" against "2026-08-19" — never equal, so the guard
-            was dead and this line rendered regardless.
           */}
           <span style={{
             fontFamily: 'var(--font-display)', fontSize: '11px',
             color: 'var(--tg-theme-hint-color)',
             letterSpacing: '0.02em',
           }}>
-            {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            {formatKey(date, { day: 'numeric', month: 'long', year: 'numeric' })}
           </span>
         </div>
 

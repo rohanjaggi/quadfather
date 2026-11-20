@@ -1,37 +1,18 @@
-import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, GoalsUpdateResult, PersonalUpdate, MealAnalysis, MealSuggestion, SavedFood, SavedFoodCreate, AnalyticsResponse } from '@/types/api'
+import type { User, DailySummary, FoodLog, FoodLogCreate, WaterLog, WaterLogCreate, GoalsUpdate, PersonalUpdate, MealAnalysis, MealSuggestion, SavedFood, SavedFoodCreate, AnalyticsResponse } from '@/types/api'
 
 /**
- * The signed `initData` blob every request authenticates with, read straight
- * off the global Telegram injects into the webview.
- *
- * Deliberately NOT `import WebApp from '@twa-dev/sdk'`: that module runs
- * `var telegramWindow = window` at import time, so importing it here throws
- * `ReferenceError: window is not defined` the moment anything on the server
- * touches this module — and it also made the `typeof window` guard below dead
- * code, since the import blew up before the guard could run. `WebApp.initData`
- * is exactly this string, so behaviour is unchanged.
- *
- * Read per call rather than once at module scope: the global is only populated
- * once Telegram's script has run, which is not guaranteed at import time.
+ * The signed `initData` blob every request authenticates with, read off the Telegram
+ * global. Not `@twa-dev/sdk`: it touches `window` at import time and throws on the
+ * server. Read per call because the global is populated only after Telegram's script runs.
  */
 function getInitData(): string {
   return typeof window !== 'undefined' ? (window.Telegram?.WebApp?.initData ?? '') : ''
 }
 
-/**
- * A hung TCP connection used to leave every `saving`/`pending` button disabled
- * forever with no way to recover inside the Telegram webview, so every request
- * is capped. 20s comfortably clears the platform's own function ceiling, which
- * is what actually bounds the slow (AI) routes.
- */
+/** Every request is capped so a hung connection can't leave buttons disabled forever in the webview. */
 const REQUEST_TIMEOUT_MS = 20_000
 
-/**
- * `AbortSignal.timeout` is iOS 16+ / Chrome 103+. A Mini App opened in an older
- * webview would otherwise get a synchronous `TypeError` on *every* request —
- * a dead app — so an unsupported engine falls back to the previous
- * no-timeout behaviour rather than taking the whole client down.
- */
+/** `AbortSignal.timeout` needs iOS 16+ / Chrome 103+; older webviews fall back to no timeout rather than throw on every request. */
 function timeoutSignal(): AbortSignal | undefined {
   return typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
     ? AbortSignal.timeout(REQUEST_TIMEOUT_MS)
@@ -65,17 +46,14 @@ export const deleteFood = (id: number) => apiFetch<void>(`/foods/${id}`, { metho
 export const getWaterLogs = () => apiFetch<WaterLog[]>('/water')
 export const logWater = (data: WaterLogCreate) => apiFetch<WaterLog>('/water', { method: 'POST', body: JSON.stringify(data) })
 export const deleteWater = (id: number) => apiFetch<void>(`/water/${id}`, { method: 'DELETE' })
-// All three below are the same `PUT /users/me/goals` route and so must share
-// one return type — they used to claim three different ones, none of which
-// matched the body the route actually sends (it is not a `User`). No caller
-// reads the result; they all re-fetch the user instead.
-export const updateGoals = (data: GoalsUpdate) => apiFetch<GoalsUpdateResult>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
-export const updatePersonal = (data: PersonalUpdate) => apiFetch<GoalsUpdateResult>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
+// All three are the same `PUT /users/me/goals`, which answers 204.
+export const updateGoals = (data: GoalsUpdate) => apiFetch<void>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
+export const updatePersonal = (data: PersonalUpdate) => apiFetch<void>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
 
 export const updateCoachingPrefs = (data: {
   ai_features_enabled?: boolean
   ai_coaching_prefs?: Record<string, boolean>
-}) => apiFetch<GoalsUpdateResult>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
+}) => apiFetch<void>('/users/me/goals', { method: 'PUT', body: JSON.stringify(data) })
 
 export const getSavedFoods = () => apiFetch<SavedFood[]>('/foods/saved')
 export const saveFood = (data: SavedFoodCreate) => apiFetch<SavedFood>('/foods/saved', { method: 'POST', body: JSON.stringify(data) })
@@ -175,8 +153,8 @@ export const deleteAccessToken = () =>
 
 import type { Exercise, PredictionData, WorkoutAnalysis } from '@/types/exercises'
 
-export const searchExercises = (q: string, category?: string) =>
-  apiFetch<Exercise[]>(`/exercises?q=${encodeURIComponent(q)}${category ? `&category=${category}` : ''}`)
+export const searchExercises = (q: string) =>
+  apiFetch<Exercise[]>(`/exercises?q=${encodeURIComponent(q)}`)
 
 export const getExercisePrediction = (exerciseName: string) =>
   apiFetch<PredictionData>(`/workouts/predict?exercise_name=${encodeURIComponent(exerciseName)}`)

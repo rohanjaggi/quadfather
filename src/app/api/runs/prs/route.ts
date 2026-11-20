@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withUser } from '@/lib/api-handler'
 import { formatPace, formatDuration } from '@/lib/format'
+import { dayKey } from '@/lib/day'
 
 export const GET = withUser(async (request, user) => {
   const runs = await prisma.runLog.findMany({
@@ -26,7 +27,7 @@ export const GET = withUser(async (request, user) => {
       // the 'min' unit. The hand-rolled floor/round pair here could emit `5:60`.
       value: formatPace(fastestPace.pace_per_km, 'min'),
       detail: `/km (${(fastestPace.distance_meters / 1000).toFixed(1)}km run)`,
-      date: new Date(fastestPace.run_date).toISOString().split('T')[0],
+      date: dayKey(fastestPace.run_date),
     })
   }
 
@@ -36,29 +37,33 @@ export const GET = withUser(async (request, user) => {
       label: 'Longest Run',
       value: `${(longest.distance_meters / 1000).toFixed(2)}`,
       detail: `km in ${Math.floor(longest.duration_seconds / 60)}min`,
-      date: new Date(longest.run_date).toISOString().split('T')[0],
+      date: dayKey(longest.run_date),
     })
   }
 
+  // Runs in the 5K/10K window differ in length by up to 300m, so rank by pace.
+  const byPace = (a: (typeof runs)[number], b: (typeof runs)[number]) =>
+    a.duration_seconds / a.distance_meters - b.duration_seconds / b.distance_meters
+
   const fiveKRuns = runs.filter(r => r.distance_meters >= 4900 && r.distance_meters <= 5200)
   if (fiveKRuns.length > 0) {
-    const fastest5k = [...fiveKRuns].sort((a, b) => a.duration_seconds - b.duration_seconds)[0]
+    const fastest5k = [...fiveKRuns].sort(byPace)[0]
     prs.push({
       label: 'Fastest 5K',
       value: formatDuration(fastest5k.duration_seconds),
       detail: `(${(fastest5k.distance_meters / 1000).toFixed(2)}km)`,
-      date: new Date(fastest5k.run_date).toISOString().split('T')[0],
+      date: dayKey(fastest5k.run_date),
     })
   }
 
   const tenKRuns = runs.filter(r => r.distance_meters >= 9800 && r.distance_meters <= 10200)
   if (tenKRuns.length > 0) {
-    const fastest10k = [...tenKRuns].sort((a, b) => a.duration_seconds - b.duration_seconds)[0]
+    const fastest10k = [...tenKRuns].sort(byPace)[0]
     prs.push({
       label: 'Fastest 10K',
       value: formatDuration(fastest10k.duration_seconds),
       detail: `(${(fastest10k.distance_meters / 1000).toFixed(2)}km)`,
-      date: new Date(fastest10k.run_date).toISOString().split('T')[0],
+      date: dayKey(fastest10k.run_date),
     })
   }
 

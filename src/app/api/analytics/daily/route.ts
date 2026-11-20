@@ -1,103 +1,48 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withUser, optionalInt } from "@/lib/api-handler";
+import { sumMacros } from "@/lib/budget";
+import { addDays, dayKey, daysAgoStart } from "@/lib/day";
 
 export const GET = withUser(async (request, user) => {
-  // `?days=abc` used to be NaN, which passed the `< 1 || > 90` check and then
-  // built a window from Invalid Dates.
+  // `?days=abc` is NaN, which passes the range check and builds Invalid Date windows.
   const days =
     optionalInt(request.nextUrl.searchParams.get("days"), "days", { min: 1, max: 90 }) ?? 7;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const start = daysAgoStart(days - 1);
+  const today = dayKey();
+  const keys = Array.from({ length: days }, (_, i) => addDays(today, i - (days - 1)));
 
-  // Day boundaries, oldest first. Built with exactly the local-midnight
-  // arithmetic the per-day loop used (local `setHours`, UTC-formatted label) —
-  // the local-vs-UTC mismatch in here is a known, separate piece of work, so
-  // this rewrite must not quietly change which log lands in which bucket.
-  const buckets: { start: number; end: number; label: string }[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const dayStart = new Date(today);
-    dayStart.setDate(dayStart.getDate() - i);
-    const dayEnd = new Date(dayStart);
-    dayEnd.setHours(23, 59, 59, 999);
-    buckets.push({ start: dayStart.getTime(), end: dayEnd.getTime(), label: dayStart.toISOString().split("T")[0] });
-  }
-
-  const rangeStart = new Date(buckets[0].start);
-  const rangeEnd = new Date(buckets[buckets.length - 1].end);
-
-  // Two queries for the whole range instead of two per day: `?days=90` used to
-  // issue 180 round-trips to render one chart.
+  // Two queries for the whole range, not two per day.
   const [foodLogs, waterLogs] = await Promise.all([
     prisma.foodLog.findMany({
-      where: { user_id: user.id, logged_at: { gte: rangeStart, lte: rangeEnd } },
+      where: { user_id: user.id, logged_at: { gte: start } },
       select: { logged_at: true, calories: true, protein: true, carbohydrates: true, fats: true, fiber: true },
     }),
     prisma.waterLog.findMany({
-      where: { user_id: user.id, logged_at: { gte: rangeStart, lte: rangeEnd } },
+      where: { user_id: user.id, logged_at: { gte: start } },
       select: { logged_at: true, amount_liters: true },
     }),
   ]);
 
-  // Binary search rather than `(t - start) / DAY_MS`: the boundaries are local
-  // midnights, so a DST day is 23 or 25 hours long and fixed-width arithmetic
-  // would shift a whole day's logs into the neighbouring bucket.
-  const bucketIndex = (t: number): number => {
-    let lo = 0;
-    let hi = buckets.length - 1;
-    let found = -1;
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1;
-      if (t < buckets[mid].start) hi = mid - 1;
-      else {
-        found = mid;
-        lo = mid + 1;
-      }
-    }
-    // `<= end` keeps the old per-day `lte: dayEnd` semantics exactly.
-    return found >= 0 && t <= buckets[found].end ? found : -1;
-  };
+  const foodByDay = new Map<string, typeof foodLogs>(keys.map((k) => [k, []]));
+  const waterByDay = new Map<string, typeof waterLogs>(keys.map((k) => [k, []]));
+  for (const log of foodLogs) foodByDay.get(dayKey(log.logged_at))?.push(log);
+  for (const log of waterLogs) waterByDay.get(dayKey(log.logged_at))?.push(log);
 
-  const foodByDay: (typeof foodLogs)[] = buckets.map(() => []);
-  const waterByDay: (typeof waterLogs)[] = buckets.map(() => []);
-  for (const log of foodLogs) {
-    const i = bucketIndex(log.logged_at.getTime());
-    if (i >= 0) foodByDay[i].push(log);
-  }
-  for (const log of waterLogs) {
-    const i = bucketIndex(log.logged_at.getTime());
-    if (i >= 0) waterByDay[i].push(log);
-  }
-
-  const result = buckets.map((bucket, i) => {
-    const dayFood = foodByDay[i];
-    const dayWater = waterByDay[i];
+  const result = keys.map((date) => {
+    const dayFood = foodByDay.get(date) ?? [];
+    const dayWater = waterByDay.get(date) ?? [];
+    const m = sumMacros(dayFood);
+    const tenth = (v: number) => Math.round(v * 10) / 10;
     return {
-      date: bucket.label,
-      calories: Math.round(
-        dayFood.reduce((s, l) => s + (l.calories ?? 0), 0),
-      ),
-      protein:
-        Math.round(
-          dayFood.reduce((s, l) => s + (l.protein ?? 0), 0) * 10,
-        ) / 10,
-      carbohydrates:
-        Math.round(
-          dayFood.reduce((s, l) => s + (l.carbohydrates ?? 0), 0) * 10,
-        ) / 10,
-      fats:
-        Math.round(
-          dayFood.reduce((s, l) => s + (l.fats ?? 0), 0) * 10,
-        ) / 10,
-      fiber:
-        Math.round(
-          dayFood.reduce((s, l) => s + (l.fiber ?? 0), 0) * 10,
-        ) / 10,
-      water:
-        Math.round(
-          dayWater.reduce((s, l) => s + l.amount_liters, 0) * 100,
-        ) / 100,
+      date,
+      calories: Math.round(m.calories),
+      protein: tenth(m.protein),
+      carbohydrates: tenth(m.carbohydrates),
+      fats: tenth(m.fats),
+      fiber: tenth(m.fiber),
+      water: Math.round(dayWater.reduce((s, l) => s + l.amount_liters, 0) * 100) / 100,
       meals_logged: dayFood.length,
     };
   });

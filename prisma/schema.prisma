@@ -133,9 +133,7 @@ model RunLog {
   elevation_gain      Float?
   name                String?  @db.VarChar(200)
   source              String   @default("manual") @db.VarChar(20)
-  // Runs count towards the calorie allowance unless the user opts one out.
-  // Was @default(false) while nothing ever set it, so the flag was dead; now
-  // that `src/lib/budget.ts` reads it, false-by-default would zero all credit.
+  // Runs count toward the calorie allowance unless opted out; `budget.ts` reads it, so false-by-default would zero all credit.
   added_to_allowance  Boolean  @default(true)
   run_date            DateTime
   logged_at           DateTime @default(now())
@@ -197,9 +195,7 @@ model ExerciseLog {
 
   workout WorkoutLog @relation(fields: [workout_log_id], references: [id], onDelete: Cascade)
 
-  // `exercise_name` is the join key for every progress/PR/prediction query
-  // (always paired with `workout.user_id`, which lives on the parent row — so a
-  // plain index on the name is the best this table can offer).
+  // `exercise_name` is the join key for progress/PR/prediction queries; user_id lives on the parent row, so a plain index.
   @@index([workout_log_id])
   @@index([exercise_name])
   @@index([exercise_id])
@@ -255,8 +251,7 @@ model ProgressSnapshot {
   exercise_id               Int?
   exercise_name             String    @db.VarChar(100)
   estimated_1rm             Float
-  // best_set_* describe the best-*estimated-1RM* set (77.5×10 can beat 80×8),
-  // which is why they must not be rendered as a "weight PR".
+  // best_set_* is the best-e1RM set (77.5×10 can beat 80×8), not a weight PR.
   best_set_weight           Float
   best_set_reps             Int
   // best_weight/_reps are the genuinely heaviest set ever logged — this is what
@@ -264,11 +259,9 @@ model ProgressSnapshot {
   best_weight               Float     @default(0)
   best_weight_reps          Int       @default(0)
   total_volume_7d           Float     @default(0)
-  // last_improved_at is the e1RM/stall clock: it moves whenever *any* record
-  // (e1RM, weight or reps) is set, and drives sessions_since_improvement.
+  // last_improved_at is the e1RM/stall clock: any record moves it.
   last_improved_at          DateTime?
-  // best_weight_improved_at moves only when best_weight/_reps do, so the PR
-  // list can date a weight PR without borrowing an unrelated e1RM date.
+  // best_weight_improved_at moves only with best_weight/_reps, so the PR list can date a weight PR.
   best_weight_improved_at   DateTime?
   sessions_since_improvement Int      @default(0)
   updated_at                DateTime  @default(now()) @updatedAt

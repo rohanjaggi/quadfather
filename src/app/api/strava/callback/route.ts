@@ -7,20 +7,9 @@ import { exchangeStravaCode, signStravaState, hasActivityReadScope } from '@/lib
 export const dynamic = 'force-dynamic'
 
 /**
- * Verify the OAuth `state` that `/api/strava/connect` handed to Strava.
- *
- * Same format and same signature as `signStravaState` produces
- * (`<telegramId>.<hmac-sha256(ENCRYPTION_KEY, telegramId) truncated to 16 hex>`)
- * — with two hardening properties:
- *
- *  - **constant-time**, so the expected signature can't be recovered a
- *    character at a time by timing the callback; and
- *  - **rejects an empty `ENCRYPTION_KEY`** instead of signing with the empty
- *    key, which anyone could reproduce and so forge a `state` for any
- *    Telegram id — this route writes Strava tokens onto whichever user that
- *    id names.
- *
- * Returns the Telegram id as a string, or `null` when the state is not ours.
+ * Verify the OAuth `state` from `/api/strava/connect` (same format as `signStravaState`):
+ * constant-time, and rejects an empty `ENCRYPTION_KEY` (anyone could forge a state, and this
+ * route writes Strava tokens onto the user it names). Returns the Telegram id or `null`.
  */
 function verifyState(state: string): string | null {
   if (!process.env.ENCRYPTION_KEY) {
@@ -55,14 +44,11 @@ export async function GET(request: NextRequest) {
     }
 
     const telegramId = BigInt(telegramIdStr)
-    // Strava reports what the athlete actually granted (comma-separated, e.g.
-    // `read,activity:read_all`) — they can untick scopes on the consent screen.
+    // Athletes can untick scopes on the consent screen, so record what was granted.
     const grantedScope = request.nextUrl.searchParams.get('scope') ?? ''
     const tokens = await exchangeStravaCode(code)
 
-    // Store the tokens either way (so a later re-auth upgrades in place and the
-    // disconnect flow can still deauthorize), but record the real scope so sync
-    // can refuse up front instead of failing with a Strava 401.
+    // Store tokens either way (re-auth upgrades in place, disconnect can deauthorize); the real scope lets sync refuse up front.
     await prisma.user.update({
       where: { telegram_id: telegramId },
       data: {

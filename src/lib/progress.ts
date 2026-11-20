@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
 import { setsVolume } from '@/lib/volume'
 
 interface SetData {
@@ -25,7 +24,7 @@ interface BestSets {
  * "weight PR" the UI shows). They are different sets more often than you'd
  * think — 77.5×10 beats 80×8 on e1RM but is not a weight PR.
  */
-function findBestSets(sets: SetData[], seed?: BestSets): BestSets {
+export function findBestSets(sets: SetData[], seed?: BestSets): BestSets {
   const out: BestSets = seed
     ? { ...seed }
     : { best1RM: 0, e1rmSet: null, bestWeight: 0, bestWeightReps: 0 }
@@ -64,7 +63,6 @@ export function generateSuggestion(
   currentBestWeight: number,
   currentBestReps: number,
   sessionsSinceImprovement: number,
-  _lastSets: SetData[],
 ): ProgressSuggestion {
   const isStrength = trainingFocus === 'strength'
   const isHypertrophy = trainingFocus === 'hypertrophy'
@@ -94,15 +92,6 @@ export function generateSuggestion(
     }
   }
 
-  if (isStrength) {
-    const newWeight = Math.round((currentBestWeight + 2.5) * 10) / 10
-    return {
-      type: 'increase_weight',
-      value: `${newWeight}kg`,
-      reason: 'Progress is on track — add 2.5kg',
-    }
-  }
-
   if (isHypertrophy) {
     if (currentBestReps < 12) {
       return {
@@ -120,7 +109,7 @@ export function generateSuggestion(
     }
   }
 
-  // default (null / unknown focus) — same as strength
+  // strength, or no / unknown focus
   const newWeight = Math.round((currentBestWeight + 2.5) * 10) / 10
   return {
     type: 'increase_weight',
@@ -132,245 +121,92 @@ export function generateSuggestion(
 /** One entry of the PR list persisted on the workout row. */
 type PrEntry = { exercise: string; type: 'weight' | 'reps'; value: string }
 
-/** Attempts of the snapshot read-modify-write before giving up. */
-const SNAPSHOT_TX_ATTEMPTS = 3
-
-export async function updateProgressAfterWorkout(
-  userId: number,
-  workoutId: number,
-): Promise<{ prs: PrEntry[] }> {
-  const workout = await prisma.workoutLog.findUnique({
-    where: { id: workoutId },
-    include: { exercises: true },
-  })
-
-  if (!workout) return { prs: [] }
-
-  const prs: PrEntry[] = []
-
-  // One workout can legitimately carry two `ExerciseLog` rows with the same
-  // `exercise_name` (the form lets you add a lift twice, imports do it too).
-  // Iterating rows ran two independent read-modify-writes against the *same*
-  // snapshot for one session: `sessions_since_improvement` moved twice, and the
-  // second row's back-off branch could un-count the PR the first row had just
-  // set. Merge every row's sets per name first, so each distinct exercise is
-  // processed exactly once — as one session.
-  const merged = new Map<string, { sets: SetData[]; exerciseId: number | null }>()
-  for (const exerciseLog of workout.exercises) {
-    const rawSets = Array.isArray(exerciseLog.sets)
-      ? (exerciseLog.sets as unknown as SetData[])
-      : []
-    const existing = merged.get(exerciseLog.exercise_name)
-    if (existing) {
-      existing.sets.push(...rawSets)
-      if (existing.exerciseId == null) existing.exerciseId = exerciseLog.exercise_id ?? null
-    } else {
-      merged.set(exerciseLog.exercise_name, {
-        sets: [...rawSets],
-        exerciseId: exerciseLog.exercise_id ?? null,
-      })
-    }
-  }
-
-  for (const [exerciseName, { sets: rawSets, exerciseId }] of merged) {
-    const session = findBestSets(rawSets)
-    if (!session.e1rmSet) continue
-
-    // `const` so the non-null narrowing survives inside the closure below.
-    const topSet = session.e1rmSet
-    const topWeight = topSet.weight_kg!
-    const best1RM = session.best1RM
-    const sessionBestWeight = session.bestWeight
-    const sessionBestWeightReps = session.bestWeightReps
-
-    // 7-day rolling volume
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-    const recentLogs = await prisma.exerciseLog.findMany({
-      where: {
-        exercise_name: exerciseName,
-        workout: {
-          user_id: userId,
-          workout_date: { gte: sevenDaysAgo },
-        },
-      },
-    })
-
-    const volume7d = recentLogs.reduce((sum, log) => {
-      return sum + setsVolume(log.sets as unknown as SetData[])
-    }, 0)
-
-    // Read-modify-write of the snapshot row. Two workout POSTs for the same
-    // user+exercise really can land at once (client retry, Strava sync racing a
-    // manual log): unguarded, both read the pre-PR snapshot and the second
-    // write erases the first one's record. Serializable + a bounded retry is
-    // the portable way to make it atomic through Prisma (no `SELECT … FOR
-    // UPDATE` available). The PR is *returned* rather than pushed so a retried
-    // attempt can never announce the same PR twice.
-    const applyOnce = async (): Promise<PrEntry | null> =>
-      prisma.$transaction(
-        async tx => {
-          const snapshot = await tx.progressSnapshot.findUnique({
-            where: {
-              user_id_exercise_name: { user_id: userId, exercise_name: exerciseName },
-            },
-          })
-
-          if (!snapshot) {
-            await tx.progressSnapshot.create({
-              data: {
-                user_id: userId,
-                exercise_name: exerciseName,
-                exercise_id: exerciseId,
-                estimated_1rm: best1RM,
-                best_set_weight: topWeight,
-                best_set_reps: topSet.reps,
-                best_weight: sessionBestWeight,
-                best_weight_reps: sessionBestWeightReps,
-                total_volume_7d: volume7d,
-                last_improved_at: workout.workout_date,
-                // First recorded session — its heaviest set *is* the weight
-                // record, so it dates the weight PR too.
-                best_weight_improved_at: workout.workout_date,
-                sessions_since_improvement: 0,
-              },
-            })
-            return null
-          }
-
-          // The stored e1RM fields still move only on an e1RM improvement —
-          // it's the load-agnostic measure of "did this session move the
-          // needle".
-          const improved = best1RM > snapshot.estimated_1rm
-
-          // PRs are judged against the *weight* record, independently of e1RM,
-          // so the list can never announce a lighter weight than the one it
-          // replaced.
-          const weightPr = sessionBestWeight > snapshot.best_weight
-          const repsPr =
-            !weightPr &&
-            sessionBestWeight === snapshot.best_weight &&
-            sessionBestWeightReps > snapshot.best_weight_reps
-
-          // Any of the three is a record being set. Dating only e1RM PRs left a
-          // genuine weight/reps PR carrying a stale `last_improved_at` — so it
-          // dropped out of the 7-day PR list built from that column, and the
-          // session was miscounted as another step towards a deload.
-          const recordSet = improved || weightPr || repsPr
-
-          await tx.progressSnapshot.update({
-            where: { id: snapshot.id },
-            data: {
-              estimated_1rm: improved ? best1RM : snapshot.estimated_1rm,
-              best_set_weight: improved ? topWeight : snapshot.best_set_weight,
-              best_set_reps: improved ? topSet.reps : snapshot.best_set_reps,
-              best_weight: weightPr ? sessionBestWeight : snapshot.best_weight,
-              best_weight_reps:
-                weightPr || repsPr ? sessionBestWeightReps : snapshot.best_weight_reps,
-              total_volume_7d: volume7d,
-              // The date of the *session*, not of the write — so a backdated log
-              // dates its record correctly, and `recomputeSnapshotsForExercises`
-              // (which can only know workout dates) produces the same value.
-              last_improved_at: recordSet ? workout.workout_date : snapshot.last_improved_at,
-              // Separate clock for the *weight* record. `last_improved_at` moves
-              // on an e1RM improvement too, so using it to date the PR list made
-              // a 90×12 session (better e1RM, lighter bar) claim the standing
-              // "102.5kg" weight PR happened that day. Only a weight/reps PR
-              // moves this one, and only this one dates the PR list.
-              best_weight_improved_at:
-                weightPr || repsPr ? workout.workout_date : snapshot.best_weight_improved_at,
-              sessions_since_improvement: recordSet
-                ? 0
-                : snapshot.sessions_since_improvement + 1,
-              exercise_id: exerciseId ?? snapshot.exercise_id,
-            },
-          })
-
-          if (weightPr) {
-            return {
-              exercise: exerciseName,
-              type: 'weight',
-              value: `${sessionBestWeight}kg × ${sessionBestWeightReps}`,
-            }
-          }
-          if (repsPr) {
-            return {
-              exercise: exerciseName,
-              type: 'reps',
-              value: `${sessionBestWeightReps} reps @ ${sessionBestWeight}kg`,
-            }
-          }
-          return null
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-      )
-
-    let pr: PrEntry | null = null
-    try {
-      for (let attempt = 1; ; attempt++) {
-        try {
-          pr = await applyOnce()
-          break
-        } catch (err) {
-          // P2002 — a concurrent POST won the race on @@unique([user_id,
-          // exercise_name]) between the findUnique and the create; re-running
-          // re-reads and takes the update path instead of losing this session.
-          // P2034 — serialization failure / deadlock, the expected outcome when
-          // two transactions touch the same snapshot row.
-          const retryable =
-            err instanceof Prisma.PrismaClientKnownRequestError &&
-            (err.code === 'P2002' || err.code === 'P2034')
-          if (!retryable || attempt >= SNAPSHOT_TX_ATTEMPTS) throw err
-        }
-      }
-    } catch (err) {
-      // One exercise exhausting its retries used to escape the loop, so the
-      // whole workout lost the PRs already collected *and* every exercise after
-      // it was skipped. Snapshots are per-exercise rows: drop the one that
-      // failed, keep the rest.
-      console.error(`Progress update failed for exercise "${exerciseName}":`, err)
-      continue
-    }
-    if (pr) prs.push(pr)
-  }
-
-  return { prs }
+interface Session {
+  date: Date
+  sets: SetData[]
 }
 
 /**
- * Rebuild the user's `ProgressSnapshot` rows for `exerciseNames` from the
- * `ExerciseLog` rows that still exist.
+ * Snapshot fields for one exercise from all its sessions (oldest first), plus the PRs
+ * each session set. `snapshot` is null when no session carried external load.
  *
- * Called after a workout is deleted: the incremental path above only ever moves
- * records *up*, so deleting the session that set a record used to leave the PR
- * standing in the snapshot forever (and the old code only cleaned up when the
- * exercise had zero logs left).
- *
- * Everything is derived, nothing is preserved:
- *  - `estimated_1rm` / `best_set_weight` / `best_set_reps` — best-e1RM set of
- *    all remaining sets.
- *  - `best_weight` / `best_weight_reps` — heaviest remaining set.
- *  - `total_volume_7d` — remaining sets in the last 7 days.
- *  - `last_improved_at` — the workout date of the *earliest* session that set
- *    any of the tracked records (best e1RM, heaviest weight, or most reps at
- *    that weight — the same three the incremental path treats as a record), not
- *    "now"; `best_weight_improved_at` — the same, but for the heaviest-set
- *    record alone (what the PR list dates itself from); and
- *    `sessions_since_improvement` — how many *weighted* sessions of
- *    that exercise have been logged since. Bodyweight-only sessions are skipped
- *    in both counts because the incremental path skips them too, so a deletion
- *    can't silently pull a stalled lift out of deload territory (or push it in).
- *  - snapshot deleted when no rows (or no loaded sets) remain.
- *
- * Runs two queries total regardless of how many exercises are passed.
+ * Records must be strictly better, so the first session to reach one owns it.
+ * Bodyweight sessions neither set records nor count as stalls. The first session
+ * is not announced as a PR.
+ */
+export function snapshotFromSessions(sessions: Session[], volumeSince: Date) {
+  let best: BestSets = { best1RM: 0, e1rmSet: null, bestWeight: 0, bestWeightReps: 0 }
+  let recordDate: Date | null = null
+  let weightRecordDate: Date | null = null
+  let sinceRecord = 0
+  let volume7d = 0
+  const prs: (Omit<PrEntry, 'exercise'> | null)[] = []
+  const heldAfter: BestSets[] = []
+
+  for (const { date, sets } of sessions) {
+    if (date >= volumeSince) volume7d += setsVolume(sets)
+    let pr: Omit<PrEntry, 'exercise'> | null = null
+
+    if (sets.some(s => (s.weight_kg ?? 0) > 0)) {
+      const before = best
+      best = findBestSets(sets, before)
+      const weightPr = best.bestWeight > before.bestWeight
+      const repsPr = !weightPr && best.bestWeightReps > before.bestWeightReps
+      if (weightPr || repsPr) weightRecordDate = date
+      if (weightPr || repsPr || best.best1RM > before.best1RM) {
+        recordDate = date
+        sinceRecord = 0
+      } else {
+        sinceRecord++
+      }
+      if (before.bestWeight > 0 && weightPr) {
+        pr = { type: 'weight', value: `${best.bestWeight}kg × ${best.bestWeightReps}` }
+      } else if (before.bestWeight > 0 && repsPr) {
+        pr = { type: 'reps', value: `${best.bestWeightReps} reps @ ${best.bestWeight}kg` }
+      }
+    }
+    prs.push(pr)
+    heldAfter.push(best)
+  }
+
+  // A backdated session's PR only stands if no later session beat it.
+  prs.forEach((pr, i) => {
+    if (!pr) return
+    const h = heldAfter[i]
+    const holds = h.bestWeight === best.bestWeight && (pr.type === 'weight' || h.bestWeightReps === best.bestWeightReps)
+    if (!holds) prs[i] = null
+  })
+
+  if (!best.e1rmSet) return { snapshot: null, prs }
+  return {
+    snapshot: {
+      estimated_1rm: best.best1RM,
+      best_set_weight: best.e1rmSet.weight_kg!,
+      best_set_reps: best.e1rmSet.reps,
+      best_weight: best.bestWeight,
+      best_weight_reps: best.bestWeightReps,
+      total_volume_7d: volume7d,
+      last_improved_at: recordDate,
+      best_weight_improved_at: weightRecordDate,
+      sessions_since_improvement: sinceRecord,
+    },
+    prs,
+  }
+}
+
+/**
+ * Rebuild the user's `ProgressSnapshot` rows for `exerciseNames` from every
+ * `ExerciseLog` that exists, after a workout is saved or deleted; snapshots with
+ * no loaded sets left are deleted. Returns the PRs workout `prWorkoutId` set, in
+ * `exerciseNames` order.
  */
 export async function recomputeSnapshotsForExercises(
   userId: number,
   exerciseNames: string[],
-): Promise<void> {
+  prWorkoutId?: number,
+): Promise<PrEntry[]> {
   const names = [...new Set(exerciseNames)].filter(n => n)
-  if (names.length === 0) return
+  if (names.length === 0) return []
 
   const logs = await prisma.exerciseLog.findMany({
     where: {
@@ -381,15 +217,9 @@ export async function recomputeSnapshotsForExercises(
       exercise_name: true,
       exercise_id: true,
       sets: true,
-      // The workout id is what makes "two rows, one session" knowable here —
-      // without it, a workout that logged the same lift twice was scanned as
-      // two sessions and disagreed with the incremental path's counter.
       workout: { select: { id: true, workout_date: true } },
     },
-    // Deterministic session order: same-dated workouts (both stored at
-    // midnight, the common case for backdated logs) otherwise came back in
-    // whatever order Postgres felt like, so which session "owned" a record —
-    // and therefore `last_improved_at` — could flip between runs.
+    // Session order; the workout id ranks same-dated sessions deterministically.
     orderBy: [{ workout: { workout_date: 'asc' } }, { workout_log_id: 'asc' }],
   })
 
@@ -401,99 +231,29 @@ export async function recomputeSnapshotsForExercises(
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
   const orphaned: string[] = []
+  const prs: PrEntry[] = []
 
   for (const [exerciseName, rows] of byName) {
-    if (rows.length === 0) {
-      orphaned.push(exerciseName)
-      continue
-    }
-
-    // Collapse rows to sessions: every `ExerciseLog` row of the same workout is
-    // one session of that exercise, however many times it was logged.
-    const byWorkout = new Map<
-      number,
-      { id: number; date: Date; sets: SetData[]; exerciseId: number | null }
-    >()
+    // Every row of one workout is one session of the lift, however many times it was logged.
+    const sessions = new Map<number, Session>()
+    let exerciseId: number | null = null
     for (const row of rows) {
       const rowSets = Array.isArray(row.sets) ? (row.sets as unknown as SetData[]) : []
-      const existing = byWorkout.get(row.workout.id)
-      if (existing) {
-        existing.sets.push(...rowSets)
-        if (row.exercise_id != null) existing.exerciseId = row.exercise_id
-      } else {
-        byWorkout.set(row.workout.id, {
-          id: row.workout.id,
-          date: row.workout.workout_date,
-          sets: [...rowSets],
-          exerciseId: row.exercise_id,
-        })
-      }
+      const session = sessions.get(row.workout.id)
+      if (session) session.sets.push(...rowSets)
+      else sessions.set(row.workout.id, { date: row.workout.workout_date, sets: [...rowSets] })
+      if (row.exercise_id != null) exerciseId = row.exercise_id
     }
 
-    // Oldest first so index order == session order; the workout id breaks ties
-    // so same-dated sessions rank the same way the query ordered them.
-    const sessions = [...byWorkout.values()].sort(
-      (a, b) => a.date.getTime() - b.date.getTime() || a.id - b.id,
-    )
-
-    let best: BestSets = { best1RM: 0, e1rmSet: null, bestWeight: 0, bestWeightReps: 0 }
-    // Counted over *weighted* sessions only: the incremental path bails out of a
-    // bodyweight-only session before it touches `sessions_since_improvement`, so
-    // counting them here would make the two paths disagree after a deletion.
-    let weightedSessions = 0
-    let recordOrdinal = -1
-    let recordDate: Date | null = null
-    // Separate clock for the weight/reps record only — the column the PR list
-    // dates itself from. See `best_weight_improved_at` in the incremental path.
-    let weightRecordDate: Date | null = null
-    let volume7d = 0
-    let exerciseId: number | null = null
-
-    for (let i = 0; i < sessions.length; i++) {
-      const sets = sessions[i].sets
-      if (sessions[i].date >= sevenDaysAgo) volume7d += setsVolume(sets)
-      if (sessions[i].exerciseId != null) exerciseId = sessions[i].exerciseId
-
-      if (!sets.some(s => (s.weight_kg ?? 0) > 0)) continue
-      weightedSessions++
-
-      const before1RM = best.best1RM
-      const beforeWeight = best.bestWeight
-      const beforeWeightReps = best.bestWeightReps
-      best = findBestSets(sets, best)
-      // Strictly greater, so the *first* session at a given record owns it. All
-      // three records count, matching `recordSet` in the incremental path — a
-      // weight or reps PR dates the snapshot just like an e1RM PR does.
-      const weightRecord =
-        best.bestWeight > beforeWeight ||
-        (best.bestWeight === beforeWeight && best.bestWeightReps > beforeWeightReps)
-      if (best.best1RM > before1RM || weightRecord) {
-        recordOrdinal = weightedSessions - 1
-        recordDate = sessions[i].date
-      }
-      if (weightRecord) weightRecordDate = sessions[i].date
-    }
-
-    if (!best.e1rmSet || !recordDate) {
-      // Only bodyweight sets left — there is no 1RM to snapshot.
+    const { snapshot, prs: sessionPrs } = snapshotFromSessions([...sessions.values()], sevenDaysAgo)
+    if (!snapshot) {
       orphaned.push(exerciseName)
       continue
     }
+    const pr = sessionPrs[[...sessions.keys()].findIndex(id => id === prWorkoutId)]
+    if (pr) prs.push({ exercise: exerciseName, ...pr })
 
-    const topWeight = best.e1rmSet.weight_kg!
-    const data = {
-      exercise_id: exerciseId,
-      estimated_1rm: best.best1RM,
-      best_set_weight: topWeight,
-      best_set_reps: best.e1rmSet.reps,
-      best_weight: best.bestWeight,
-      best_weight_reps: best.bestWeightReps,
-      total_volume_7d: volume7d,
-      last_improved_at: recordDate,
-      best_weight_improved_at: weightRecordDate,
-      sessions_since_improvement: weightedSessions - 1 - recordOrdinal,
-    }
-
+    const data = { exercise_id: exerciseId, ...snapshot }
     await prisma.progressSnapshot.upsert({
       where: { user_id_exercise_name: { user_id: userId, exercise_name: exerciseName } },
       update: data,
@@ -506,4 +266,6 @@ export async function recomputeSnapshotsForExercises(
       where: { user_id: userId, exercise_name: { in: orphaned } },
     })
   }
+
+  return prs
 }

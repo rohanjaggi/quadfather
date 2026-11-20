@@ -16,23 +16,29 @@ export default function TrainingRecap({ period, workoutCount }: Props) {
   const [error, setError] = useState<string | null>(null)
   const cachedPeriod = useRef<number | null>(null)
   const cachedCount = useRef<number | null>(null)
+  const requestId = useRef(0)
 
   function fetchRecap() {
     setLoading(true)
     setError(null)
+    const id = ++requestId.current
     getWorkoutRecap(period)
       .then(data => {
+        if (requestId.current !== id) return
         setRecap(data.recap)
         cachedPeriod.current = period
         cachedCount.current = workoutCount
       })
       // `err.message` is the raw `API 500: {"detail":"…"}` thrown by `apiFetch`;
       // `errorMessage` unwraps it to the part worth showing.
-      .catch(err => setError(errorMessage(err, 'Failed to generate recap')))
-      .finally(() => setLoading(false))
+      .catch(err => { if (requestId.current === id) setError(errorMessage(err, 'Failed to generate recap')) })
+      .finally(() => { if (requestId.current === id) setLoading(false) })
   }
 
   useEffect(() => {
+    requestId.current++ // drop any in-flight response for the previous period
+    setLoading(false)
+    setError(null)
     if (cachedPeriod.current !== period || cachedCount.current !== workoutCount) {
       setRecap(null)
     }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { setupBotCommands } from "@/lib/telegram-bot";
+import { GrammyError } from "grammy";
+import { getBot, setupBotCommands } from "@/lib/telegram-bot";
 import {
   ApiError,
   timingSafeEqualStr,
@@ -11,13 +12,9 @@ const WEBHOOK_URL = process.env.WEBHOOK_URL ?? "";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? "";
 
 /**
- * One-shot bot bootstrap: registers the command list and points Telegram's
- * webhook at this deployment. Authenticated with the bot token itself.
- *
- * Fails closed on misconfiguration. Previously an unset `BOTFATHER_TOKEN` made
- * the guard compare against the literal `"Bearer "`, so anyone could re-point
- * the webhook; an unset `WEBHOOK_URL`/`WEBHOOK_SECRET` would have registered a
- * garbage URL that no route matches, silently killing the bot.
+ * One-shot bot bootstrap: registers commands and points Telegram's webhook here,
+ * authenticated with the bot token. Fails closed when `BOTFATHER_TOKEN`,
+ * `WEBHOOK_URL` or `WEBHOOK_SECRET` is unset, so no one can re-point the webhook.
  */
 export const POST = withErrorHandling(async (request) => {
   if (!BOT_TOKEN || !WEBHOOK_URL || !WEBHOOK_SECRET) {
@@ -35,16 +32,14 @@ export const POST = withErrorHandling(async (request) => {
 
   await setupBotCommands();
 
-  const webhookUrl = `${WEBHOOK_URL}/api/webhook/${WEBHOOK_SECRET}`;
-  const res = await fetch(
-    `https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: webhookUrl }),
-    },
-  );
-  const result = await res.json();
+  // grammY throws on Telegram's `ok: false`; pass Telegram's reason on to the admin.
+  let result: true;
+  try {
+    result = await getBot().api.setWebhook(`${WEBHOOK_URL}/api/webhook/${WEBHOOK_SECRET}`);
+  } catch (err) {
+    if (err instanceof GrammyError) throw new ApiError(502, err.description);
+    throw err;
+  }
 
   return NextResponse.json({
     commands: "registered",

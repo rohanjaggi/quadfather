@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   notFound,
+  nullable,
   optionalNumber,
   optionalString,
   parseJsonBody,
@@ -10,33 +11,19 @@ import {
   requireString,
   withUser,
 } from "@/lib/api-handler";
+import { SAVED_FOOD_SELECT } from "@/lib/selects";
 
 const MAX_NAME = 100;
 const MAX_LABEL = 100;
 const MAX_MACRO = 100_000;
-
-/** `undefined` = key absent (leave alone); `null` = explicit clear. */
-function nullableText(
-  body: Record<string, unknown>,
-  key: string,
-  maxLength?: number,
-): string | null | undefined {
-  if (!(key in body)) return undefined;
-  const value = body[key];
-  if (value === null || value === "") return null;
-  const text = optionalString(value, key)!;
-  return maxLength === undefined ? text : text.slice(0, maxLength);
-}
 
 export const PATCH = withUser<{ params: { id: string } }>(
   async (request, user, { params }) => {
     const foodId = requireInt(params.id, "id", { min: 1 });
     const body = await parseJsonBody(request);
 
-    const food = await prisma.savedFood.findFirst({
-      where: { id: foodId, user_id: user.id },
-    });
-    if (!food) throw notFound("Saved food not found");
+    const owned = await prisma.savedFood.count({ where: { id: foodId, user_id: user.id } });
+    if (!owned) throw notFound("Saved food not found");
 
     const data: Prisma.SavedFoodUpdateInput = {};
 
@@ -47,33 +34,19 @@ export const PATCH = withUser<{ params: { id: string } }>(
       const value = optionalNumber(body[key], key, { min: 0, max: MAX_MACRO });
       if (value !== undefined) data[key] = value;
     }
-    // Both used to be silently dropped, so editing a favourite's notes or
-    // serving size did nothing.
-    const description = nullableText(body, "description");
+    const description = nullable(body, "description", (v) => optionalString(v, "description")!);
     if (description !== undefined) data.description = description;
-    const servingLabel = nullableText(body, "serving_label", MAX_LABEL);
+    const servingLabel = nullable(body, "serving_label", (v) => optionalString(v, "serving_label")!.slice(0, MAX_LABEL));
     if (servingLabel !== undefined) data.serving_label = servingLabel;
 
-    // Renaming onto another favourite hits `uq_user_food_name`; the wrapper
-    // turns that P2002 into a 409 instead of a 500.
+    // Renaming onto another favourite hits `uq_user_food_name`; the wrapper maps the P2002 to 409.
     const updated = await prisma.savedFood.update({
       where: { id: foodId },
       data,
+      select: SAVED_FOOD_SELECT,
     });
 
-    return NextResponse.json({
-      id: updated.id,
-      name: updated.name,
-      description: updated.description,
-      calories: updated.calories,
-      protein: updated.protein,
-      carbohydrates: updated.carbohydrates,
-      fats: updated.fats,
-      fiber: updated.fiber,
-      serving_label: updated.serving_label,
-      source: updated.source,
-      created_at: updated.created_at.toISOString(),
-    });
+    return NextResponse.json(updated);
   },
 );
 
@@ -81,12 +54,8 @@ export const DELETE = withUser<{ params: { id: string } }>(
   async (request, user, { params }) => {
     const foodId = requireInt(params.id, "id", { min: 1 });
 
-    const food = await prisma.savedFood.findFirst({
-      where: { id: foodId, user_id: user.id },
-    });
-    if (!food) throw notFound("Saved food not found");
-
-    await prisma.savedFood.delete({ where: { id: foodId } });
+    const { count } = await prisma.savedFood.deleteMany({ where: { id: foodId, user_id: user.id } });
+    if (count === 0) throw notFound("Saved food not found");
     return new NextResponse(null, { status: 204 });
   },
 );

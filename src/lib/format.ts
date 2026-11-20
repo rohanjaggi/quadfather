@@ -2,11 +2,7 @@
  * Shared display formatting helpers (client-safe, no server imports).
  */
 
-/**
- * Format a pace given in seconds-per-km (or minutes-per-km when `unit` is
- * 'min') as `m:ss`. Rounds to the nearest second FIRST so `5:59.6` becomes
- * `6:00`, never `5:60`.
- */
+/** Pace as `m:ss` from seconds-per-km (or minutes when `unit` is 'min'); rounds to the second first so `5:59.6` is `6:00`, never `5:60`. */
 export function formatPace(
   value: number | null | undefined,
   unit: 'sec' | 'min' = 'sec',
@@ -28,6 +24,11 @@ export function formatDuration(totalSeconds: number | null | undefined): string 
   return h > 0
     ? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
     : `${m}:${s.toString().padStart(2, '0')}`
+}
+
+/** `HH:MM` (24h) in the viewer's locale timezone. */
+export function formatTime(isoString: string): string {
+  return new Date(isoString).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
 /** Thousands-separated integer (e.g. 12,345). */

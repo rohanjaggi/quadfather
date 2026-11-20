@@ -6,25 +6,18 @@ import { useUser } from '@/context/UserContext'
 import { getRunHistory } from '@/lib/api'
 import type { RunLog } from '@/types/running'
 import ActivityHighlights from '@/components/dashboard/ActivityHighlights'
+import { dayKey, daysAgoStart } from '@/lib/day'
 
 function daysAgo(dateStr: string): string {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
+  const diff = Math.round((Date.parse(dayKey()) - Date.parse(dayKey(new Date(dateStr)))) / 86400000)
   if (diff === 0) return 'today'
   if (diff === 1) return 'yesterday'
   return `${diff}d ago`
 }
 
-/**
- * Monday 00:00 UTC of the week containing `date`.
- *
- * `run_date` is stored and parsed as UTC, so the boundary has to be UTC too —
- * a local-midnight start put runs from Sunday evening (UTC Monday) outside the
- * week for anyone east of UTC, and pulled last Sunday in for anyone west.
- */
-function startOfWeekUTC(date: Date): Date {
-  const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
-  start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7))
-  return start
+/** Start of this week's Monday (`getUTCDay()` is Sunday-based, hence `+ 6`). */
+function startOfThisWeek(): Date {
+  return daysAgoStart((new Date(`${dayKey()}T00:00:00Z`).getUTCDay() + 6) % 7)
 }
 
 export default function ExercisePage() {
@@ -39,7 +32,7 @@ export default function ExercisePage() {
     getRunHistory(7)
       .then(runs => {
         if (cancelled) return
-        const weekStart = startOfWeekUTC(new Date())
+        const weekStart = startOfThisWeek()
         setWeekRuns(runs.filter(r => new Date(r.run_date) >= weekStart))
       })
       .catch(() => {})

@@ -6,6 +6,7 @@ import LogActions from '@/components/dashboard/LogActions'
 import RecentActivity from '@/components/dashboard/RecentActivity'
 import { formatInt } from '@/lib/format'
 import { useUser } from '@/context/UserContext'
+import { dayKey } from '@/lib/day'
 
 function getGreeting() {
   const hour = new Date().getHours()
@@ -143,10 +144,7 @@ export default function DashboardPage() {
 
       {/* Recent Activity */}
       <div className="fade-up fade-up-3">
-        <RecentActivity foodLogs={foodLogs} waterLogs={waterLogs} workoutLogs={weeklyWorkouts.filter(w => {
-          const today = new Date().toISOString().split('T')[0]
-          return w.workout_date.startsWith(today)
-        })} />
+        <RecentActivity foodLogs={foodLogs} waterLogs={waterLogs} workoutLogs={weeklyWorkouts.filter(w => dayKey(new Date(w.workout_date)) === dayKey())} />
       </div>
 
     </div>

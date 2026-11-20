@@ -15,6 +15,8 @@ import TrainingRecap from '@/components/workouts/TrainingRecap'
 import MuscleBalance from '@/components/workouts/MuscleBalance'
 import { calculateStepAllowance } from '@/lib/steps'
 import { errorMessage } from '@/lib/errors'
+import { currentStepStreak, longestStepStreak } from '@/lib/streak'
+import { addDays, dayKey } from '@/lib/day'
 
 type Period = 7 | 30
 
@@ -30,11 +32,6 @@ function parseIsoDay(iso: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-/** `YYYY-MM-DD` in the viewer's own calendar. */
-function localIsoDay(d: Date): string {
-  return d.toLocaleDateString('en-CA')
-}
-
 function shortDate(iso: string) {
   const d = parseIsoDay(iso)
   if (!d) return iso
@@ -45,14 +42,8 @@ function dayLabel(iso: string) {
   const d = parseIsoDay(iso)
   if (!d) return iso
 
-  // "Today"/"Yday" are about the viewer's calendar, so they compare date
-  // strings rather than instants — `toDateString()` on a UTC-midnight Date is
-  // the previous day for most of the world.
-  const today = new Date()
-  if (iso === localIsoDay(today)) return 'Today'
-  const yesterday = new Date(today)
-  yesterday.setDate(today.getDate() - 1)
-  if (iso === localIsoDay(yesterday)) return 'Yday'
+  if (iso === dayKey()) return 'Today'
+  if (iso === addDays(dayKey(), -1)) return 'Yday'
 
   return d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })
 }
@@ -248,7 +239,7 @@ export default function AnalyticsPage() {
       getSteps(period)
         .then(data => {
           if (stepsReqRef.current !== requestId) return
-          setStepsData([...data].sort((a, b) => a.date.localeCompare(b.date)))
+          setStepsData(data.map(d => ({ ...d, date: d.date.slice(0, 10) })).sort((a, b) => a.date.localeCompare(b.date)))
         })
         .catch(console.error)
         .finally(() => { if (stepsReqRef.current === requestId) setStepsLoading(false) })
@@ -311,8 +302,9 @@ export default function AnalyticsPage() {
   const avgProtein = activeDays.length > 0
     ? Math.round(activeDays.reduce((s, d) => s + d.protein, 0) / activeDays.length * 10) / 10
     : 0
-  const avgWater = activeDays.length > 0
-    ? Math.round(activeDays.reduce((s, d) => s + d.water, 0) / activeDays.length * 100) / 100
+  const waterDays = days.filter(d => d.water > 0)
+  const avgWater = waterDays.length > 0
+    ? Math.round(waterDays.reduce((s, d) => s + d.water, 0) / waterDays.length * 100) / 100
     : 0
   const avgFiber = activeDays.length > 0
     ? Math.round(activeDays.reduce((s, d) => s + d.fiber, 0) / activeDays.length * 10) / 10
@@ -988,25 +980,9 @@ export default function AnalyticsPage() {
               <div className="fade-up fade-up-1">
                 <SummaryCard title="Streaks & Consistency">
                   {(() => {
-                    // Sort by date descending for streak calculation
-                    const sorted = [...stepsData].sort((a, b) => b.date.localeCompare(a.date))
-                    let currentStreak = 0
-                    for (const d of sorted) {
-                      if (d.steps >= stepGoal) currentStreak++
-                      else break
-                    }
-                    // Longest streak
+                    const currentStreak = currentStepStreak(stepsData, stepGoal)
+                    const longestStreak = longestStepStreak(stepsData, stepGoal)
                     const chronological = [...stepsData].sort((a, b) => a.date.localeCompare(b.date))
-                    let longestStreak = 0
-                    let tempStreak = 0
-                    for (const d of chronological) {
-                      if (d.steps >= stepGoal) {
-                        tempStreak++
-                        if (tempStreak > longestStreak) longestStreak = tempStreak
-                      } else {
-                        tempStreak = 0
-                      }
-                    }
                     const goalHitDays = stepsData.filter(d => d.steps >= stepGoal).length
                     // Last 14 days dots
                     const last14 = chronological.slice(-14)
@@ -1102,12 +1078,8 @@ export default function AnalyticsPage() {
                       const daySums: number[] = [0, 0, 0, 0, 0, 0, 0]
                       const dayCounts: number[] = [0, 0, 0, 0, 0, 0, 0]
                       stepsData.forEach(d => {
-                        // `d.date` is already a full ISO timestamp — appending
-                        // 'T00:00:00' produced an Invalid Date and NaN buckets,
-                        // so this panel was always empty. Bucket by UTC day to
-                        // match how the rows are stored.
-                        const parsed = new Date(d.date.includes('T') ? d.date : `${d.date}T00:00:00Z`)
-                        if (Number.isNaN(parsed.getTime())) return
+                        const parsed = parseIsoDay(d.date)
+                        if (!parsed) return
                         const dow = parsed.getUTCDay()
                         daySums[dow] += d.steps
                         dayCounts[dow]++

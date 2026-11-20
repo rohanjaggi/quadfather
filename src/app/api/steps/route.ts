@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { startOfUtcDay } from '@/lib/budget'
+import { addDays, dayKey } from '@/lib/day'
 import {
   optionalInt,
   optionalString,
@@ -11,29 +11,24 @@ import {
   withUser,
 } from '@/lib/api-handler'
 
-/** `StepLog.steps` is an Int column; 1e12 used to overflow it with a 500. */
+/** Plausibility cap on one day's steps. */
 const MAX_STEPS = 200_000
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
 const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})[T ]/
 
 /**
- * Resolve the UTC calendar day a step count belongs to.
- *
- * Days are stored as UTC midnight (`@db.Date`), which is also how `GET` buckets
- * them and how `getDailyBudget` looks today's row up. For a datetime *with* an
- * offset (`2026-08-20T01:00:00+08:00`) the leading calendar date is the day the
- * user was actually in — converting the instant to UTC would file it under the
- * previous day, which is how a morning sync used to overwrite yesterday.
+ * Resolve the calendar day a step count belongs to (default: today, Singapore). Stored as UTC
+ * midnight of the `YYYY-MM-DD` key (`@db.Date`); for a datetime with an offset the leading
+ * date is the user's day, since converting to UTC would file it under the previous one.
  */
 function parseStepDate(value: unknown): Date {
-  if (value === undefined || value === null || value === '') return startOfUtcDay()
+  if (value === undefined || value === null || value === '') return new Date(`${dayKey()}T00:00:00Z`)
   if (typeof value !== 'string') {
     throw unprocessable('date must be a YYYY-MM-DD or ISO-8601 date string')
   }
 
   const match = DATE_ONLY.exec(value) ?? DATE_TIME.exec(value)
-  // Rejects `19/08/2026`, `Aug 20 2026`, … which used to reach Prisma as an
-  // Invalid Date and 500.
+  // Reject non-ISO forms (`19/08/2026`) that would reach Prisma as an Invalid Date.
   if (!match) throw unprocessable('date must be a YYYY-MM-DD or ISO-8601 date string')
   if (!DATE_ONLY.test(value) && Number.isNaN(new Date(value).getTime())) {
     throw unprocessable('date must be a YYYY-MM-DD or ISO-8601 date string')
@@ -41,8 +36,7 @@ function parseStepDate(value: unknown): Date {
 
   const [, year, month, day] = match
   const utcDay = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
-  // `Date.UTC` rolls 2026-02-31 over into March — reject rather than silently
-  // filing the steps under the wrong day.
+  // `Date.UTC` rolls 2026-02-31 into March.
   if (
     utcDay.getUTCFullYear() !== Number(year) ||
     utcDay.getUTCMonth() !== Number(month) - 1 ||
@@ -56,18 +50,15 @@ function parseStepDate(value: unknown): Date {
 export const POST = withFlexibleUser(async (request, user) => {
   const body = await parseJsonBody(request)
 
-  // Health exports occasionally send `8123.0`; round rather than reject, but
-  // bound the value so it fits the Int column.
+  // Health exports send `8123.0`; round, and bound to fit the Int column.
   const steps = Math.round(requireNumber(body.steps, 'steps', { min: 0, max: MAX_STEPS }))
   const targetDate = parseStepDate(body.date)
   const source = optionalString(body.source, 'source', { maxLength: 20 })?.trim() || 'shortcut'
 
   const key = { user_id_date: { user_id: user.id, date: targetDate } }
 
-  // A day's step count only ever goes up — a later sync that reports fewer
-  // steps is a partial read, not a correction. The guard lives in the UPDATE's
-  // own WHERE clause rather than in a preceding `findUnique`, so two concurrent
-  // Shortcut runs can't both read the old value and race to overwrite it.
+  // A day's count only goes up: a lower sync is a partial read. The guard is in the UPDATE's
+  // WHERE so concurrent Shortcut runs can't race on a prior read.
   const raised = await prisma.stepLog.updateMany({
     where: { user_id: user.id, date: targetDate, steps: { lt: steps } },
     data: { steps, source, logged_at: new Date() },
@@ -79,16 +70,12 @@ export const POST = withFlexibleUser(async (request, user) => {
     })
   }
 
-  // Nothing was raised, which means either the day has no row yet or the stored
-  // count already wins. `upsert` settles that atomically: the old
-  // `findUnique` + `create` let two concurrent syncs both see no row and then
-  // collide on `@@unique([user_id, date])`, failing the loser with a P2002 →
-  // 409 even though its data was fine.
+  // Either no row yet or the stored count wins; `upsert` settles it atomically (a find+create
+  // would P2002 on `@@unique([user_id, date])`).
   const stepLog = await prisma.stepLog.upsert({
     where: key,
     create: { user_id: user.id, steps, date: targetDate, source },
-    // The stored count stands, but `source` is still re-stamped so a re-sync
-    // can correct a mislabelled row — the old update branch never wrote it.
+    // The stored count stands, but `source` is re-stamped so a re-sync can fix a mislabelled row.
     update: { source },
   })
 
@@ -105,11 +92,8 @@ export const GET = withUser(async (request, user) => {
   const daysParam = request.nextUrl.searchParams.get('days')
   const days = optionalInt(daysParam, 'days', { min: 1, max: 365 }) ?? 7
 
-  // Exactly `days` UTC days ending today — this used to subtract `days` from
-  // today and so returned `days + 1` buckets (today's row plus a full extra
-  // day), which is why `getSteps(1)` could report yesterday's count as today's.
-  const startDate = startOfUtcDay()
-  startDate.setUTCDate(startDate.getUTCDate() - (days - 1))
+  // Exactly `days` calendar days ending today, compared by the stored date key.
+  const startDate = new Date(`${addDays(dayKey(), -(days - 1))}T00:00:00Z`)
 
   const stepLogs = await prisma.stepLog.findMany({
     where: { user_id: user.id, date: { gte: startDate } },

@@ -6,7 +6,7 @@ import { getDailyBudget } from "@/lib/budget";
 import { callAIProvider, parseJsonStringArray, withUser } from "@/lib/api-handler";
 
 export const GET = withUser(async (request, user) => {
-  const { provider, apiKey, model } = getUserAICredentials(user);
+  const ai = getUserAICredentials(user);
 
   // Same budget the dashboard shows: goal + exercise credit + step credit.
   const budget = await getDailyBudget(user);
@@ -28,18 +28,12 @@ export const GET = withUser(async (request, user) => {
   });
   const savedFoodNames = savedFoods.map((f) => f.name);
 
-  // The dampened exercise credit (50% of runs + workouts) — i.e. the number
-  // that actually sits inside `remainingCalories`. Passing raw burn here made
-  // the model treat it as headroom on top of the remaining budget and
-  // double-count it, so send the credit and let the prompt say it is already
-  // included.
+  // The dampened credit already inside `remainingCalories`; raw burn would be double-counted as headroom.
   const exerciseToday = budget.exercise_burn;
 
   const suggestions = await callAIProvider("foods/suggest", () =>
     suggestMeals(
-      provider,
-      apiKey,
-      model,
+      ai,
       remainingCalories,
       remainingProtein,
       mealNames,

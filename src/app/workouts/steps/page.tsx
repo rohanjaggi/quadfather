@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { getSteps } from '@/lib/api'
 import type { StepLog } from '@/types/workouts'
 import { useUser } from '@/context/UserContext'
+import { addDays, dayKey } from '@/lib/day'
 
 /**
  * Step rows are stored at UTC midnight, so the calendar day has to be read off
@@ -18,18 +19,11 @@ function utcDateKey(value: string): string {
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10)
 }
 
-function shiftUtcDays(key: string, days: number): string {
-  const d = new Date(`${key}T00:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
-}
-
 function formatDate(dateStr: string): string {
   const key = utcDateKey(dateStr)
   if (!key) return '—'
-  const today = new Date().toISOString().slice(0, 10)
-  if (key === today) return 'Today'
-  if (key === shiftUtcDays(today, -1)) return 'Yesterday'
+  if (key === dayKey()) return 'Today'
+  if (key === addDays(dayKey(), -1)) return 'Yesterday'
   return new Date(`${key}T00:00:00Z`).toLocaleDateString('en-GB', {
     weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
   })

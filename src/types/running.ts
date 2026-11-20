@@ -7,13 +7,7 @@ export interface RunLog {
   average_heartrate?: number
   elevation_gain?: number
   name?: string
-  /**
-   * `'manual'`, `'ai_parsed'` and `'strava'` are what the app writes today
-   * (`'strava'` rows must not be badged "Manual"), but `POST /runs` stores any
-   * string the caller sends, so importers like the iOS Shortcut can widen this
-   * set without a schema change. Same reasoning as `WorkoutLog.source`:
-   * compare against the known values, never assume it is only those.
-   */
+  /** `'manual'`, `'ai_parsed'`, `'strava'` today, but `POST /runs` stores any string (e.g. the iOS Shortcut), so never assume only those. */
   source: string
   added_to_allowance: boolean
   /** Serialised BigInt (the JSON number would lose precision beyond 2^53). */

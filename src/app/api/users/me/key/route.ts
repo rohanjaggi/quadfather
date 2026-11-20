@@ -10,7 +10,7 @@ import {
 } from "@/lib/api-handler";
 
 const VALID_PROVIDERS: readonly AIProvider[] = ["openai", "anthropic", "gemini", "openrouter"];
-/** `User.ai_model` is `VarChar(80)`; longer ids used to 500 on write. */
+/** `User.ai_model` is `VarChar(80)`. */
 const MAX_MODEL_LENGTH = 80;
 
 export const POST = withUser(async (request, user) => {

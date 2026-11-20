@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { updateProgressAfterWorkout } from '@/lib/progress'
+import { recomputeSnapshotsForExercises } from '@/lib/progress'
 import { DEFAULT_BODYWEIGHT_KG } from '@/lib/constants'
 import {
   withUser,
@@ -13,6 +13,7 @@ import {
   unprocessable,
   parseDateParam,
 } from '@/lib/api-handler'
+import { dayKey, dayRange, daysAgoStart } from '@/lib/day'
 
 interface IncomingSet {
   reps: number
@@ -26,11 +27,7 @@ interface IncomingExercise {
   order: number
 }
 
-/**
- * Validate the `exercises` payload. Everything that reaches Prisma is built
- * here, so a hostile/broken body can't smuggle extra JSON columns into
- * `ExerciseLog.sets` or blow up with a 500 on a type mismatch.
- */
+/** Validate the `exercises` payload; everything reaching Prisma is built here so a hostile body can't smuggle extra JSON into `ExerciseLog.sets`. */
 function parseExercises(value: unknown): IncomingExercise[] {
   if (!Array.isArray(value) || value.length === 0) {
     throw unprocessable('exercises must be a non-empty array')
@@ -87,24 +84,11 @@ export const GET = withUser(async (request, user) => {
   const where: Prisma.WorkoutLogWhereInput = { user_id: user.id }
 
   if (dateParam) {
-    // Validate before building the range — `?date=abc` used to reach Prisma as
-    // an Invalid Date and 500. The range is built from a bare `YYYY-MM-DD`, so
-    // a full ISO timestamp is rejected too rather than silently becoming NaN.
-    parseDateParam(dateParam, 'date')
-    const start = new Date(dateParam + 'T00:00:00Z')
-    const end = new Date(dateParam + 'T23:59:59.999Z')
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      throw unprocessable('date must be a valid YYYY-MM-DD date')
-    }
-    where.workout_date = { gte: start, lte: end }
+    const { start, end } = dayRange(dayKey(parseDateParam(dateParam, 'date')))
+    where.workout_date = { gte: start, lt: end }
   } else {
-    // `?days=7` is seven calendar days *including today* — the convention
-    // /steps and /runs/history already use. Subtracting `days` whole days from
-    // today's UTC midnight returned `days + 1` days of workouts.
-    const startDate = new Date()
-    startDate.setUTCHours(0, 0, 0, 0)
-    startDate.setUTCDate(startDate.getUTCDate() - (days - 1))
-    where.workout_date = { gte: startDate }
+    // `?days=7` is seven calendar days including today, like /steps and /runs/history.
+    where.workout_date = { gte: daysAgoStart(days - 1) }
   }
 
   const workouts = await prisma.workoutLog.findMany({
@@ -119,8 +103,7 @@ export const GET = withUser(async (request, user) => {
 export const POST = withUser(async (request, user) => {
   const body = await parseJsonBody(request)
 
-  // 200, not 100 — `WorkoutLog.name` is `VarChar(200)`, and template names that
-  // fit the column were being rejected at 101 characters.
+  // 200: `WorkoutLog.name` is VarChar(200).
   const name = requireString(body.name, 'name', { maxLength: 200 })
   const exercises = parseExercises(body.exercises)
   const durationMinutes = optionalInt(body.duration_minutes, 'duration_minutes', { min: 0, max: 1440 })
@@ -134,9 +117,7 @@ export const POST = withUser(async (request, user) => {
   }
   const workoutDate = parseDateParam(rawDate as string | null | undefined, 'workout_date')
 
-  // A template id from another user would otherwise be linked straight in
-  // (cross-user linkage, and a 500-shaped FK-violation oracle for ids that
-  // don't exist at all).
+  // Reject another user's template id (cross-user link, and an FK-violation oracle).
   if (templateId !== undefined) {
     const template = await prisma.workoutTemplate.findFirst({
       where: { id: templateId, user_id: user.id },
@@ -167,13 +148,14 @@ export const POST = withUser(async (request, user) => {
     include: { exercises: { orderBy: { order: 'asc' } } },
   })
 
-  // Single, awaited progress update — the PRs it detects are persisted on the
-  // workout row so /analyse can read them instead of recomputing (which would
-  // re-apply this session's sets to the snapshots a second time).
-  // A failure here must not fail the request: the workout is already saved.
+  // PRs are persisted on the workout row for /analyse; a failure here must not fail the saved workout.
   let response: typeof workout = workout
   try {
-    const { prs } = await updateProgressAfterWorkout(user.id, workout.id)
+    const prs = await recomputeSnapshotsForExercises(
+      user.id,
+      exercises.map(ex => ex.exercise_name),
+      workout.id,
+    )
     response = await prisma.workoutLog.update({
       where: { id: workout.id },
       data: { prs: prs as unknown as Prisma.InputJsonValue },

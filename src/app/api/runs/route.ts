@@ -10,37 +10,27 @@ import {
   optionalString,
   unprocessable,
 } from '@/lib/api-handler'
+import { dayKey, dayRange } from '@/lib/day'
+import { serializeRun } from '@/lib/strava'
 
 export const GET = withUser(async (request, user) => {
-  const dateParam = request.nextUrl.searchParams.get('date')
-  parseDateParam(dateParam, 'date')
-
-  const dateStr = dateParam ?? new Date().toISOString().slice(0, 10)
-  const dayStart = new Date(`${dateStr}T00:00:00.000Z`)
-  const dayEnd = new Date(`${dateStr}T23:59:59.999Z`)
-  if (Number.isNaN(dayStart.getTime()) || Number.isNaN(dayEnd.getTime())) {
-    throw unprocessable('date must be a valid YYYY-MM-DD date')
-  }
+  const { start, end } = dayRange(dayKey(parseDateParam(request.nextUrl.searchParams.get('date'), 'date')))
 
   const runs = await prisma.runLog.findMany({
     where: {
       user_id: user.id,
-      run_date: { gte: dayStart, lte: dayEnd },
+      run_date: { gte: start, lt: end },
     },
     orderBy: { run_date: 'desc' },
   })
 
-  return NextResponse.json(runs.map(r => ({
-    ...r,
-    strava_activity_id: r.strava_activity_id?.toString() ?? null,
-  })))
+  return NextResponse.json(runs.map(serializeRun))
 })
 
 export const POST = withUser(async (request, user) => {
   const body = await parseJsonBody(request)
 
-  // Every field is validated before it reaches Prisma — a string
-  // `distance_meters` used to surface as a 500 from the driver.
+  // Every field is validated before it reaches Prisma.
   const distanceMeters = requireNumber(body.distance_meters, 'distance_meters', {
     min: 1,
     max: 1_000_000,
@@ -53,7 +43,6 @@ export const POST = withUser(async (request, user) => {
     min: 0,
     max: 100_000,
   })
-  const pacePerKm = optionalNumber(body.pace_per_km, 'pace_per_km', { min: 0, max: 120 })
   const averageHeartrate = optionalNumber(body.average_heartrate, 'average_heartrate', {
     min: 0,
     max: 300,
@@ -77,20 +66,16 @@ export const POST = withUser(async (request, user) => {
       distance_meters: distanceMeters,
       duration_seconds: durationSeconds,
       calories_burned: caloriesBurned,
-      pace_per_km: pacePerKm ?? Math.round(((durationSeconds / 60) / (distanceMeters / 1000)) * 100) / 100,
+      pace_per_km: Math.round(((durationSeconds / 60) / (distanceMeters / 1000)) * 100) / 100,
       average_heartrate: averageHeartrate ?? null,
       elevation_gain: elevationGain ?? null,
       name: name?.trim() || 'Run',
       source: source ?? 'manual',
-      // Explicit rather than relying on the column default — the budget
-      // calculation reads this flag and a wrong default would zero run credit.
+      // Explicit: the budget reads this flag, and a wrong default would zero run credit.
       added_to_allowance: true,
       run_date: runDate ?? new Date(),
     },
   })
 
-  return NextResponse.json({
-    ...run,
-    strava_activity_id: run.strava_activity_id?.toString() ?? null,
-  }, { status: 201 })
+  return NextResponse.json(serializeRun(run), { status: 201 })
 })

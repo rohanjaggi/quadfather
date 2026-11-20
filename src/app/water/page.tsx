@@ -5,11 +5,8 @@ import BottleCounter from '@/components/water/BottleCounter'
 import Link from 'next/link'
 import SummaryCard from '@/components/dashboard/SummaryCard'
 import { useUser } from '@/context/UserContext'
+import { formatTime } from '@/lib/format'
 import { toast, errorMessage } from '@/components/ui/Toast'
-
-function formatTime(isoString: string) {
-  return new Date(isoString).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-}
 
 export default function WaterPage() {
   const { user, summary, waterLogs, logWater, deleteWater } = useUser()

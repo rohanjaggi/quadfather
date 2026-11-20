@@ -16,6 +16,7 @@ const PROVIDERS: { value: AIProvider; label: string; shortLabel: string }[] = [
 
 export default function ApiKeyPage() {
   const { user, refreshUser } = useUser()
+  const hasOwnKey = !!user?.ai_provider
   const [keyProvider, setKeyProvider] = useState<AIProvider>('gemini')
   const [selectedModel, setSelectedModel] = useState('')
   const [customModel, setCustomModel] = useState('')
@@ -126,24 +127,24 @@ export default function ApiKeyPage() {
         display: 'flex', alignItems: 'center', gap: '10px',
         padding: '14px 16px',
         borderRadius: '14px',
-        backgroundColor: user?.has_api_key
+        backgroundColor: hasOwnKey
           ? 'oklch(0.92 0.02 155)'
           : 'var(--tg-theme-secondary-bg-color)',
       }}>
         <div style={{
           width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-          backgroundColor: user?.has_api_key
+          backgroundColor: hasOwnKey
             ? 'var(--accent-protein)'
             : 'var(--tg-theme-hint-color)',
         }} />
         <span style={{
           fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: user?.has_api_key
+          color: hasOwnKey
             ? 'oklch(0.35 0.04 155)'
             : 'var(--tg-theme-hint-color)',
-          fontWeight: user?.has_api_key ? 500 : 400,
+          fontWeight: hasOwnKey ? 500 : 400,
         }}>
-          {user?.has_api_key
+          {hasOwnKey
             ? `${PROVIDERS.find(p => p.value === user.ai_provider)?.label ?? user.ai_provider} connected`
             : 'No API key configured'}
         </span>
@@ -265,10 +266,10 @@ export default function ApiKeyPage() {
             type="password"
             value={keyValue}
             onChange={e => setKeyValue(e.target.value)}
-            placeholder={user?.has_api_key ? '••••••••••••••••' : `Paste your ${activeProviderLabel} key`}
+            placeholder={hasOwnKey ? '••••••••••••••••' : `Paste your ${activeProviderLabel} key`}
             className="input-field-bordered"
           />
-          {user?.has_api_key && (
+          {hasOwnKey && (
             <p style={{
               fontFamily: 'var(--font-display)', fontSize: '11px',
               color: 'var(--tg-theme-hint-color)', marginTop: '6px',
@@ -292,7 +293,7 @@ export default function ApiKeyPage() {
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '10px' }}>
-          {user?.has_api_key && (
+          {hasOwnKey && (
             <button
               type="button"
               onClick={handleRemoveKey}
@@ -308,7 +309,7 @@ export default function ApiKeyPage() {
             disabled={keySaving || !keyValue.trim()}
             className="btn-primary"
             style={{
-              flex: user?.has_api_key ? 2 : 1,
+              flex: hasOwnKey ? 2 : 1,
               backgroundColor: keyStatus === 'saved' ? 'var(--accent-protein)' : undefined,
             }}
           >

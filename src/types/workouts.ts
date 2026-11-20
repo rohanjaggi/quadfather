@@ -37,10 +37,7 @@ export interface WorkoutLog {
   duration_minutes: number | null
   calories_burned: number | null
   notes: string | null
-  /**
-   * Rows also carry `'strava'` and `'shortcut'` (and whatever a future importer
-   * writes), so this is not the two-value union the form produces.
-   */
+  /** Rows also carry `'strava'`, `'shortcut'` and future importers' values, not just the form's two. */
   source: string
   exercises: ExerciseLogEntry[]
   workout_date: string
@@ -76,9 +73,4 @@ export interface StepLog {
   date: string
   source: string
   logged_at: string
-}
-
-export interface StepLogCreate {
-  steps: number
-  date?: string
 }

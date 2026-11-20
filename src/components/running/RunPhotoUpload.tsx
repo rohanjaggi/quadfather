@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useUser } from '@/context/UserContext'
 import { analyseRunScreenshot } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
+import { formatDuration, formatPace } from '@/lib/format'
 import {
   ACCEPTED_IMAGE_TYPES,
   ACCEPT_IMAGE_ATTR,
@@ -136,7 +137,7 @@ export default function RunPhotoUpload({ onClose }: RunPhotoUploadProps) {
             <div>
               <p className="label-caps" style={{ marginBottom: '2px' }}>Duration</p>
               <p style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-                {Math.floor(result.duration_seconds / 60)}:{(result.duration_seconds % 60).toString().padStart(2, '0')}
+                {formatDuration(result.duration_seconds)}
               </p>
             </div>
             <div>
@@ -149,7 +150,7 @@ export default function RunPhotoUpload({ onClose }: RunPhotoUploadProps) {
               <div>
                 <p className="label-caps" style={{ marginBottom: '2px' }}>Pace</p>
                 <p style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>
-                  {Math.floor(result.pace_per_km)}:{Math.round((result.pace_per_km % 1) * 60).toString().padStart(2, '0')} /km
+                  {formatPace(result.pace_per_km, 'min')} /km
                 </p>
               </div>
             )}

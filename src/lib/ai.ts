@@ -1,7 +1,9 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI, ThinkingLevel, type ThinkingConfig } from "@google/genai";
-import { getModelForProvider, type AIProvider } from "@/lib/models";
+import { getModelForProvider, type AICredentials } from "@/lib/models";
+import { ApiError, type ImageInput } from "@/lib/api-handler";
+import { UTC_OFFSET_HOURS } from "@/lib/day";
 
 const VISION_PROMPT = `Estimate the nutritional content of the food shown.
 
@@ -139,64 +141,26 @@ export interface MealAnalysisResult {
 // --- Shared config ---
 
 /**
- * Hard ceiling on a single provider round-trip; a hung provider must not pin the
- * function.
- *
- * Vercel kills these routes at 60 s. The old budget was 45 s × 2 attempts = 90 s,
- * so a slow provider was guaranteed to blow the function limit *before* its own
- * timeout fired — the caller was killed mid-flight and the user got nothing, no
- * log line, no fallback. One attempt at 30 s leaves room for the Telegram file
- * download that precedes a photo analysis and still surfaces a hung provider as
- * a catchable error rather than a silent platform kill.
+ * Hard ceiling on a single provider round-trip. Vercel kills these routes at 60 s,
+ * so one 30 s attempt (no retry) leaves room for the Telegram file download that
+ * precedes a photo analysis and surfaces a hung provider as a catchable error.
  */
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 0;
 
 /**
- * Output-token budgets: JSON extraction is short and structured, prose needs more
- * room.
- *
- * `max_completion_tokens` / `maxOutputTokens` count *thinking* tokens too on the
- * default reasoning models, so a tight cap can be spent entirely on reasoning and
- * return an empty string. Thinking is minimised per-provider below; the JSON
- * budget carries extra headroom on top of that for providers that ignore the hint.
+ * Output-token budgets. `max_completion_tokens` / `maxOutputTokens` count thinking
+ * tokens too on reasoning models, so the JSON budget carries headroom for
+ * providers that ignore the minimal-thinking hint.
  */
-const MAX_TOKENS_JSON = 2048;
+export const MAX_TOKENS_JSON = 2048;
 const MAX_TOKENS_TEXT = 1500;
-
-const SUPPORTED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-] as const;
-
-type SupportedImageType = (typeof SUPPORTED_IMAGE_TYPES)[number];
-
-/**
- * Every provider rejects anything outside this set (HEIC/HEIF/BMP/TIFF come back
- * as an opaque 422), so fail early with a message the user can act on.
- */
-function assertSupportedImageType(mimeType: string): SupportedImageType {
-  const normalised = (mimeType ?? "").split(";")[0].trim().toLowerCase();
-  const candidate = normalised === "image/jpg" ? "image/jpeg" : normalised;
-  if (!(SUPPORTED_IMAGE_TYPES as readonly string[]).includes(candidate)) {
-    throw new Error(
-      `Unsupported image type "${mimeType || "unknown"}" — use JPEG, PNG, WebP or GIF`,
-    );
-  }
-  return candidate as SupportedImageType;
-}
 
 // --- Prompt templating ---
 
 /**
- * Fill `{placeholder}` slots in a prompt template.
- *
- * Uses a replacer *function* so `$&`, `$1`, `$$`… inside user-supplied values are
- * inserted literally rather than being interpreted by `String.prototype.replace`,
- * and substitutes in a single pass so an injected value can never itself be
- * treated as a placeholder. Unknown placeholders are left untouched.
+ * Fill `{placeholder}` slots in a prompt template. A replacer function and a single
+ * pass keep `$&`/`$1` and `{...}` inside user-supplied values literal.
  */
 export function fillTemplate(template: string, values: Record<string, string>): string {
   return template.replace(/\{([a-z_][a-z0-9_]*)\}/gi, (match, key: string) =>
@@ -206,23 +170,12 @@ export function fillTemplate(template: string, values: Record<string, string>): 
 
 // --- Numeric coercion (never let NaN reach the database) ---
 
-/**
- * Matches the first number in a string, tolerating the shapes models actually
- * emit: `-12`, `1.5`, a bare-decimal `.5`, and exponent notation `1e3` / `2.5E-2`.
- *
- * The leading-dot and exponent branches are not cosmetic. The old
- * `/-?\d+(?:\.\d+)?/` skipped the dot in `".5"` and matched `5` — a 10× overstate
- * on a macro — and truncated `"1e3"` to `1`, a 1000× understate.
- */
+/** First number in a string, including bare `.5` and exponent `1e3` shapes models emit. */
 const NUMERIC_RE = /-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?/;
 
 /**
- * Returns a finite number or null. Tolerates "~500" / "500 kcal" style strings.
- *
- * Thousands separators are stripped before the numeric match — `"1,200"` used
- * to match only the leading `1` and silently store a 200× understatement. Only
- * commas that actually sit between digit groups are removed, so a decimal comma
- * ("1,5") is left alone rather than being read as 15.
+ * Returns a finite number or null. Tolerates "~500" / "500 kcal". Thousands commas
+ * are stripped ("1,200"), but a decimal comma ("1,5") is left alone.
  */
 export function coerceNumber(value: unknown): number | null {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
@@ -278,43 +231,37 @@ export function extractJsonBlock(text: string, kind: "object" | "array"): string
  */
 export function parseJsonObject(raw: string): Record<string, unknown> {
   const cleaned = cleanJson(raw);
-  if (!cleaned) throw new Error("AI returned an empty response");
+  if (!cleaned) throw new ApiError(422, "The AI returned an empty answer — try again");
 
   const block = extractJsonBlock(cleaned, "object");
-  if (!block) throw new Error("Failed to parse AI response");
+  if (!block) throw new ApiError(422, "Failed to parse AI response");
 
   let data: unknown;
   try {
     data = JSON.parse(block);
   } catch {
-    throw new Error("Failed to parse AI response");
+    throw new ApiError(422, "Failed to parse AI response");
   }
-  if (!isRecord(data)) throw new Error("AI returned an unexpected format");
+  if (!isRecord(data)) throw new ApiError(422, "AI returned an unexpected format");
   return data;
 }
 
 function parseAnalysisResponse(raw: string): MealAnalysisResult {
   const data = parseJsonObject(raw);
 
-  // Presence (`"calories" in data`) is not validity: `{"calories": null}`,
-  // `{"calories": []}` and `{"calories": true}` all pass a key check, and
-  // `toInt`/`toDecimal` then quietly coerce them to 0 — a real meal logged as a
-  // 0 kcal row the user has to notice and fix by hand. Coerce first and reject
-  // anything that isn't a finite number, exactly like `analyseRunScreenshot`.
+  // Reject non-numbers: `"calories" in data` would let null/[]/true coerce to a 0 kcal row.
   const calories = coerceNumber(data.calories);
   const protein = coerceNumber(data.protein);
   const carbohydrates = coerceNumber(data.carbohydrates);
   const fats = coerceNumber(data.fats);
 
-  // `"food_name" in data` used to be enough, so `{"food_name": null}` was logged
-  // as a meal literally called "null". Numbers are still accepted — a model that
-  // answers `2` for a name is odd but not a reason to throw away the analysis.
+  // Numbers are accepted as names; null is not (it would be logged as "null").
   const foodName =
     typeof data.food_name === "string" || typeof data.food_name === "number"
       ? String(data.food_name).trim()
       : "";
   if (!foodName) {
-    throw new Error("AI response missing fields: food_name");
+    throw new ApiError(422, "Couldn't read a meal from that answer — try again");
   }
 
   const requiredMacros: [string, number | null][] = [
@@ -325,13 +272,13 @@ function parseAnalysisResponse(raw: string): MealAnalysisResult {
   ];
   const invalid = requiredMacros.filter(([, v]) => v === null).map(([k]) => k);
   if (invalid.length > 0) {
-    throw new Error(
+    throw new ApiError(
+      422,
       `AI returned incomplete nutrition data: ${invalid.join(", ")}`,
     );
   }
 
-  // Fiber is the one macro models routinely omit, and 0 is a defensible default
-  // for it in a way it never is for calories.
+  // Fiber is the one macro models routinely omit; 0 is a defensible default for it.
   return {
     food_name: foodName,
     calories: Math.round(calories as number),
@@ -344,9 +291,19 @@ function parseAnalysisResponse(raw: string): MealAnalysisResult {
   };
 }
 
+/** Meal-time label for a UTC hour, read on the Singapore clock (UTC+8). */
+export function sgtMealTimeLabel(utcHour: number): string {
+  const hour = (utcHour + UTC_OFFSET_HOURS) % 24;
+  return hour < 11 ? 'morning (breakfast/brunch time)'
+    : hour < 14 ? 'midday (lunch time)'
+    : hour < 17 ? 'afternoon (snack time)'
+    : hour < 21 ? 'evening (dinner time)'
+    : 'late night (light snack time)';
+}
+
 function parseSuggestionsResponse(raw: string): MealSuggestion[] {
   const cleaned = cleanJson(raw);
-  if (!cleaned) throw new Error("AI returned an empty response");
+  if (!cleaned) throw new ApiError(422, "The AI returned an empty answer — try again");
 
   let parsed: unknown;
 
@@ -366,11 +323,7 @@ function parseSuggestionsResponse(raw: string): MealSuggestion[] {
       try {
         const wrapper: unknown = JSON.parse(objectBlock);
         if (isRecord(wrapper)) {
-          // Not simply the *first* array: key order is whatever the model felt
-          // like, so `{"notes": ["…"], "meals": [ {...}, {...} ]}` handed back
-          // the notes and every suggestion was dropped. The payload we want is
-          // the longest array of objects; string arrays like `notes` can never
-          // win because they hold no records at all.
+          // The payload is the longest array of objects; a notes string array never wins.
           const nested = Object.values(wrapper)
             .filter((v): v is unknown[] => Array.isArray(v))
             .map((arr) => ({ arr, score: arr.filter(isRecord).length }))
@@ -385,7 +338,7 @@ function parseSuggestionsResponse(raw: string): MealSuggestion[] {
   }
 
   if (!Array.isArray(parsed)) {
-    throw new Error("AI returned an unexpected format");
+    throw new ApiError(422, "AI returned an unexpected format");
   }
 
   return parsed.filter(isRecord).map((s) => ({
@@ -400,174 +353,19 @@ function parseSuggestionsResponse(raw: string): MealSuggestion[] {
   }));
 }
 
-// --- OpenAI-compatible (OpenAI + OpenRouter) ---
-
-interface OpenAICompatTarget {
-  baseURL?: string;
-  /**
-   * OpenAI's current chat models reject the deprecated `max_tokens`;
-   * OpenRouter normalises `max_tokens` across every upstream provider.
-   */
-  maxTokensParam: "max_tokens" | "max_completion_tokens";
-}
-
-const OPENAI_TARGET: OpenAICompatTarget = {
-  maxTokensParam: "max_completion_tokens",
-};
-
-const OPENROUTER_TARGET: OpenAICompatTarget = {
-  baseURL: "https://openrouter.ai/api/v1",
-  maxTokensParam: "max_tokens",
-};
-
-function openaiCompat(apiKey: string, baseURL?: string): OpenAI {
-  return new OpenAI({
-    apiKey,
-    baseURL,
-    timeout: REQUEST_TIMEOUT_MS,
-    maxRetries: MAX_RETRIES,
-  });
-}
-
-function tokenLimit(
-  target: OpenAICompatTarget,
-  maxTokens: number,
-): { max_tokens: number } | { max_completion_tokens: number } {
-  return target.maxTokensParam === "max_tokens"
-    ? { max_tokens: maxTokens }
-    : { max_completion_tokens: maxTokens };
-}
+// --- Model call ---
 
 /**
- * The output-token cap covers reasoning tokens as well as the visible reply, so
- * on the default reasoning models (gpt-5.4-mini and friends) a short JSON call
- * could spend its whole budget thinking and return `""` — which surfaced to the
- * user as "couldn't analyse that". Every call here wants a small, mechanical
- * JSON or a few sentences of prose; none of it benefits from extended reasoning.
- *
- * OpenRouter normalises `reasoning_effort` across upstreams and ignores it for
- * models that have no reasoning mode, so the same hint is safe on both targets.
+ * Thinking is minimised because the output-token cap covers reasoning tokens, so a
+ * short JSON call can otherwise return "". OpenRouter ignores the hint for models
+ * without a reasoning mode.
  */
 const REASONING_EFFORT = { reasoning_effort: "low" } as const;
 
-async function openaiCompatVision(
-  target: OpenAICompatTarget,
-  apiKey: string,
-  model: string,
-  imageBase64: string,
-  mimeType: SupportedImageType,
-  prompt: string,
-  maxTokens: number,
-): Promise<string> {
-  const client = openaiCompat(apiKey, target.baseURL);
-  const response = await client.chat.completions.create({
-    model,
-    ...tokenLimit(target, maxTokens),
-    ...REASONING_EFFORT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image_url",
-            image_url: { url: `data:${mimeType};base64,${imageBase64}` },
-          },
-          { type: "text", text: prompt },
-        ],
-      },
-    ],
-  });
-  return response.choices[0]?.message?.content ?? "";
-}
-
-async function openaiCompatText(
-  target: OpenAICompatTarget,
-  apiKey: string,
-  model: string,
-  prompt: string,
-  maxTokens: number,
-): Promise<string> {
-  const client = openaiCompat(apiKey, target.baseURL);
-  const response = await client.chat.completions.create({
-    model,
-    ...tokenLimit(target, maxTokens),
-    ...REASONING_EFFORT,
-    messages: [{ role: "user", content: prompt }],
-  });
-  return response.choices[0]?.message?.content ?? "";
-}
-
-// --- Anthropic ---
-
-function anthropicClient(apiKey: string): Anthropic {
-  return new Anthropic({
-    apiKey,
-    timeout: REQUEST_TIMEOUT_MS,
-    maxRetries: MAX_RETRIES,
-  });
-}
-
-async function anthropicVision(
-  apiKey: string,
-  model: string,
-  imageBase64: string,
-  mimeType: SupportedImageType,
-  prompt: string,
-  maxTokens: number,
-): Promise<string> {
-  const client = anthropicClient(apiKey);
-  const response = await client.messages.create({
-    model,
-    max_tokens: maxTokens,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: mimeType,
-              data: imageBase64,
-            },
-          },
-          { type: "text", text: prompt },
-        ],
-      },
-    ],
-  });
-  const block = response.content[0];
-  return block?.type === "text" ? block.text : "";
-}
-
-async function anthropicText(
-  apiKey: string,
-  model: string,
-  prompt: string,
-  maxTokens: number,
-): Promise<string> {
-  const client = anthropicClient(apiKey);
-  const response = await client.messages.create({
-    model,
-    max_tokens: maxTokens,
-    messages: [{ role: "user", content: prompt }],
-  });
-  const block = response.content[0];
-  return block?.type === "text" ? block.text : "";
-}
-
-// --- Gemini ---
-
 /**
- * Keep Gemini's thinking budget at the floor, for the same reason as
- * `REASONING_EFFORT`: `maxOutputTokens` is spent on thinking tokens first, so a
- * capped JSON call can come back empty.
- *
- * The control differs by generation and the wrong one is a hard 400, not a
- * silently-ignored hint: Gemini 3 models (the defaults — `gemini-3-flash-preview`,
- * `gemini-3.1-*`) take `thinkingLevel` and reject `thinkingBudget`, while 2.5 and
- * earlier take `thinkingBudget` (0 = disabled) and don't know `thinkingLevel`.
- * Unrecognised model strings get no thinking config at all rather than a guess.
+ * Gemini thinking floor. The control differs by generation and the wrong one is a
+ * hard 400: Gemini 3 takes `thinkingLevel`, 2.5 and earlier take `thinkingBudget`.
+ * Unrecognised model strings get no thinking config.
  */
 function geminiThinkingConfig(model: string): ThinkingConfig | undefined {
   const generation = /^(?:models\/)?gemini-(\d+)/i.exec(model)?.[1];
@@ -577,147 +375,133 @@ function geminiThinkingConfig(model: string): ThinkingConfig | undefined {
   return { thinkingBudget: 0 };
 }
 
-function geminiClient(apiKey: string): GoogleGenAI {
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      timeout: REQUEST_TIMEOUT_MS,
-      // `attempts` counts the original request, so this is 1 attempt, no retry.
-      retryOptions: { attempts: MAX_RETRIES + 1 },
-    },
-  });
-}
-
-async function geminiVision(
-  apiKey: string,
-  model: string,
-  imageBase64: string,
-  mimeType: SupportedImageType,
+/** One prompt (plus an optional image) to the user's provider; returns the raw reply text. */
+export async function callModel(
+  ai: AICredentials,
   prompt: string,
   maxTokens: number,
+  image?: ImageInput,
 ): Promise<string> {
-  const ai = geminiClient(apiKey);
-  const response = await ai.models.generateContent({
-    model,
-    config: { maxOutputTokens: maxTokens, thinkingConfig: geminiThinkingConfig(model) },
-    contents: [
-      {
-        role: "user",
-        parts: [
+  const model = getModelForProvider(ai.provider, ai.model);
+  switch (ai.provider) {
+    case "openai":
+    case "openrouter": {
+      const openrouter = ai.provider === "openrouter";
+      const client = new OpenAI({
+        apiKey: ai.apiKey,
+        baseURL: openrouter ? "https://openrouter.ai/api/v1" : undefined,
+        timeout: REQUEST_TIMEOUT_MS,
+        maxRetries: MAX_RETRIES,
+      });
+      const response = await client.chat.completions.create({
+        model,
+        // OpenAI's current chat models reject the deprecated `max_tokens`;
+        // OpenRouter normalises `max_tokens` across every upstream provider.
+        ...(openrouter ? { max_tokens: maxTokens } : { max_completion_tokens: maxTokens }),
+        ...REASONING_EFFORT,
+        messages: [
           {
-            inlineData: {
-              mimeType,
-              data: imageBase64,
-            },
+            role: "user",
+            content: image
+              ? [
+                  {
+                    type: "image_url",
+                    image_url: { url: `data:${image.mimeType};base64,${image.base64}` },
+                  },
+                  { type: "text", text: prompt },
+                ]
+              : prompt,
           },
-          { text: prompt },
         ],
-      },
-    ],
-  });
-  return response.text ?? "";
-}
-
-async function geminiText(
-  apiKey: string,
-  model: string,
-  prompt: string,
-  maxTokens: number,
-): Promise<string> {
-  const ai = geminiClient(apiKey);
-  const response = await ai.models.generateContent({
-    model,
-    config: { maxOutputTokens: maxTokens, thinkingConfig: geminiThinkingConfig(model) },
-    contents: prompt,
-  });
-  return response.text ?? "";
-}
-
-// --- Routing ---
-
-async function callVision(
-  provider: AIProvider,
-  apiKey: string,
-  model: string,
-  imageBase64: string,
-  mimeType: string,
-  prompt: string,
-  maxTokens: number = MAX_TOKENS_JSON,
-): Promise<string> {
-  const imageType = assertSupportedImageType(mimeType);
-  switch (provider) {
-    case "openai":
-      return openaiCompatVision(OPENAI_TARGET, apiKey, model, imageBase64, imageType, prompt, maxTokens);
-    case "anthropic":
-      return anthropicVision(apiKey, model, imageBase64, imageType, prompt, maxTokens);
-    case "gemini":
-      return geminiVision(apiKey, model, imageBase64, imageType, prompt, maxTokens);
-    case "openrouter":
-      return openaiCompatVision(OPENROUTER_TARGET, apiKey, model, imageBase64, imageType, prompt, maxTokens);
-  }
-}
-
-async function callText(
-  provider: AIProvider,
-  apiKey: string,
-  model: string,
-  prompt: string,
-  maxTokens: number = MAX_TOKENS_JSON,
-): Promise<string> {
-  switch (provider) {
-    case "openai":
-      return openaiCompatText(OPENAI_TARGET, apiKey, model, prompt, maxTokens);
-    case "anthropic":
-      return anthropicText(apiKey, model, prompt, maxTokens);
-    case "gemini":
-      return geminiText(apiKey, model, prompt, maxTokens);
-    case "openrouter":
-      return openaiCompatText(OPENROUTER_TARGET, apiKey, model, prompt, maxTokens);
+      });
+      return response.choices[0]?.message?.content ?? "";
+    }
+    case "anthropic": {
+      const client = new Anthropic({
+        apiKey: ai.apiKey,
+        timeout: REQUEST_TIMEOUT_MS,
+        maxRetries: MAX_RETRIES,
+      });
+      const response = await client.messages.create({
+        model,
+        max_tokens: maxTokens,
+        messages: [
+          {
+            role: "user",
+            content: image
+              ? [
+                  {
+                    type: "image",
+                    source: {
+                      type: "base64",
+                      // `readImageUpload` only lets these four through; the bot always sends JPEG.
+                      media_type: image.mimeType as Anthropic.Base64ImageSource["media_type"],
+                      data: image.base64,
+                    },
+                  },
+                  { type: "text", text: prompt },
+                ]
+              : prompt,
+          },
+        ],
+      });
+      const block = response.content[0];
+      return block?.type === "text" ? block.text : "";
+    }
+    case "gemini": {
+      const client = new GoogleGenAI({
+        apiKey: ai.apiKey,
+        httpOptions: {
+          timeout: REQUEST_TIMEOUT_MS,
+          // `attempts` counts the original request, so this is 1 attempt, no retry.
+          retryOptions: { attempts: MAX_RETRIES + 1 },
+        },
+      });
+      const response = await client.models.generateContent({
+        model,
+        config: { maxOutputTokens: maxTokens, thinkingConfig: geminiThinkingConfig(model) },
+        contents: image
+          ? [
+              {
+                role: "user",
+                parts: [
+                  { inlineData: { mimeType: image.mimeType, data: image.base64 } },
+                  { text: prompt },
+                ],
+              },
+            ]
+          : prompt,
+      });
+      return response.text ?? "";
+    }
   }
 }
 
 // --- Public API ---
 
 export async function analyseMeal(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
-  imageBytes: Buffer,
-  mimeType: string,
+  ai: AICredentials,
+  image: ImageInput,
   description: string = "",
 ): Promise<MealAnalysisResult> {
-  const resolvedModel = getModelForProvider(provider, model);
   const prompt = fillTemplate(VISION_PROMPT, {
     description: description || "No additional context provided.",
   });
-  const raw = await callVision(
-    provider,
-    apiKey,
-    resolvedModel,
-    imageBytes.toString("base64"),
-    mimeType,
-    prompt,
-    MAX_TOKENS_JSON,
-  );
-  return parseAnalysisResult(raw);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON, image);
+  return parseAnalysisResponse(raw);
 }
 
 export async function parseFood(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   text: string,
 ): Promise<MealAnalysisResult> {
-  const resolvedModel = getModelForProvider(provider, model);
   const prompt = fillTemplate(TEXT_PROMPT, { text });
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_JSON);
-  return parseAnalysisResult(raw);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON);
+  return parseAnalysisResponse(raw);
 }
 
 export async function suggestMeals(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   remainingCalories: number,
   remainingProtein: number,
   mealsLogged: string[],
@@ -725,7 +509,6 @@ export async function suggestMeals(
   savedFoodNames: string[] = [],
   exerciseToday: number = 0,
 ): Promise<MealSuggestion[]> {
-  const resolvedModel = getModelForProvider(provider, model);
   const restrictionsBlock = dietaryRestrictions.length > 0
     ? `\nDietary restrictions (MUST respect — do not suggest meals that violate these): ${dietaryRestrictions.join(', ')}`
     : '';
@@ -738,12 +521,7 @@ export async function suggestMeals(
     ? `\nThe user exercised today, earning ~${Math.round(exerciseToday)} extra kcal (this credit is already reflected in the remaining budget above — do not add it again).`
     : '';
 
-  const hour = new Date().getUTCHours() + 8;
-  const timeOfDay = hour < 11 ? 'morning (breakfast/brunch time)'
-    : hour < 14 ? 'midday (lunch time)'
-    : hour < 17 ? 'afternoon (snack time)'
-    : hour < 21 ? 'evening (dinner time)'
-    : 'late night (light snack time)';
+  const timeOfDay = sgtMealTimeLabel(new Date().getUTCHours());
 
   const prompt = fillTemplate(SUGGEST_PROMPT, {
     calories: String(Math.round(remainingCalories)),
@@ -755,12 +533,8 @@ export async function suggestMeals(
     exercise_block: exerciseBlock,
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_JSON);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON);
   return parseSuggestionsResponse(raw);
-}
-
-function parseAnalysisResult(raw: string): MealAnalysisResult {
-  return parseAnalysisResponse(raw);
 }
 
 const DAILY_COACH_PROMPT = `You are a friendly nutrition coach reviewing a user's day. Here's their data:
@@ -776,9 +550,7 @@ Exercise: {exercise}
 Give a short, encouraging coaching message (2-3 sentences max). Be specific about what they did well and give ONE actionable tip for tomorrow. Keep it warm but direct — no bullet points, no headers, just natural conversational text.`;
 
 export async function generateDailyCoach(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     goals: { calories: number; protein: number };
     consumed: { calories: number; protein: number; carbs: number; fats: number };
@@ -790,7 +562,6 @@ export async function generateDailyCoach(
     steps?: { today: number; goal: number; streak: number; extraAllowance: number };
   },
 ): Promise<string> {
-  const resolvedModel = getModelForProvider(provider, model);
   const restrictionsBlock = context.dietaryRestrictions.length > 0
     ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
     : '';
@@ -818,7 +589,7 @@ export async function generateDailyCoach(
     restrictions_block: restrictionsBlock,
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_TEXT);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_TEXT);
   return raw.trim();
 }
 
@@ -836,9 +607,7 @@ Exercise: {exercise_total} kcal across {exercise_sessions} sessions
 Give exactly 3 short insights about patterns (1 sentence each). Be specific with numbers. Focus on: consistency, weak spots, and positive trends. Format as plain text with each insight on a new line starting with a bullet "•".`;
 
 export async function generateWeeklyInsights(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     goals: { calories: number; protein: number; water: number };
     days: { date: string; calories: number; protein: number; water: number }[];
@@ -847,7 +616,6 @@ export async function generateWeeklyInsights(
     dietaryRestrictions: string[];
   },
 ): Promise<string> {
-  const resolvedModel = getModelForProvider(provider, model);
   const restrictionsBlock = context.dietaryRestrictions.length > 0
     ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
     : '';
@@ -868,16 +636,13 @@ export async function generateWeeklyInsights(
     restrictions_block: restrictionsBlock,
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_TEXT);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_TEXT);
   return raw.trim();
 }
 
 export async function analyseRunScreenshot(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
-  imageBase64: string,
-  mimeType: string,
+  ai: AICredentials,
+  image: ImageInput,
 ): Promise<{
   distance_meters: number
   duration_seconds: number
@@ -887,7 +652,6 @@ export async function analyseRunScreenshot(
   confidence: 'high' | 'medium' | 'low'
   notes: string
 }> {
-  const resolvedModel = getModelForProvider(provider, model);
   const prompt = `Analyze this running/exercise screenshot and extract the following data.
 Return ONLY valid JSON with these fields:
 - distance_meters: total distance in meters (convert from km/miles if needed)
@@ -901,16 +665,7 @@ Return ONLY valid JSON with these fields:
 If the image is not a running/exercise screenshot, return confidence "low" with notes explaining why.
 Convert all units to metric (meters, seconds, min/km).`
 
-  // The caller already base64-encoded the upload; pass it straight through.
-  const raw = await callVision(
-    provider,
-    apiKey,
-    resolvedModel,
-    imageBase64,
-    mimeType,
-    prompt,
-    MAX_TOKENS_JSON,
-  )
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON, image)
 
   const data = parseJsonObject(raw)
 
@@ -925,7 +680,7 @@ Convert all units to metric (meters, seconds, min/km).`
   ]
   for (const [key, value] of required) {
     if (value === null) {
-      throw new Error(`AI response missing or invalid field: ${key}`)
+      throw new ApiError(422, "Couldn't read a run from that image — try a clearer screenshot")
     }
   }
 
@@ -972,9 +727,7 @@ Guidelines for your response:
 - Keep it conversational — like texting a friend who happens to be a nutritionist`;
 
 export async function generateTrendsCoach(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     period: number;
     goals: { calories: number; protein: number; carbs: number; fats: number; fiber: number; water: number };
@@ -984,8 +737,6 @@ export async function generateTrendsCoach(
     dietaryRestrictions: string[];
   },
 ): Promise<string> {
-  const resolvedModel = getModelForProvider(provider, model);
-
   const restrictionsBlock = context.dietaryRestrictions.length > 0
     ? `Dietary restrictions: ${context.dietaryRestrictions.join(', ')}`
     : 'No dietary restrictions noted.';
@@ -1019,7 +770,7 @@ export async function generateTrendsCoach(
     exercise_sessions: String(context.exerciseSessions),
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_TEXT);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_TEXT);
   return raw.trim();
 }
 
@@ -1053,9 +804,7 @@ If no weight mentioned, use null for weight_kg (bodyweight exercise).
 Confidence is "high" if all exercises clearly specified, "medium" if some interpretation needed, "low" if very ambiguous.`;
 
 export async function parseWorkoutText(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   text: string,
 ): Promise<{
   name: string
@@ -1063,31 +812,26 @@ export async function parseWorkoutText(
   confidence: string
   notes: string
 }> {
-  const resolvedModel = getModelForProvider(provider, model);
   const prompt = fillTemplate(WORKOUT_PARSE_PROMPT, { text });
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_JSON);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON);
   const data = parseJsonObject(raw);
 
-  // Filter *before* the emptiness check. The old order counted raw entries, so a
-  // model that answered `{"exercises": ["bench 4x8"]}` — strings, not objects —
-  // sailed through as a success and returned an empty exercise list, which the
-  // caller then saved as a workout with nothing in it.
+  // Filter before the emptiness check so an array of strings isn't a success.
   const exercises = (Array.isArray(data.exercises) ? data.exercises : [])
     .filter(isRecord)
     .map((ex, index) => ({
       exercise_name: String(ex.exercise_name ?? ""),
       sets: (Array.isArray(ex.sets) ? ex.sets : []).filter(isRecord).map((s) => ({
         reps: toInt(s.reps),
-        weight_kg: s.weight_kg != null ? toNullableDecimal(s.weight_kg) : null,
+        weight_kg: toNullableDecimal(s.weight_kg),
       })),
       order: toInt(ex.order, index + 1),
     }))
-    // Same trap one level down: an exercise whose sets were all unparseable is
-    // not a logged exercise.
+    // Same one level down: an exercise whose sets all failed to parse isn't logged.
     .filter((ex) => ex.exercise_name.length > 0 && ex.sets.length > 0);
 
   if (!data.name || exercises.length === 0) {
-    throw new Error("AI response missing name or exercises");
+    throw new ApiError(422, "Couldn't find a workout in that text — add exercises with sets and reps");
   }
 
   return {
@@ -1121,9 +865,7 @@ PRs to include: {prs}
 Keep the takeaway specific and actionable. No fluff.`;
 
 export async function generateWorkoutAnalysis(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     workoutName: string
     exercises: { name: string; sets: { reps: number; weight_kg: number | null }[] }[]
@@ -1137,8 +879,6 @@ export async function generateWorkoutAnalysis(
   volume_comparison: string
   takeaway: string
 }> {
-  const resolvedModel = getModelForProvider(provider, model);
-
   const exercisesStr = context.exercises.map(ex =>
     `${ex.name}: ${ex.sets.map(s => `${s.reps}${s.weight_kg ? ` @ ${s.weight_kg}kg` : ''}`).join(', ')}`
   ).join('\n');
@@ -1155,16 +895,15 @@ export async function generateWorkoutAnalysis(
     prs: prsStr,
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_JSON);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_JSON);
   const data = parseJsonObject(raw);
 
-  // This object is persisted on the workout and served from cache forever,
-  // so a malformed shape must never make it past here.
+  // Persisted and served from cache forever, so a malformed shape must not pass.
   const volumeComparison =
     typeof data.volume_comparison === 'string' ? data.volume_comparison.trim() : '';
   const takeaway = typeof data.takeaway === 'string' ? data.takeaway.trim() : '';
   if (!volumeComparison || !takeaway) {
-    throw new Error('AI returned an invalid analysis');
+    throw new ApiError(422, 'The AI returned an unusable analysis — try again');
   }
 
   return {
@@ -1204,9 +943,7 @@ Line 4: One forward-looking sentence — what to prioritize next week based on t
 Keep it under 100 words total. Be specific with numbers. Warm but direct.`;
 
 export async function generateWeeklyExerciseDigest(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     trainingFocus: string
     sessionCount: number
@@ -1215,8 +952,6 @@ export async function generateWeeklyExerciseDigest(
     stallAlerts: string
   },
 ): Promise<string> {
-  const resolvedModel = getModelForProvider(provider, model);
-
   const prompt = fillTemplate(WEEKLY_EXERCISE_PROMPT, {
     training_focus: context.trainingFocus,
     session_count: String(context.sessionCount),
@@ -1225,7 +960,7 @@ export async function generateWeeklyExerciseDigest(
     stall_alerts: context.stallAlerts || 'None',
   });
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_TEXT);
+  const raw = await callModel(ai, prompt, MAX_TOKENS_TEXT);
   return raw.trim();
 }
 
@@ -1245,9 +980,7 @@ Exercises performed:
 Write a 2-4 sentence training recap. Cover: frequency, volume trend vs previous period, any muscle coverage gaps. End with one specific, actionable suggestion. Be factual and coach-like — no motivational fluff, no greetings, no sign-offs.`;
 
 export async function generateWorkoutRecap(
-  provider: AIProvider,
-  apiKey: string,
-  model: string | null,
+  ai: AICredentials,
   context: {
     period: number
     workoutCount: number
@@ -1259,8 +992,6 @@ export async function generateWorkoutRecap(
     exerciseSummary: string
   },
 ): Promise<string> {
-  const resolvedModel = getModelForProvider(provider, model)
-
   const prompt = fillTemplate(WORKOUT_RECAP_PROMPT, {
     period: String(context.period),
     workout_count: String(context.workoutCount),
@@ -1272,8 +1003,6 @@ export async function generateWorkoutRecap(
     exercise_summary: context.exerciseSummary,
   })
 
-  const raw = await callText(provider, apiKey, resolvedModel, prompt, MAX_TOKENS_TEXT)
+  const raw = await callModel(ai, prompt, MAX_TOKENS_TEXT)
   return raw.trim()
 }
-
-export { callText as callTextDirect }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withUser, parseJsonBody, requireInt, notFound, unprocessable } from '@/lib/api-handler'
+import { serializeRun } from '@/lib/strava'
 
 type Ctx = { params: { id: string } }
 
@@ -20,10 +21,7 @@ export const PATCH = withUser<Ctx>(async (request, user, { params }) => {
     data: { added_to_allowance: body.added_to_allowance },
   })
 
-  return NextResponse.json({
-    ...updated,
-    strava_activity_id: updated.strava_activity_id?.toString() ?? null,
-  })
+  return NextResponse.json(serializeRun(updated))
 })
 
 export const DELETE = withUser<Ctx>(async (request, user, { params }) => {

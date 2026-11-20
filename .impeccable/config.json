@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/**"
+        ],
+        "createdAt": "2026-11-19T17:10:51.209Z",
+        "reason": "user confirmed: owner asked to keep and extend the animated gradient date (2026-11-20 brief)"
+      },
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "src/app/globals.css"
+        ],
+        "createdAt": "2026-11-19T17:26:13.657Z",
+        "reason": "user confirmed: owner asked to keep and extend the animated gradient date (2026-11-20); gradient classes live only here"
+      }
+    ]
+  }
+}

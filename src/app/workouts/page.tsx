@@ -1,172 +1,188 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, type ComponentType } from 'react'
 import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
-import { getRunHistory } from '@/lib/api'
+import { getRunHistory, getWorkouts } from '@/lib/api'
 import type { RunLog } from '@/types/running'
-import ActivityHighlights from '@/components/dashboard/ActivityHighlights'
-import { dayKey, daysAgoStart } from '@/lib/day'
+import type { WorkoutLog } from '@/types/workouts'
+import { addDays, dayKey } from '@/lib/day'
+import { formatInt } from '@/lib/format'
+import PageHeader from '@/components/ui/PageHeader'
+import SummaryCard from '@/components/dashboard/SummaryCard'
+import { CheckIcon, ChevronRightIcon, ClockIcon, PlusIcon, RunIcon, StepsIcon, TrophyIcon } from '@/components/ui/icons'
+import RecentWorkouts from '@/components/workouts/RecentWorkouts'
+import MuscleBalance from '@/components/workouts/MuscleBalance'
+import MuscleMap from '@/components/workouts/MuscleMap'
+import PersonalRecords from '@/components/workouts/PersonalRecords'
+import TrainingRecap from '@/components/workouts/TrainingRecap'
+import { friendlyError } from '@/components/workouts/bits'
+import { formatKey, formatKg, sessionVolume, weekStartKey } from '@/components/workouts/format'
 
-function daysAgo(dateStr: string): string {
-  const diff = Math.round((Date.parse(dayKey()) - Date.parse(dayKey(new Date(dateStr)))) / 86400000)
-  if (diff === 0) return 'today'
-  if (diff === 1) return 'yesterday'
-  return `${diff}d ago`
-}
+const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
-/** Start of this week's Monday (`getUTCDay()` is Sunday-based, hence `+ 6`). */
-function startOfThisWeek(): Date {
-  return daysAgoStart((new Date(`${dayKey()}T00:00:00Z`).getUTCDay() + 6) % 7)
-}
+export default function TrainingPage() {
+  const { user, todaySteps, weeklyWorkouts, runLogs } = useUser()
+  const today = dayKey()
+  const monday = weekStartKey(today)
 
-export default function ExercisePage() {
-  const { user, todaySteps, weeklySteps, weeklyWorkouts, runLogs } = useUser()
+  // `weeklyWorkouts` is the last 7 days including today, which always covers
+  // Monday of this week; it refreshes after every log.
+  const thisWeek = useMemo(
+    () => weeklyWorkouts.filter(w => dayKey(new Date(w.workout_date)) >= monday),
+    [weeklyWorkouts, monday],
+  )
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const key = addDays(monday, i)
+    return { key, done: thisWeek.some(w => dayKey(new Date(w.workout_date)) === key) }
+  })
+  const volume = thisWeek.reduce((sum, w) => sum + sessionVolume(w), 0)
+  const doneNames = days.filter(d => d.done).map(d => formatKey(d.key, { weekday: 'long' }))
 
   // The context only holds *today's* runs, so "this week" needs its own fetch.
   // Refetched when the context's runs change so a new run shows up immediately.
-  const [weekRuns, setWeekRuns] = useState<RunLog[]>([])
-
+  const [weekRuns, setWeekRuns] = useState<RunLog[] | null>(null)
   useEffect(() => {
     let cancelled = false
     getRunHistory(7)
       .then(runs => {
         if (cancelled) return
-        const weekStart = startOfThisWeek()
-        setWeekRuns(runs.filter(r => new Date(r.run_date) >= weekStart))
+        setWeekRuns(runs.filter(r => dayKey(new Date(r.run_date)) >= monday))
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [runLogs])
+  }, [runLogs, monday])
 
-  const lastWorkout = weeklyWorkouts.length > 0 ? weeklyWorkouts[0] : null
-  const workoutDesc = lastWorkout
-    ? `Last: ${lastWorkout.name}, ${daysAgo(lastWorkout.workout_date)}`
-    : `${weeklyWorkouts.length} sessions this week`
+  // Last 30 days, for the Last session card and to tell an empty window apart.
+  const [recent, setRecent] = useState<WorkoutLog[] | null>(null)
+  const [recentError, setRecentError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    let stale = false
+    setRecent(null)
+    setRecentError(null)
+    getWorkouts(30)
+      .then(data => { if (!stale) setRecent(data) })
+      .catch(err => { if (!stale) setRecentError(friendlyError(err, 'Couldn’t load your last session.')) })
+    return () => { stale = true }
+  }, [attempt])
 
-  const totalKm = weekRuns.reduce((sum, r) => sum + r.distance_meters, 0) / 1000
-  const runDesc = weekRuns.length > 0
-    ? `${weekRuns.length} ${weekRuns.length === 1 ? 'run' : 'runs'}, ${totalKm.toFixed(1)}km this week`
-    : 'Log a run to get started'
+  // Nothing in the 30-day window: one card says what fills in, instead of three empty ones.
+  const noSessions = weeklyWorkouts.length === 0 && recent?.length === 0
+  // An empty week can't tell "new" from "lapsed" until the 30-day list lands.
+  const undecided = weeklyWorkouts.length === 0 && recent === null && !recentError
+
+  const runKm = (weekRuns ?? []).reduce((sum, r) => sum + r.distance_meters, 0) / 1000
+  const more: { href: string; label: string; value?: string; Icon: ComponentType<{ size?: number }> }[] = [
+    { href: '/workouts/history', label: 'History', value: `${thisWeek.length} this week`, Icon: ClockIcon },
+    { href: '/workouts/prs', label: 'Records', Icon: TrophyIcon },
+    {
+      href: '/running', label: 'Runs', Icon: RunIcon,
+      value: weekRuns && weekRuns.length > 0 ? `${weekRuns.length} · ${runKm.toFixed(1)} km this week` : undefined,
+    },
+    { href: '/workouts/steps', label: 'Steps', value: `${formatInt(todaySteps)} today`, Icon: StepsIcon },
+  ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div className="fade-up">
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 500,
-          letterSpacing: '0.15em', textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)', marginBottom: '5px',
-        }}>Training</p>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '32px', fontWeight: 700,
-          lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
-        }}>Exercise</h1>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <PageHeader title="Training" />
 
-      {/* Activity Highlights */}
-      <div className="fade-up fade-up-1">
-        <ActivityHighlights
-          todaySteps={todaySteps}
-          weeklySteps={weeklySteps}
-          stepGoal={user?.goals.daily_step_goal}
-        />
-      </div>
+      {/* This week: the glance, then the one thing to do */}
+      <section className="card" aria-labelledby="this-week">
+        <h2 id="this-week" className="card-title" style={{ margin: '0 0 14px' }}>This week</h2>
+        <ol
+          role="img"
+          aria-label={doneNames.length > 0 ? `Sessions this week: ${doneNames.join(', ')}` : 'No sessions yet this week'}
+          style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', justifyItems: 'center', rowGap: 6 }}
+        >
+          {days.map((d, i) => {
+            const isToday = d.key === today
+            const future = d.key > today
+            return (
+              <li key={d.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <span style={{
+                  width: 32, height: 32, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                  // Filled with a tick when trained, an open ring when not: shape, not just colour.
+                  background: d.done ? 'var(--ink)' : 'transparent',
+                  border: d.done ? 'none' : `1.5px ${future ? 'dashed' : 'solid'} ${isToday ? 'var(--ink)' : 'var(--line-strong)'}`,
+                  color: 'var(--card)',
+                }}>
+                  {d.done && <CheckIcon size={16} strokeWidth={2.4} />}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--ink)' : 'var(--muted)' }}>
+                  {DAY_LETTERS[i]}
+                </span>
+              </li>
+            )
+          })}
+        </ol>
 
-      {/* Section label */}
-      <div className="fade-up fade-up-2">
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 500,
-          letterSpacing: '0.15em', textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)',
-        }}>Log Activity</p>
-      </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, margin: '18px 0 16px' }}>
+          <p style={{ margin: 0, lineHeight: 1 }}>
+            <span style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.03em' }}>{thisWeek.length}</span>
+            <span style={{ marginLeft: 6, fontSize: 17, fontWeight: 600, color: 'var(--muted)' }}>
+              {thisWeek.length === 1 ? 'session' : 'sessions'}
+            </span>
+          </p>
+          <p style={{ margin: 0, paddingBottom: 3, textAlign: 'right', lineHeight: 1.15 }}>
+            <span style={{ display: 'block', fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{formatKg(volume)}</span>
+            <span style={{ fontSize: 13, color: 'var(--muted)' }}>lifted</span>
+          </p>
+        </div>
 
-      {/* Navigation buttons */}
-      <div className="fade-up fade-up-3" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <Link href="/workouts/log" style={{
-          display: 'flex', alignItems: 'center', gap: '14px',
-          padding: '18px 16px',
-          borderRadius: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          textDecoration: 'none',
-          transition: 'opacity 0.15s ease',
-        }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: '12px',
-            backgroundColor: 'var(--tg-theme-bg-color)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6.5 6.5h11v11h-11z" />
-              <path d="M6.5 6.5L4 4" />
-              <path d="M17.5 6.5L20 4" />
-              <path d="M17.5 17.5L20 20" />
-              <path d="M6.5 17.5L4 20" />
-              <line x1="12" y1="8" x2="12" y2="14" />
-              <line x1="9" y1="11" x2="15" y2="11" />
-            </svg>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{
-              fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 600,
-              color: 'var(--tg-theme-text-color)', marginBottom: '2px',
-            }}>Workouts</p>
-            <p style={{
-              fontFamily: 'var(--font-display)', fontSize: '12px',
-              color: 'var(--tg-theme-hint-color)',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>{workoutDesc}</p>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="var(--tg-theme-hint-color)" strokeWidth="1.8"
-            strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.4 }}>
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+        <Link href="/workouts/log" className="btn-primary" style={{ textDecoration: 'none' }}>
+          <PlusIcon size={20} strokeWidth={2} /> Start a workout
         </Link>
+      </section>
 
-        <Link href="/running" style={{
-          display: 'flex', alignItems: 'center', gap: '14px',
-          padding: '18px 16px',
-          borderRadius: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          textDecoration: 'none',
-          transition: 'opacity 0.15s ease',
-        }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: '12px',
-            backgroundColor: 'var(--tg-theme-bg-color)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="17" cy="4" r="2" />
-              <path d="M15.59 13.51l-1.63-1.2-2.45 3.03-2.6-2.6-3.41 3.76" />
-              <path d="M13.96 12.31l2.69-3.39-2.84-2.1-2.84 3.52" />
-              <path d="M9.5 16.5L7 22" />
-              <path d="M14 22l-1.5-5" />
-            </svg>
+      {noSessions ? (
+        <SummaryCard title="What fills in here">
+          {/* The map's neutral state, drawn as a ghost; the sentence carries the meaning. */}
+          <div aria-hidden="true">
+            <MuscleMap intensities={{}} size="sm" sex={user?.personal?.sex} />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{
-              fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 600,
-              color: 'var(--tg-theme-text-color)', marginBottom: '2px',
-            }}>Running</p>
-            <p style={{
-              fontFamily: 'var(--font-display)', fontSize: '12px',
-              color: 'var(--tg-theme-hint-color)',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>{runDesc}</p>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="var(--tg-theme-hint-color)" strokeWidth="1.8"
-            strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.4 }}>
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </Link>
-      </div>
+          <p style={{ margin: '6px 0 0', fontSize: 15, lineHeight: 1.45, color: 'var(--muted)', textAlign: 'center' }}>
+            Log a session and this shows the muscles you worked, your last session and your records.
+          </p>
+        </SummaryCard>
+      ) : (
+        <>
+          <RecentWorkouts workouts={recent} error={recentError} onRetry={() => setAttempt(n => n + 1)} />
+
+          {!undecided && (
+            <>
+              <MuscleBalance
+                workouts={weeklyWorkouts}
+                withMap
+                sex={user?.personal?.sex}
+                action={<span style={{ fontSize: 13, color: 'var(--muted)' }}>Last 7 days</span>}
+              />
+
+              <PersonalRecords period={30} />
+            </>
+          )}
+        </>
+      )}
+
+      <TrainingRecap period={7} workoutCount={weeklyWorkouts.length} />
+
+      <SummaryCard title="More">
+        <ul style={{ listStyle: 'none', margin: '-6px 0 -8px', padding: 0 }}>
+          {more.map(({ href, label, value, Icon }, i) => (
+            <li key={href} style={{ borderTop: i ? '1px solid var(--line)' : 'none' }}>
+              <Link
+                href={href}
+                style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 52, color: 'var(--ink)', textDecoration: 'none' }}
+              >
+                <span style={{ color: 'var(--muted)', display: 'grid' }}><Icon size={22} /></span>
+                <span style={{ flex: 1, fontSize: 15, fontWeight: 500 }}>{label}</span>
+                {value && <span style={{ fontSize: 13, color: 'var(--muted)' }}>{value}</span>}
+                <span style={{ color: 'var(--muted)', display: 'grid' }}><ChevronRightIcon size={18} /></span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </SummaryCard>
     </div>
   )
 }

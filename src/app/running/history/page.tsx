@@ -1,57 +1,59 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import PageHeader from '@/components/ui/PageHeader'
+import Segmented from '@/components/ui/Segmented'
+import SummaryCard from '@/components/dashboard/SummaryCard'
+import RunCard, { RunRowsSkeleton, formatKey } from '@/components/running/RunCard'
+import RunDetailsSheet from '@/components/running/RunDetailsSheet'
 import { getRunHistory } from '@/lib/api'
-import { formatPace } from '@/lib/format'
-import { addDays, dayKey } from '@/lib/day'
+import { dayKey } from '@/lib/day'
 import type { RunLog } from '@/types/running'
 
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  if (h > 0) return `${h}h ${m}m`
-  return `${m}min`
-}
+type Period = '30' | '60' | '90'
 
-/** Formats a `YYYY-MM-DD` key as that calendar date, whatever the device timezone. */
-function formatKey(key: string, options: Intl.DateTimeFormatOptions): string {
-  return new Date(`${key}T00:00:00Z`).toLocaleDateString('en-GB', { ...options, timeZone: 'UTC' })
-}
+const PERIODS: { value: Period; label: string }[] = [
+  { value: '30', label: '30 days' },
+  { value: '60', label: '60 days' },
+  { value: '90', label: '90 days' },
+]
 
-/** Monday of the week containing day `key`. `getUTCDay()` is Sunday-based, hence `+ 6`. */
-function weekStartKey(key: string): string {
-  return addDays(key, -((new Date(`${key}T00:00:00Z`).getUTCDay() + 6) % 7))
-}
-
-function getWeekLabel(dateStr: string): string {
-  const start = weekStartKey(dayKey(new Date(dateStr)))
-  const thisWeek = weekStartKey(dayKey())
-
-  if (start >= thisWeek) return 'This Week'
-  if (start >= addDays(thisWeek, -7)) return 'Last Week'
-
-  return formatKey(start, { day: 'numeric', month: 'short' }) + ' week'
-}
-
-function formatRunDate(dateStr: string): string {
-  const key = dayKey(new Date(dateStr))
-  if (key === dayKey()) return 'Today'
-  if (key === addDays(dayKey(), -1)) return 'Yesterday'
-  return formatKey(key, { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
-interface WeekGroup {
+interface MonthGroup {
+  key: string
   label: string
   runs: RunLog[]
   totalKm: number
-  totalDuration: number
+}
+
+/** Runs (newest first) grouped by Singapore calendar month. */
+function groupByMonth(runs: RunLog[]): MonthGroup[] {
+  const thisYear = dayKey().slice(0, 4)
+  const months: MonthGroup[] = []
+  for (const run of runs) {
+    const key = dayKey(new Date(run.run_date)).slice(0, 7)
+    let group = months.find(m => m.key === key)
+    if (!group) {
+      group = {
+        key,
+        label: formatKey(`${key}-01`, key.startsWith(thisYear) ? { month: 'long' } : { month: 'long', year: 'numeric' }),
+        runs: [],
+        totalKm: 0,
+      }
+      months.push(group)
+    }
+    group.runs.push(run)
+    group.totalKm += run.distance_meters / 1000
+  }
+  return months
 }
 
 export default function RunHistoryPage() {
   const [runs, setRuns] = useState<RunLog[]>([])
   const [loading, setLoading] = useState(true)
-  const [days, setDays] = useState(30)
+  const [failed, setFailed] = useState(false)
+  const [days, setDays] = useState<Period>('30')
+  const [attempt, setAttempt] = useState(0)
   // Tapping 30/60/90 quickly can land responses out of order — only the newest
   // request is allowed to write.
   const requestIdRef = useRef(0)
@@ -59,144 +61,66 @@ export default function RunHistoryPage() {
   useEffect(() => {
     const requestId = ++requestIdRef.current
     setLoading(true)
-    getRunHistory(days)
+    setFailed(false)
+    getRunHistory(Number(days))
       .then(data => { if (requestIdRef.current === requestId) setRuns(data) })
-      .catch(() => { if (requestIdRef.current === requestId) setRuns([]) })
+      .catch(() => { if (requestIdRef.current === requestId) { setRuns([]); setFailed(true) } })
       .finally(() => { if (requestIdRef.current === requestId) setLoading(false) })
-  }, [days])
+  }, [days, attempt])
 
-  const weeks: WeekGroup[] = []
-  for (const run of runs) {
-    const label = getWeekLabel(run.run_date)
-    const existing = weeks.find(w => w.label === label)
-    if (existing) {
-      existing.runs.push(run)
-      existing.totalKm += run.distance_meters / 1000
-      existing.totalDuration += run.duration_seconds
-    } else {
-      weeks.push({
-        label,
-        runs: [run],
-        totalKm: run.distance_meters / 1000,
-        totalDuration: run.duration_seconds,
-      })
-    }
-  }
+  const months = groupByMonth(runs)
+
+  const [openRun, setOpenRun] = useState<RunLog | null>(null)
+  const closeDetails = useCallback(() => setOpenRun(null), [])
+  // A delete drops the row at once and Undo puts it back; a budget toggle updates it in place.
+  const onListChange = useCallback((run: RunLog, removed: boolean) => {
+    setRuns(prev => {
+      const rest = prev.filter(r => r.id !== run.id)
+      return removed ? rest : [...rest, run].sort((a, b) => new Date(b.run_date).getTime() - new Date(a.run_date).getTime())
+    })
+  }, [])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <PageHeader title="All runs" back={{ href: '/running', label: 'Runs' }} />
 
-      <div className="fade-up">
-        <Link href="/running" style={{
-          display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
-          marginBottom: '8px',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Running
-        </Link>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '32px', fontWeight: 700,
-          lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
-        }}>Run History</h1>
-      </div>
+      <Segmented label="Period" options={PERIODS} value={days} onChange={setDays} />
 
-      <div className="fade-up fade-up-1" style={{ display: 'flex', gap: '8px' }}>
-        {[30, 60, 90].map(d => (
-          <button
-            key={d}
-            className="btn-pill"
-            data-active={days === d ? 'true' : undefined}
-            onClick={() => setDays(d)}
+      {loading ? (
+        <section className="card" aria-busy="true" aria-label="Loading runs">
+          <RunRowsSkeleton rows={4} />
+        </section>
+      ) : failed ? (
+        <section className="card">
+          <p style={{ margin: '0 0 12px', fontSize: 15, color: 'var(--ink)' }}>Couldn&apos;t load your runs.</p>
+          <button type="button" className="btn-secondary" onClick={() => setAttempt(a => a + 1)}>Try again</button>
+        </section>
+      ) : months.length === 0 ? (
+        <section className="card">
+          <p style={{ margin: '0 0 14px', fontSize: 15, color: 'var(--muted)' }}>No runs in the last {days} days.</p>
+          <Link href="/running?log=1" className="btn-primary" style={{ textDecoration: 'none' }}>Log a run</Link>
+        </section>
+      ) : (
+        months.map(month => (
+          <SummaryCard
+            key={month.key}
+            title={month.label}
+            action={
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                {month.totalKm.toFixed(1)} km · {month.runs.length} {month.runs.length === 1 ? 'run' : 'runs'}
+              </span>
+            }
           >
-            {d}d
-          </button>
-        ))}
-      </div>
-
-      {loading && (
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '24px 0',
-        }}>
-          Loading...
-        </p>
+            <ol style={{ listStyle: 'none', margin: '-4px 0 -8px', padding: 0 }}>
+              {month.runs.map((run, i) => (
+                <RunCard key={run.id} run={run} first={i === 0} onOpen={setOpenRun} />
+              ))}
+            </ol>
+          </SummaryCard>
+        ))
       )}
 
-      {!loading && runs.length === 0 && (
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '24px 0',
-        }}>
-          No runs in this period
-        </p>
-      )}
-
-      {!loading && weeks.map(week => (
-        <div key={week.label} className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <p style={{
-              fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 500,
-              letterSpacing: '0.1em', textTransform: 'uppercase',
-              color: 'var(--tg-theme-hint-color)',
-            }}>
-              {week.label}
-            </p>
-            <p style={{
-              fontFamily: 'var(--font-display)', fontSize: '11px',
-              color: 'var(--tg-theme-hint-color)',
-            }}>
-              {week.totalKm.toFixed(1)}km · {formatDuration(week.totalDuration)}
-            </p>
-          </div>
-
-          <div style={{
-            borderRadius: '16px',
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            overflow: 'hidden',
-          }}>
-            {week.runs.map((run, i) => (
-              <div
-                key={run.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 18px',
-                  borderBottom: i < week.runs.length - 1 ? '1px solid var(--surface-border)' : 'none',
-                }}
-              >
-                <div>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '15px',
-                    fontWeight: 500, color: 'var(--tg-theme-text-color)', marginBottom: '3px',
-                  }}>
-                    {(run.distance_meters / 1000).toFixed(2)} km
-                  </p>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '11px',
-                    color: 'var(--tg-theme-hint-color)',
-                  }}>
-                    {formatRunDate(run.run_date)} · {formatPace(run.pace_per_km, 'min')} /km · {formatDuration(run.duration_seconds)}
-                  </p>
-                </div>
-                <p style={{
-                  fontFamily: 'var(--font-display)', fontSize: '14px',
-                  fontWeight: 500, color: 'var(--accent-calories)',
-                }}>
-                  {Math.round(run.calories_burned)}
-                  <span style={{ fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>kcal</span>
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
+      <RunDetailsSheet run={openRun} onClose={closeDetails} onListChange={onListChange} />
     </div>
   )
 }

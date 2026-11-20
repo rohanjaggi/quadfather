@@ -1,334 +1,219 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
+import PageHeader from '@/components/ui/PageHeader'
+import Sheet from '@/components/ui/Sheet'
 import SummaryCard from '@/components/dashboard/SummaryCard'
-import MuscleMap from '@/components/workouts/MuscleMap'
-import { getWorkoutsByDate } from '@/lib/api'
-import { calculateMuscleIntensities } from '@/lib/muscle-intensity'
-import { useUser } from '@/context/UserContext'
+import { toast } from '@/components/ui/Toast'
+import { deferWithUndo } from '@/components/ui/undo'
+import { ChevronRightIcon, TrashIcon } from '@/components/ui/icons'
+import { useHaptic } from '@/components/telegram'
+import VolumeTrendsChart from '@/components/workouts/VolumeTrendsChart'
+import WorkoutAnalysis from '@/components/workouts/WorkoutAnalysis'
+import { ErrorRetry, RowsSkeleton, friendlyError } from '@/components/workouts/bits'
+import { formatKey, formatKg, formatSet, relativeDay, sessionVolume, weekStartKey } from '@/components/workouts/format'
+import { deleteWorkout, getWorkouts } from '@/lib/api'
 import { addDays, dayKey } from '@/lib/day'
-import type { MuscleZone } from '@/lib/muscle-zones'
+import { useUser } from '@/context/UserContext'
 import type { WorkoutLog } from '@/types/workouts'
 
-/** Formats a `YYYY-MM-DD` key as that calendar date, whatever the device timezone. */
-function formatKey(key: string, options: Intl.DateTimeFormatOptions): string {
-  return new Date(`${key}T00:00:00Z`).toLocaleDateString('en-GB', { ...options, timeZone: 'UTC' })
-}
+/** First window, then each "Show earlier weeks" adds twelve, up to the route's one-year cap. */
+const FIRST_DAYS = 56
+const MORE_DAYS = 84
+const MAX_DAYS = 365
 
-function displayDate(key: string): string {
-  if (key === dayKey()) return 'Today'
-  if (key === addDays(dayKey(), -1)) return 'Yesterday'
-  return formatKey(key, { weekday: 'short', day: 'numeric', month: 'short' })
+const workoutKey = (w: WorkoutLog) => dayKey(new Date(w.workout_date))
+const newestFirst = (a: WorkoutLog, b: WorkoutLog) => new Date(b.workout_date).getTime() - new Date(a.workout_date).getTime()
+
+function weekTitle(start: string): string {
+  const thisWeek = weekStartKey()
+  if (start === thisWeek) return 'This week'
+  if (start === addDays(thisWeek, -7)) return 'Last week'
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
+  return `${formatKey(start, opts)} – ${formatKey(addDays(start, 6), opts)}`
 }
 
 export default function WorkoutHistoryPage() {
-  const { user } = useUser()
-  const [date, setDate] = useState(() => addDays(dayKey(), -1))
+  const { user, refresh } = useUser()
+  const haptic = useHaptic()
+
+  const [days, setDays] = useState(FIRST_DAYS)
+  const [attempt, setAttempt] = useState(0)
   const [workouts, setWorkouts] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Fast prev/next taps can land out of order — only the newest request writes.
-  const requestIdRef = useRef(0)
-
-  const fetchWorkouts = useCallback(async (d: string) => {
-    const requestId = ++requestIdRef.current
+  useEffect(() => {
+    let stale = false
     setLoading(true)
-    try {
-      const data = await getWorkoutsByDate(d)
-      if (requestIdRef.current === requestId) setWorkouts(data)
-    } catch {
-      if (requestIdRef.current === requestId) setWorkouts([])
-    } finally {
-      if (requestIdRef.current === requestId) setLoading(false)
+    setError(null)
+    getWorkouts(days)
+      .then(data => { if (!stale) setWorkouts(data) })
+      .catch(err => { if (!stale) setError(friendlyError(err, 'Couldn’t load your sessions.')) })
+      .finally(() => { if (!stale) setLoading(false) })
+    return () => { stale = true }
+  }, [days, attempt])
+
+  // Newest first from the route, so weeks and the sessions in them stay in order.
+  const weeks = useMemo(() => {
+    const out: { start: string; items: WorkoutLog[] }[] = []
+    for (const w of workouts) {
+      const start = weekStartKey(workoutKey(w))
+      const last = out[out.length - 1]
+      if (last && last.start === start) last.items.push(w)
+      else out.push({ start, items: [w] })
     }
-  }, [])
-
-  useEffect(() => {
-    fetchWorkouts(date)
-  }, [date, fetchWorkouts])
-
-  function prevDay() {
-    setDate(d => addDays(d, -1))
-  }
-
-  function nextDay() {
-    const next = addDays(date, 1)
-    if (next > dayKey()) return
-    setDate(next)
-  }
-
-  const totalSets = workouts.reduce((sum, w) => sum + w.exercises.reduce((s, ex) => s + ex.sets.length, 0), 0)
-  const totalExercises = workouts.reduce((sum, w) => sum + w.exercises.length, 0)
-  const totalCalories = workouts.reduce((sum, w) => sum + (w.calories_burned ?? 0), 0)
-  const totalDuration = workouts.reduce((sum, w) => sum + (w.duration_minutes ?? 0), 0)
-
-  // The exercise→muscle table is code-split, so intensities resolve in an
-  // effect rather than during render.
-  const [muscleIntensities, setMuscleIntensities] = useState<Record<MuscleZone, number>>(
-    {} as Record<MuscleZone, number>,
-  )
-
-  useEffect(() => {
-    let cancelled = false
-    const allExercises = workouts.flatMap(w => w.exercises)
-    if (allExercises.length === 0) {
-      setMuscleIntensities({} as Record<MuscleZone, number>)
-      return
-    }
-    calculateMuscleIntensities(allExercises)
-      .then(result => { if (!cancelled) setMuscleIntensities(result) })
-      .catch(err => console.error('Failed to compute muscle intensities:', err))
-    return () => { cancelled = true }
+    return out
   }, [workouts])
 
-  const isToday = date === dayKey()
+  const [open, setOpen] = useState<WorkoutLog | null>(null)
+  const closeSheet = useCallback(() => setOpen(null), [])
+
+  // The row goes at once; the server delete waits out the Undo window.
+  function remove(w: WorkoutLog) {
+    haptic.notification('warning')
+    const restore = () => setWorkouts(prev => (prev.some(x => x.id === w.id) ? prev : [...prev, w].sort(newestFirst)))
+    setWorkouts(prev => prev.filter(x => x.id !== w.id))
+    closeSheet()
+    deferWithUndo({
+      message: 'Session deleted',
+      commit: () => {
+        deleteWorkout(w.id).then(
+          // Today and Training read the week from context.
+          () => refresh().catch(err => console.error('Failed to refresh after delete:', err)),
+          err => {
+            toast(friendlyError(err, 'Couldn’t delete this session. It’s back in your list.'))
+            restore()
+          },
+        )
+      },
+      undo: restore,
+    })
+  }
+
+  const range = days >= MAX_DAYS ? 'the last year' : `the last ${Math.round(days / 7)} weeks`
+  const firstLoad = loading && workouts.length === 0
+
+  const showEarlier = days < MAX_DAYS && !error && !firstLoad && (
+    <button
+      type="button"
+      className="btn-secondary"
+      onClick={() => setDays(d => Math.min(MAX_DAYS, d + MORE_DAYS))}
+      disabled={loading}
+    >
+      {loading ? 'Loading…' : 'Show earlier weeks'}
+    </button>
+  )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <PageHeader title="History" back={{ href: '/workouts', label: 'Training' }} />
 
-      {/* Header */}
-      <div className="fade-up">
-        <Link href="/workouts/log" style={{
-          display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
-          marginBottom: '12px',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Workouts
-        </Link>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '32px',
-          fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
-        }}>
-          History
-        </h1>
-      </div>
-
-      {/* Date nav */}
-      <div className="fade-up fade-up-1" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px',
-        borderRadius: '16px',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-      }}>
-        <button
-          onClick={prevDay}
-          style={{
-            background: 'none', border: 'none', padding: '6px',
-            cursor: 'pointer', color: 'var(--tg-theme-text-color)',
-            borderRadius: '8px',
-            transition: 'background-color 0.15s ease',
-          }}
-          aria-label="Previous day"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-
-        <div style={{ textAlign: 'center' }}>
-          <span style={{
-            fontFamily: 'var(--font-display)', fontSize: '20px',
-            fontWeight: 500, color: 'var(--tg-theme-text-color)',
-            display: 'block', lineHeight: 1.2,
-          }}>
-            {displayDate(date)}
-          </span>
-          {/*
-            Always shown: it is the only place the year appears, and the label
-            above it is either relative ("Today") or year-less ("Wed, 19 Aug").
-          */}
-          <span style={{
-            fontFamily: 'var(--font-display)', fontSize: '11px',
-            color: 'var(--tg-theme-hint-color)',
-            letterSpacing: '0.02em',
-          }}>
-            {formatKey(date, { day: 'numeric', month: 'long', year: 'numeric' })}
-          </span>
-        </div>
-
-        <button
-          onClick={nextDay}
-          disabled={isToday}
-          style={{
-            background: 'none', border: 'none', padding: '6px',
-            cursor: isToday ? 'default' : 'pointer',
-            color: 'var(--tg-theme-text-color)',
-            opacity: isToday ? 0.2 : 1,
-            borderRadius: '8px',
-            transition: 'opacity 0.15s ease',
-          }}
-          aria-label="Next day"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Daily summary */}
-      {!loading && workouts.length > 0 && (
-        <div className="fade-up fade-up-2">
-          <SummaryCard title="Summary">
-            <div style={{ display: 'flex', justifyContent: 'space-around', padding: '8px 0' }}>
-              {[
-                { label: 'Workouts', value: workouts.length },
-                { label: 'Exercises', value: totalExercises },
-                { label: 'Sets', value: totalSets },
-                ...(totalCalories > 0 ? [{ label: 'kcal', value: Math.round(totalCalories) }] : []),
-                ...(totalDuration > 0 ? [{ label: 'min', value: totalDuration }] : []),
-              ].map(stat => (
-                <div key={stat.label} style={{ textAlign: 'center' }}>
-                  <span style={{
-                    fontFamily: 'var(--font-display)', fontSize: '22px',
-                    fontWeight: 600, color: 'var(--tg-theme-text-color)',
-                    display: 'block', lineHeight: 1,
-                  }}>
-                    {stat.value}
-                  </span>
-                  <span style={{
-                    fontFamily: 'var(--font-display)', fontSize: '10px',
-                    color: 'var(--tg-theme-hint-color)',
-                    letterSpacing: '0.04em', textTransform: 'uppercase',
-                  }}>
-                    {stat.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </SummaryCard>
-        </div>
-      )}
-
-      {/* Muscle map */}
-      {!loading && Object.keys(muscleIntensities).length > 0 && (
-        <div className="fade-up fade-up-3">
-          <SummaryCard title="Muscles worked">
-            <MuscleMap intensities={muscleIntensities} size="md" sex={user?.personal?.sex} />
-          </SummaryCard>
-        </div>
-      )}
-
-      {/* Workouts list */}
-      <div className="fade-up fade-up-4">
-        <SummaryCard title={
-          !loading && workouts.length > 0 ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Workouts</span>
-              <span style={{
-                fontFamily: 'var(--font-display)', fontSize: '11px',
-                fontWeight: 400, color: 'var(--tg-theme-hint-color)',
-                letterSpacing: '0', textTransform: 'none',
-              }}>
-                {workouts.length} {workouts.length === 1 ? 'session' : 'sessions'}
-              </span>
-            </div>
-          ) : 'Workouts'
-        }>
-          {loading ? (
-            <div style={{ padding: '32px 0', textAlign: 'center' }}>
-              <div style={{
-                width: '20px', height: '20px', margin: '0 auto 10px',
-                border: '2px solid var(--surface-border)',
-                borderTopColor: 'var(--accent)',
-                borderRadius: '50%',
-                animation: 'spin 0.7s linear infinite',
-              }} />
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '12px',
-                color: 'var(--tg-theme-hint-color)',
-              }}>
-                Loading workouts
-              </p>
-            </div>
-          ) : workouts.length === 0 ? (
-            <div style={{ padding: '36px 0', textAlign: 'center' }}>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '22px',
-                fontWeight: 400, color: 'var(--tg-theme-hint-color)',
-                opacity: 0.6, marginBottom: '6px',
-              }}>
-                Rest day
-              </p>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '12px',
-                color: 'var(--tg-theme-hint-color)',
-              }}>
-                No workouts were logged on this day
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {workouts.map((w, wi) => (
-                <div key={w.id} style={{
-                  padding: '14px 0',
-                  borderBottom: wi < workouts.length - 1 ? '1px solid var(--surface-border)' : 'none',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <p style={{
-                      fontFamily: 'var(--font-display)', fontSize: '15px',
-                      fontWeight: 600, color: 'var(--tg-theme-text-color)',
-                    }}>
-                      {w.name}
-                    </p>
-                    {w.duration_minutes != null && (
-                      <span style={{
-                        fontFamily: 'var(--font-display)', fontSize: '11px',
-                        color: 'var(--tg-theme-hint-color)',
-                      }}>
-                        {w.duration_minutes} min
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {w.exercises.map((ex, i) => (
-                      <div key={i}>
-                        <p style={{
-                          fontFamily: 'var(--font-display)', fontSize: '13px',
-                          fontWeight: 500, color: 'var(--tg-theme-text-color)',
-                          marginBottom: '4px',
-                        }}>
-                          {ex.exercise_name}
-                        </p>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                          {ex.sets.map((s, si) => (
-                            <span key={si} style={{
-                              fontFamily: 'var(--font-display)', fontSize: '11px',
-                              color: 'var(--tg-theme-hint-color)',
-                              backgroundColor: 'var(--tg-theme-bg-color)',
-                              padding: '3px 7px',
-                              borderRadius: '6px',
-                            }}>
-                              {s.weight_kg ? `${s.reps} x ${s.weight_kg}kg` : `${s.reps} reps`}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {w.notes && (
-                    <p style={{
-                      fontFamily: 'var(--font-display)', fontSize: '11px',
-                      color: 'var(--tg-theme-hint-color)', marginTop: '8px',
-                      fontStyle: 'italic',
-                    }}>
-                      {w.notes}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+      {firstLoad ? (
+        <SummaryCard><RowsSkeleton rows={4} /></SummaryCard>
+      ) : error ? (
+        <SummaryCard><ErrorRetry message={error} onRetry={() => setAttempt(n => n + 1)} busy={loading} /></SummaryCard>
+      ) : workouts.length === 0 ? (
+        <SummaryCard>
+          <p style={{ margin: '0 0 14px', fontSize: 15, color: 'var(--muted)' }}>No sessions in {range}.</p>
+          <Link href="/workouts/log" className="btn-primary" style={{ textDecoration: 'none' }}>Start a workout</Link>
         </SummaryCard>
-      </div>
+      ) : (
+        <>
+          <VolumeTrendsChart workouts={workouts} period={30} />
 
+          {weeks.map(week => {
+            const vol = week.items.reduce((s, w) => s + sessionVolume(w), 0)
+            return (
+              <SummaryCard
+                key={week.start}
+                title={weekTitle(week.start)}
+                action={
+                  <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                    {week.items.length} {week.items.length === 1 ? 'session' : 'sessions'}{vol > 0 && ` · ${formatKg(vol)}`}
+                  </span>
+                }
+              >
+                <ul style={{ listStyle: 'none', margin: '-8px 0 -6px', padding: 0 }}>
+                  {week.items.map((w, i) => {
+                    const v = sessionVolume(w)
+                    const n = w.exercises.length
+                    return (
+                      <li key={w.id} style={{ borderTop: i ? '1px solid var(--line)' : 'none' }}>
+                        <button
+                          type="button"
+                          onClick={() => setOpen(w)}
+                          style={{
+                            width: '100%', minHeight: 60, padding: '10px 0', border: 'none', background: 'transparent',
+                            display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', color: 'var(--ink)',
+                          }}
+                        >
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ display: 'block', fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.name}</span>
+                            <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                              {relativeDay(workoutKey(w))} · {n} {n === 1 ? 'exercise' : 'exercises'}
+                            </span>
+                          </span>
+                          {v > 0 && <span style={{ flexShrink: 0, fontSize: 15, fontWeight: 600 }}>{formatKg(v)}</span>}
+                          <span style={{ color: 'var(--muted)', display: 'grid' }}><ChevronRightIcon size={18} /></span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </SummaryCard>
+            )
+          })}
+
+          {showEarlier}
+        </>
+      )}
+
+      <Sheet open={open !== null} onClose={closeSheet} title={open?.name ?? ''}>
+        {open && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <p style={{ margin: '-8px 0 0', fontSize: 15, color: 'var(--muted)' }}>
+              {[
+                formatKey(workoutKey(open), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+                open.duration_minutes ? `${open.duration_minutes} min` : null,
+                open.calories_burned ? `${Math.round(open.calories_burned)} kcal` : null,
+                sessionVolume(open) > 0 ? `${formatKg(sessionVolume(open))} lifted` : null,
+              ].filter(Boolean).join(' · ')}
+            </p>
+
+            <section className="card" aria-label="Exercises" style={{ padding: '6px 18px' }}>
+              <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {open.exercises.map((ex, i) => (
+                  <li key={i} style={{ padding: '10px 0', borderTop: i ? '1px solid var(--line)' : 'none' }}>
+                    <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>{ex.exercise_name}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, color: 'var(--muted)' }}>{ex.sets.map(formatSet).join(', ')}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            {open.notes && <p style={{ margin: 0, fontSize: 15, color: 'var(--ink)' }}>{open.notes}</p>}
+
+            <WorkoutAnalysis
+              title={open.analysis || user?.has_api_key ? 'How it went' : 'Muscles worked'}
+              workoutId={open.id}
+              existingAnalysis={open.analysis}
+              exercises={open.exercises}
+              showMap
+            />
+
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => remove(open)}
+              style={{ alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--over)' }}
+            >
+              <TrashIcon size={18} /> Delete session
+            </button>
+          </div>
+        )}
+      </Sheet>
     </div>
   )
 }

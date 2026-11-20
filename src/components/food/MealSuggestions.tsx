@@ -1,263 +1,167 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import Link from 'next/link'
 import { getMealSuggestions } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
-import { toast, errorMessage } from '@/components/ui/Toast'
+import { toast } from '@/components/ui/Toast'
+import { errorMessage } from '@/lib/errors'
+import { formatInt } from '@/lib/format'
+import { macroLine } from '@/components/food/meals'
+import { toastMealLogged } from '@/components/food/logged'
+import { ChevronDownIcon, RefreshIcon } from '@/components/ui/icons'
 import type { MealSuggestion } from '@/types/api'
 
+const caption: React.CSSProperties = { margin: 0, fontSize: 13, lineHeight: 1.4, color: 'var(--muted)' }
+
+/** AI meal ideas that fit the rest of today's budget; collapsed until asked. */
 export default function MealSuggestions() {
-  const { user, logFood } = useUser()
+  const { user, logFood, deleteFood } = useUser()
 
   const [expanded, setExpanded] = useState(false)
   const [suggestions, setSuggestions] = useState<MealSuggestion[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loggingIdx, setLoggingIdx] = useState<number | null>(null)
-  // Index of the open card. Cleared whenever the list is refetched — it used to
-  // survive "Refresh suggestions", so slot 2 of the *new* batch opened itself.
-  const [expandedCard, setExpandedCard] = useState<number | null>(null)
+  // Index of the open idea. Cleared whenever the list is refetched — it used to
+  // survive a refresh, so slot 2 of the *new* batch opened itself.
+  const [openIdx, setOpenIdx] = useState<number | null>(null)
 
   const fetchSuggestions = useCallback(async () => {
     setLoading(true)
     setError(null)
-    setExpandedCard(null)
+    setOpenIdx(null)
     try {
-      const data = await getMealSuggestions()
-      setSuggestions(data)
+      setSuggestions(await getMealSuggestions())
     } catch (err) {
-      setError(errorMessage(err, 'Failed to load suggestions'))
+      setError(errorMessage(err, "Couldn't find ideas right now."))
     } finally {
       setLoading(false)
     }
   }, [])
 
   function handleToggle() {
-    if (!user?.has_api_key) return
     const next = !expanded
     setExpanded(next)
-    if (next && !suggestions && !loading) {
-      fetchSuggestions()
-    }
+    if (next && !suggestions && !loading) fetchSuggestions()
   }
 
-  async function handleLog(suggestion: MealSuggestion, idx: number) {
+  async function handleLog(s: MealSuggestion, idx: number) {
     if (loggingIdx !== null) return
     setLoggingIdx(idx)
     try {
-      await logFood({
-        food_name: suggestion.name,
-        calories: suggestion.calories,
-        protein: suggestion.protein,
-        carbohydrates: suggestion.carbohydrates,
-        fats: suggestion.fats,
-        fiber: suggestion.fiber,
+      const log = await logFood({
+        food_name: s.name,
+        calories: s.calories,
+        protein: s.protein,
+        carbohydrates: s.carbohydrates,
+        fats: s.fats,
+        fiber: s.fiber,
         source: 'ai-suggest',
       })
-      toast(`${suggestion.name} logged`, { type: 'success' })
+      toastMealLogged(log, deleteFood)
     } catch (err) {
-      toast(errorMessage(err, `Could not log ${suggestion.name}`))
+      toast(errorMessage(err, `Could not log ${s.name}`))
     } finally {
       setLoggingIdx(null)
     }
   }
 
+  if (!user?.has_api_key) {
+    return (
+      <section className="card">
+        <h2 className="card-title" style={{ margin: 0 }}>Ideas for what&apos;s left</h2>
+        <p style={{ ...caption, marginTop: 6 }}>
+          Add an AI key to get meal ideas that fit the rest of your day.{' '}
+          <Link href="/profile/api-key" style={{ color: 'var(--action)', fontWeight: 600, textDecoration: 'none' }}>Add a key</Link>
+        </p>
+      </section>
+    )
+  }
+
   return (
-    <div>
+    <section className="card" style={{ paddingTop: 6, paddingBottom: expanded ? 14 : 6 }}>
       <button
+        type="button"
         onClick={handleToggle}
+        aria-expanded={expanded}
         style={{
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'none',
-          border: 'none',
-          padding: '0 0 10px 0',
-          cursor: 'pointer',
+          width: '100%', minHeight: 48, padding: 0, border: 'none', background: 'none',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--ink)',
         }}
       >
-        <span className="label-caps" style={{ marginBottom: 0 }}>
-          AI Suggestions
-        </span>
-        <span style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '14px',
-          color: 'var(--tg-theme-hint-color)',
-          transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-          transition: 'transform 0.2s ease',
-          display: 'inline-block',
-        }}>
-          ▾
+        <span className="card-title">Ideas for what&apos;s left</span>
+        <span style={{ display: 'grid', color: 'var(--muted)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .25s var(--ease-out-expo)' }}>
+          <ChevronDownIcon size={20} />
         </span>
       </button>
 
-      {!user?.has_api_key && (
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '12px',
-          color: 'var(--tg-theme-hint-color)', padding: '4px 0',
-        }}>
-          Set up your AI API key in Settings to get suggestions.
-        </p>
-      )}
-
       {expanded && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ marginTop: 4 }}>
           {loading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {[0, 1, 2].map(i => (
-                <div key={i} style={{
-                  height: '72px',
-                  borderRadius: '14px',
-                  backgroundColor: 'var(--tg-theme-bg-color)',
-                  animation: 'pulse 1.5s ease-in-out infinite',
-                  opacity: 0.4,
-                }} />
-              ))}
+            <div role="status">
+              <div className="ai-shimmer" style={{ height: 96 }} aria-hidden="true" />
+              <p style={{ ...caption, marginTop: 8 }}>Finding meals that fit what&apos;s left…</p>
             </div>
           )}
 
-          {error && (
-            <p style={{
-              fontFamily: 'var(--font-display)', fontSize: '12px',
-              color: 'var(--accent-calories)', textAlign: 'center', padding: '8px 0',
-            }}>
-              {error}
-            </p>
+          {!loading && error && (
+            <div>
+              <p role="alert" style={caption}>{error}</p>
+              <button type="button" className="btn-ghost" onClick={fetchSuggestions} style={{ marginLeft: -14 }}>Try again</button>
+            </div>
           )}
 
-          {!loading && suggestions && suggestions.map((s, i) => {
-            const isCardExpanded = expandedCard === i
+          {!loading && !error && suggestions && suggestions.length === 0 && (
+            <p style={caption}>No ideas this time. Try again in a bit.</p>
+          )}
+
+          {!loading && !error && suggestions && suggestions.map((s, i) => {
+            const open = openIdx === i
             return (
-              <div key={i} style={{
-                padding: '12px 14px',
-                borderRadius: '14px',
-                backgroundColor: 'var(--tg-theme-bg-color)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-                onClick={() => setExpandedCard(isCardExpanded ? null : i)}
-              >
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '10px',
-                }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '15px',
-                      fontWeight: 500,
-                      color: 'var(--tg-theme-text-color)',
-                      marginBottom: '3px',
-                      ...(isCardExpanded ? {} : {
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }),
-                    }}>
-                      {s.name}
-                    </p>
-                    {!isCardExpanded && (
-                      <p style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '11px',
-                        color: 'var(--tg-theme-hint-color)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}>
-                        {s.calories} kcal · {s.protein}g P · {s.carbohydrates}g C · {s.fats}g F · {s.fiber}g Fi
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); void handleLog(s, i) }}
-                    disabled={loggingIdx !== null}
-                    className="btn-primary"
-                    style={{
-                      width: 'auto',
-                      padding: '8px 14px',
-                      borderRadius: '10px',
-                      fontSize: '11px',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {loggingIdx === i ? '...' : '+ Log'}
-                  </button>
-                </div>
-                {isCardExpanded && (
-                  <div style={{ marginTop: '8px' }}>
-                    <p style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '12px',
-                      color: 'var(--tg-theme-hint-color)',
-                      marginBottom: '8px',
-                      lineHeight: '1.4',
-                    }}>
-                      {s.description}
-                    </p>
-                    {s.reason && (
-                      <p style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '11px',
-                        color: 'var(--tg-theme-text-color)',
-                        marginBottom: '8px',
-                        lineHeight: '1.4',
-                        fontStyle: 'italic',
-                        opacity: 0.8,
-                      }}>
-                        {s.reason}
-                      </p>
-                    )}
-                    <div style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '6px',
-                    }}>
-                      {[
-                        { label: 'Calories', value: `${s.calories} kcal` },
-                        { label: 'Protein', value: `${s.protein}g` },
-                        { label: 'Carbs', value: `${s.carbohydrates}g` },
-                        { label: 'Fats', value: `${s.fats}g` },
-                        { label: 'Fiber', value: `${s.fiber}g` },
-                      ].map(m => (
-                        <span key={m.label} style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: '11px',
-                          color: 'var(--tg-theme-text-color)',
-                          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                          padding: '4px 8px',
-                          borderRadius: '8px',
-                        }}>
-                          {m.label}: {m.value}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderTop: i ? '1px solid var(--line)' : 'none' }}>
+                <button
+                  type="button"
+                  onClick={() => setOpenIdx(open ? null : i)}
+                  aria-expanded={open}
+                  style={{ flex: 1, minWidth: 0, minHeight: 44, padding: 0, border: 'none', background: 'none', textAlign: 'left', color: 'var(--ink)' }}
+                >
+                  <span style={{ display: 'block', fontSize: 15, fontWeight: 600, ...(open ? {} : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }) }}>
+                    {s.name}
+                  </span>
+                  <span style={{ ...caption, display: 'block', marginTop: 2 }}>
+                    {formatInt(s.calories)} kcal · {macroLine(s, open)}
+                  </span>
+                  {open && s.description && <span style={{ ...caption, display: 'block', marginTop: 8, color: 'var(--ink)' }}>{s.description}</span>}
+                  {open && s.reason && <span style={{ ...caption, display: 'block', marginTop: 6 }}>{s.reason}</span>}
+                </button>
+                <button
+                  type="button"
+                  className="btn-pill"
+                  data-active="true"
+                  onClick={() => handleLog(s, i)}
+                  disabled={loggingIdx !== null}
+                  aria-label={`Log ${s.name}`}
+                  style={{ flexShrink: 0, minHeight: 40 }}
+                >
+                  {loggingIdx === i ? 'Logging…' : 'Log'}
+                </button>
               </div>
             )
           })}
 
-          {!loading && suggestions && (
+          {!loading && !error && suggestions && (
             <button
+              type="button"
+              className="btn-ghost"
               onClick={fetchSuggestions}
-              className="btn-secondary"
-              style={{
-                alignSelf: 'center',
-                padding: '8px 18px',
-                borderRadius: '99px',
-                fontSize: '11px',
-                marginTop: '2px',
-              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: -14, marginTop: 2 }}
             >
-              Refresh suggestions
+              <RefreshIcon size={18} /> Different ideas
             </button>
           )}
         </div>
       )}
-    </div>
+    </section>
   )
 }

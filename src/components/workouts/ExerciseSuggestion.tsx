@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { getExercisePrediction } from '@/lib/api'
 import type { PredictionData } from '@/types/exercises'
+import { ChevronDownIcon } from '@/components/ui/icons'
+import { formatSet, topSet } from './format'
 
 /**
  * Session cache of predictions, keyed by normalised exercise name.
@@ -88,98 +90,43 @@ export default function ExerciseSuggestion({ exerciseName, enabled = true }: Exe
 
   if (!enabled) return null
   if (loading) {
-    return (
-      <div style={{
-        marginTop: '8px',
-        padding: '10px 12px',
-        borderRadius: '10px',
-        border: '1px solid var(--surface-border)',
-      }}>
-        <div style={{
-          height: '11px',
-          width: '60%',
-          borderRadius: '4px',
-          backgroundColor: 'var(--surface-border)',
-          animation: 'pulse 1.5s ease-in-out infinite',
-        }} />
-      </div>
-    )
+    // A paid model call: the AI-working shimmer, sized to the line it becomes.
+    return <div className="ai-shimmer" role="status" aria-label="Checking your last session" style={{ height: 14, width: '70%', borderRadius: 7, margin: '2px 0' }} />
   }
-  if (!data || !data.prediction) return null
+  if (!data) return null
+
+  const last = data.last_session ? topSet(data.last_session.sets) : null
+  const next = data.prediction ? topSet(data.prediction.sets) : null
+  const line = [
+    last ? `Last time ${formatSet(last)}` : null,
+    next ? `${last ? 'try' : 'Try'} ${formatSet(next)}` : null,
+  ].filter(Boolean).join(' · ')
+  if (!line) return null
+  const prediction = data.prediction
+  // Nothing more to unfold without a prediction: last time alone is one line.
+  if (!prediction) return <p style={{ margin: '6px 0', fontSize: 13, color: 'var(--muted)' }}>{line}</p>
 
   return (
-    <div style={{
-      marginTop: '8px',
-      borderRadius: '10px',
-      border: '1px solid var(--surface-border)',
-      overflow: 'hidden',
-    }}>
+    <div>
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
         style={{
-          width: '100%',
-          padding: '10px 12px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 4, minHeight: 32, padding: 0,
+          border: 'none', background: 'none', textAlign: 'left',
+          fontSize: 13, color: 'var(--muted)',
         }}
       >
-        <span style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '11px',
-          fontWeight: 500,
-          color: 'var(--accent-protein)',
-        }}>
-          Suggested: {data.prediction.sets.length} sets
-        </span>
-        <span style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '10px',
-          color: 'var(--tg-theme-hint-color)',
-          transition: 'transform 0.2s ease-out',
-          transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-        }}>
-          ▾
-        </span>
+        {line}
+        <ChevronDownIcon size={14} style={{ flexShrink: 0, transition: 'transform 0.2s var(--ease-out-expo)', transform: open ? 'rotate(180deg)' : 'none' }} />
       </button>
       {open && (
-        <div style={{
-          padding: '0 12px 10px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-        }}>
-          {data.prediction.sets.map((set, i) => (
-            <div key={i} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
-              <span style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '10px',
-                color: 'var(--tg-theme-hint-color)',
-                width: '14px',
-              }}>
-                {i + 1}
-              </span>
-              <span style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '12px',
-                fontWeight: 500,
-                color: 'var(--tg-theme-text-color)',
-              }}>
-                {set.weight_kg == null
-                  ? `${set.reps} reps (bodyweight)`
-                  : `${set.reps} reps × ${set.weight_kg}kg`}
-              </span>
-            </div>
-          ))}
+        <div style={{ padding: '2px 0 6px', fontSize: 13, color: 'var(--muted)' }}>
+          <p style={{ margin: 0 }}>
+            Suggested: {prediction.sets.map(formatSet).join(', ')}
+          </p>
+          {prediction.reasoning && <p style={{ margin: '4px 0 0', lineHeight: 1.45 }}>{prediction.reasoning}</p>}
         </div>
       )}
     </div>

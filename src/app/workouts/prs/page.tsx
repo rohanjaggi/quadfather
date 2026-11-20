@@ -1,10 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { getAllWorkoutPRs, type WorkoutPR } from '@/lib/api'
 import { loadExerciseMuscles } from '@/lib/muscle-intensity'
-import { prDisplayDate, prDisplayValue, prTypeLabel } from '@/components/workouts/pr-display'
+import PageHeader from '@/components/ui/PageHeader'
+import SummaryCard from '@/components/dashboard/SummaryCard'
+import { prDisplayDate, prDisplayValue, prEstimated1RM } from '@/components/workouts/pr-display'
+import { ErrorRetry, RowsSkeleton, friendlyError } from '@/components/workouts/bits'
 
 const MUSCLE_TO_GROUP: Record<string, string> = {
   'pectoralis major': 'Chest',
@@ -62,30 +65,38 @@ interface GroupedPRs {
   prs: WorkoutPR[]
 }
 
-export default function PRHistoryPage() {
-  const router = useRouter()
+export default function RecordsPage() {
   const [prs, setPrs] = useState<WorkoutPR[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
   // ~100 KB of exercise→muscle data, fetched alongside the PRs rather than
   // bundled into this page's first load.
   const [muscleMap, setMuscleMap] = useState<ExerciseMuscleMap | null>(null)
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setError(null)
     // Settled, not all: the muscle chunk is a 100 KB optional nicety, and
     // failing it used to take the whole PR list down with it. Without the map
     // every PR simply falls into the 'Other' group.
     Promise.allSettled([getAllWorkoutPRs(), loadExerciseMuscles()])
       .then(([prsResult, musclesResult]) => {
         if (cancelled) return
-        if (prsResult.status === 'fulfilled') setPrs(prsResult.value.prs)
-        else console.error('Failed to load PRs:', prsResult.reason)
+        if (prsResult.status === 'fulfilled') {
+          setPrs(prsResult.value.prs)
+        } else {
+          console.error('Failed to load PRs:', prsResult.reason)
+          // Used to fall through to "No personal records yet", which isn't true.
+          setError(friendlyError(prsResult.reason, 'Couldn’t load your records.'))
+        }
         if (musclesResult.status === 'fulfilled') setMuscleMap(musclesResult.value)
         else console.error('Failed to load exercise muscles:', musclesResult.reason)
         setLoading(false)
       })
     return () => { cancelled = true }
-  }, [])
+  }, [attempt])
 
   const grouped: GroupedPRs[] = []
   for (const pr of prs) {
@@ -100,110 +111,52 @@ export default function PRHistoryPage() {
   grouped.sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div className="fade-up" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button
-          onClick={() => router.back()}
-          aria-label="Go back"
-          style={{
-            background: 'none', border: 'none', padding: '4px',
-            color: 'var(--tg-theme-text-color)', cursor: 'pointer',
-            fontSize: '20px', lineHeight: 1,
-          }}
-        >
-          ←
-        </button>
-        <div>
-          <p style={{
-            fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 500,
-            letterSpacing: '0.15em', textTransform: 'uppercase',
-            color: 'var(--tg-theme-hint-color)', marginBottom: '5px',
-          }}>Training</p>
-          <h1 style={{
-            fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 700,
-            lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tg-theme-text-color)',
-          }}>PR History</h1>
-        </div>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <PageHeader
+        title="Records"
+        subtitle="Your heaviest set for each lift."
+        back={{ href: '/workouts', label: 'Training' }}
+      />
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
-            Loading...
-          </p>
-        </div>
+        <SummaryCard><RowsSkeleton rows={4} /></SummaryCard>
+      ) : error ? (
+        <SummaryCard><ErrorRetry message={error} onRetry={() => setAttempt(n => n + 1)} /></SummaryCard>
       ) : prs.length === 0 ? (
-        <div className="card fade-up fade-up-1">
-          <p style={{
-            fontFamily: 'var(--font-display)', fontSize: '13px',
-            color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0',
-          }}>
-            No personal records yet
+        <SummaryCard>
+          <p style={{ margin: '0 0 14px', fontSize: 15, color: 'var(--muted)' }}>
+            No records yet. Log a weighted set and your best lifts collect here.
           </p>
-        </div>
+          <Link href="/workouts/log" className="btn-primary" style={{ textDecoration: 'none' }}>Start a workout</Link>
+        </SummaryCard>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {grouped.map((section, si) => (
-            <div key={section.group} className={`fade-up fade-up-${si + 1}`} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 500,
-                letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: 'var(--tg-theme-hint-color)',
-              }}>
-                {section.group}
-              </p>
-              <div style={{
-                borderRadius: '16px',
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                overflow: 'hidden',
-              }}>
-                {section.prs.map((pr, i) => (
-                  <div
+        grouped.map(section => (
+          <SummaryCard key={section.group} title={section.group}>
+            <ul style={{ listStyle: 'none', margin: '-8px 0 -6px', padding: 0 }}>
+              {section.prs.map((pr, i) => {
+                const e1rm = prEstimated1RM(pr)
+                return (
+                  <li
                     key={`${pr.exercise_name}-${i}`}
-                    style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '14px 18px',
-                      borderBottom: i < section.prs.length - 1 ? '1px solid var(--surface-border)' : 'none',
-                    }}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 0', borderTop: i ? '1px solid var(--line)' : 'none' }}
                   >
-                    <div style={{ minWidth: 0, marginRight: '12px' }}>
-                      <p style={{
-                        fontFamily: 'var(--font-display)', fontSize: '14px',
-                        fontWeight: 500, color: 'var(--tg-theme-text-color)', margin: 0,
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      }}>
-                        {pr.exercise_name}
-                      </p>
-                      <p style={{
-                        fontFamily: 'var(--font-display)', fontSize: '11px',
-                        color: 'var(--tg-theme-hint-color)', margin: '2px 0 0 0',
-                      }}>
-                        {prDisplayDate(pr)}
-                      </p>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pr.exercise_name}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--muted)' }}>{prDisplayDate(pr)}</p>
                     </div>
-                    {/* `value` is now pre-formatted ("100kg × 5"), so keep it
-                        intact and let the exercise name truncate instead. */}
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <span style={{
-                        fontFamily: 'var(--font-display)', fontSize: '16px',
-                        fontWeight: 600, color: 'var(--accent)',
-                      }}>
-                        {prDisplayValue(pr)}
-                      </span>
-                      <span style={{
-                        display: 'block', fontFamily: 'var(--font-display)', fontSize: '9px',
-                        fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase',
-                        color: 'var(--accent)', opacity: 0.7, marginTop: '2px',
-                      }}>
-                        {prTypeLabel(pr)}
-                      </span>
+                    {/* `value` is pre-formatted ("100kg × 5"): keep it whole and let the name truncate. */}
+                    <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                      <p style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{prDisplayValue(pr)}</p>
+                      {e1rm !== null && (
+                        <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--muted)' }}>est. 1RM {e1rm} kg</p>
+                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </SummaryCard>
+        ))
       )}
     </div>
   )

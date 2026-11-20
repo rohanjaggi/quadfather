@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { buildDailyCoach, determineNudgeTopic, recordNudge } from "@/lib/coach";
+import { buildCloseTheDay, determineNudgeTopic, recordNudge, type NudgeTopic } from "@/lib/coach";
 import { getDailyBudget } from "@/lib/budget";
 import { addDays, dayKey } from "@/lib/day";
 import { escapeHtml } from "@/lib/html";
-import { clampHtml, sendHtml, TELEGRAM_TEXT_LIMIT } from "@/lib/telegram-bot";
+import { clampHtml, closeDayKeyboard, sendHtml, TELEGRAM_TEXT_LIMIT } from "@/lib/telegram-bot";
 import { forEachCronUser } from "../auth";
 
 /**
@@ -34,48 +34,61 @@ function stepStreakEndingYesterday(
   return streak;
 }
 
+/** "Close the day" (the `daily_coach` pref): a deterministic summary of today, no AI call. */
 export async function GET(request: NextRequest) {
-  return forEachCronUser(request, "daily_coach", "Daily coach", async (user, ai) => {
-    const thirtyDaysAgo = new Date(`${addDays(dayKey(), -30)}T00:00:00Z`);
+  return forEachCronUser(request, "daily_coach", "Close the day", async (user) => {
     // Canonical budget — identical maths to the dashboard (/api/users/me).
-    const [budget, recentSteps] = await Promise.all([
-      getDailyBudget(user),
-      prisma.stepLog.findMany({ where: { user_id: user.id, date: { gte: thirtyDaysAgo } }, orderBy: { date: 'desc' } }),
-    ]);
+    const budget = await getDailyBudget(user);
 
-    if (budget.food.meals_logged === 0 && budget.logs.workouts.length === 0) return false;
+    const { html, hasLogs } = buildCloseTheDay({
+      kcal: budget.food.calories,
+      kcalBudget: budget.total_goal,
+      protein: budget.food.protein,
+      proteinGoal: user.daily_protein_goal,
+      waterLiters: budget.water_liters,
+      waterGoal: user.daily_water_goal,
+      steps: budget.logs.step?.steps ?? null,
+      stepGoal: user.daily_step_goal,
+      meals: budget.food.meals_logged,
+      sessions: [
+        ...budget.logs.workouts.map((w) => w.name),
+        ...budget.logs.runs.map((r) => r.name || "Run"),
+      ],
+    });
 
-    const todayStepCount = budget.steps;
-    const currentStreak = stepStreakEndingYesterday(recentSteps, user.daily_step_goal);
-
-    const message = await buildDailyCoach(user, ai, budget, currentStreak);
-
-    // Check for proactive nudge
-    const coachPrefs = user.ai_coaching_prefs as Record<string, boolean> | null;
-    const nudgeTopic = await determineNudgeTopic(user.id, user.daily_step_goal, coachPrefs, budget, recentSteps);
+    // Nudges are opt-in (`determineNudgeTopic`), and the nothing-logged version stays short.
+    let nudgeTopic: NudgeTopic | null = null;
     let nudgeText = "";
-    if (nudgeTopic) {
-      const nudgeLabels: Record<string, string> = {
-        inactivity: "You haven't worked out in a while — even a short session helps!",
-        recovery: "You've been training hard — consider a rest day for recovery.",
-        nutrition_gap: "Big burn today but intake is low — prioritise protein tonight.",
-        consistency: "Great consistency this week — keep the momentum going!",
-        // A streak of 1 isn't worth protecting; mention from 2 days up.
-        steps: `You're at ${todayStepCount.toLocaleString()} steps — ${Math.max(0, user.daily_step_goal - todayStepCount).toLocaleString()} more to hit your goal.${currentStreak >= 2 ? ` Don't break your ${currentStreak}-day streak!` : ''}`,
-      };
-      // Escaped once, here; the result is interpolated raw below.
-      nudgeText = `\n\n\u{1F4A1} ${escapeHtml(nudgeLabels[nudgeTopic] ?? "")}`;
+    if (hasLogs) {
+      const thirtyDaysAgo = new Date(`${addDays(dayKey(), -30)}T00:00:00Z`);
+      const recentSteps = await prisma.stepLog.findMany({
+        where: { user_id: user.id, date: { gte: thirtyDaysAgo } },
+        orderBy: { date: "desc" },
+      });
+      const coachPrefs = user.ai_coaching_prefs as Record<string, boolean> | null;
+      nudgeTopic = await determineNudgeTopic(user.id, user.daily_step_goal, coachPrefs, budget, recentSteps);
+      if (nudgeTopic) {
+        const steps = budget.steps;
+        const streak = stepStreakEndingYesterday(recentSteps, user.daily_step_goal);
+        const nudgeLabels: Record<NudgeTopic, string> = {
+          inactivity: "You haven't worked out in a while — even a short session helps!",
+          recovery: "You've been training hard — consider a rest day for recovery.",
+          nutrition_gap: "Big burn today but intake is low — prioritise protein tonight.",
+          consistency: "Great consistency this week — keep the momentum going!",
+          // A streak of 1 isn't worth protecting; mention from 2 days up.
+          steps: `You're at ${steps.toLocaleString()} steps — ${Math.max(0, user.daily_step_goal - steps).toLocaleString()} more to hit your goal.${streak >= 2 ? ` Don't break your ${streak}-day streak!` : ""}`,
+        };
+        // Escaped once, here; the result is interpolated raw below.
+        nudgeText = `\n\n<i>${escapeHtml(nudgeLabels[nudgeTopic])}</i>`;
+      }
     }
 
-    // Telegram 400s past 4096 characters with no placeholder to fall back on. The nudge is
-    // budgeted separately because `recordNudge` burns the 48 h cooldown, so a clipped nudge
-    // would count as delivered.
+    // The nudge is budgeted separately because `recordNudge` burns the 48 h cooldown, so a
+    // clipped nudge would count as delivered.
     await sendHtml(
       user.telegram_id,
-      clampHtml(
-        `\u{1F4AC} <b>Daily Coach</b>\n\n${escapeHtml(message)}`,
-        TELEGRAM_TEXT_LIMIT - nudgeText.length,
-      ) + nudgeText,
+      clampHtml(html, TELEGRAM_TEXT_LIMIT - nudgeText.length) + nudgeText,
+      closeDayKeyboard(hasLogs),
     );
 
     // Only after the message reached Telegram: recording first burned the 48 h cooldown on failed sends.

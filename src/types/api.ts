@@ -1,7 +1,10 @@
 /**
  * Every AI-coaching toggle; single source of truth for the settings screen and
  * `User.ai_coaching_prefs`. The column is free-form JSON, so consume it as
- * `Partial<CoachingPrefs>` and read a missing key as "on" (`!== false`).
+ * `Partial<CoachingPrefs>`: a missing key reads as "on" (`!== false`), except
+ * the `nudge_*` keys, which are opt-in (`=== true`).
+ * Retired, no longer read by the server: `weekly_exercise_digest` (folded into
+ * the weekly letter) and `workout_analysis` (no Telegram send any more).
  */
 export interface CoachingPrefs {
   daily_coach: boolean

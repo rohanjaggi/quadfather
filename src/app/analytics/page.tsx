@@ -1,322 +1,106 @@
 'use client'
 
-import { useEffect, useState, useMemo, useRef } from 'react'
-import SummaryCard from '@/components/dashboard/SummaryCard'
-import { getAnalytics, getRunningAnalytics, getAnalyticsInsights, getSteps, getWorkouts } from '@/lib/api'
+import { useEffect, useState, useMemo, useRef, type ReactNode } from 'react'
+import { getAnalytics, getAnalyticsInsights, getSteps } from '@/lib/api'
 import { useUser } from '@/context/UserContext'
-import type { AnalyticsResponse, AnalyticsDayData } from '@/types/api'
-import type { RunningAnalyticsResponse } from '@/types/running'
-import type { StepLog, WorkoutLog } from '@/types/workouts'
-import MuscleMap from '@/components/workouts/MuscleMap'
-import { calculateMuscleIntensities } from '@/lib/muscle-intensity'
-import VolumeTrendsChart from '@/components/workouts/VolumeTrendsChart'
-import PersonalRecords from '@/components/workouts/PersonalRecords'
-import TrainingRecap from '@/components/workouts/TrainingRecap'
-import MuscleBalance from '@/components/workouts/MuscleBalance'
-import { calculateStepAllowance } from '@/lib/steps'
+import type { AnalyticsResponse } from '@/types/api'
+import type { StepLog } from '@/types/workouts'
 import { errorMessage } from '@/lib/errors'
-import { currentStepStreak, longestStepStreak } from '@/lib/streak'
-import { addDays, dayKey } from '@/lib/day'
+import PageHeader from '@/components/ui/PageHeader'
+import Segmented from '@/components/ui/Segmented'
+import FoodView from '@/components/analytics/FoodView'
+import WaterView from '@/components/analytics/WaterView'
+import StepsView from '@/components/analytics/StepsView'
+import { ErrorCard, ReadCard, TrendsSkeleton } from '@/components/analytics/parts'
+import { splitWindow, type Period } from '@/components/analytics/trends'
 
-type Period = 7 | 30
+// Training lives on the Training tab; a stored 'training' falls back to food.
+type Domain = 'food' | 'water' | 'steps'
 
-/**
- * `days[].date` is a bare `YYYY-MM-DD`, which `new Date()` reads as UTC
- * midnight — so anywhere west of UTC every bar was labelled with the previous
- * day. Parse it as UTC and format it in UTC, which keeps the label identical to
- * the string the server sent. (Same treatment as the step Day-of-Week panel
- * further down this file.)
- */
-function parseIsoDay(iso: string): Date | null {
-  const d = new Date(`${iso}T00:00:00Z`)
-  return Number.isNaN(d.getTime()) ? null : d
+const DOMAINS: { value: Domain; label: string }[] = [
+  { value: 'food', label: 'Food' },
+  { value: 'water', label: 'Water' },
+  { value: 'steps', label: 'Steps' },
+]
+const PERIODS: { value: '7' | '30'; label: string }[] = [
+  { value: '7', label: '7 days' },
+  { value: '30', label: '30 days' },
+]
+
+// The page only renders after AuthGate has a user, i.e. client-side, so the
+// stored choice can seed state directly without a hydration mismatch.
+function readPref(key: string, allowed: string[], fallback: string): string {
+  try {
+    const v = window.localStorage.getItem(key)
+    return v !== null && allowed.includes(v) ? v : fallback
+  } catch {
+    return fallback
+  }
 }
-
-function shortDate(iso: string) {
-  const d = parseIsoDay(iso)
-  if (!d) return iso
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+function writePref(key: string, value: string) {
+  try { window.localStorage.setItem(key, value) } catch { /* private mode: the choice just isn't remembered */ }
 }
-
-function dayLabel(iso: string) {
-  const d = parseIsoDay(iso)
-  if (!d) return iso
-
-  if (iso === dayKey()) return 'Today'
-  if (iso === addDays(dayKey(), -1)) return 'Yday'
-
-  return d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })
-}
-
-interface BarChartProps {
-  days: AnalyticsDayData[]
-  getValue: (d: AnalyticsDayData) => number
-  goal: number
-  color: string
-  unit: string
-  period: Period
-}
-
-function BarChart({ days, getValue, goal, color, unit, period }: BarChartProps) {
-  const [mounted, setMounted] = useState(false)
-  const [selected, setSelected] = useState<number | null>(null)
-  useEffect(() => { setMounted(true) }, [])
-
-  const max = Math.max(goal, ...days.map(getValue))
-  const labelEvery = period === 30 ? 5 : 1
-
-  return (
-    <div>
-      {selected !== null && days[selected] && (
-        <div style={{
-          display: 'flex', justifyContent: 'center', marginBottom: '8px',
-        }}>
-          <span style={{
-            fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 500,
-            color, padding: '4px 10px',
-            borderRadius: '8px', backgroundColor: 'var(--tg-theme-bg-color)',
-          }}>
-            {period === 7 ? dayLabel(days[selected].date) : shortDate(days[selected].date)}: {Math.round(getValue(days[selected]) * 10) / 10}{unit}
-          </span>
-        </div>
-      )}
-      <div style={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: period === 30 ? '3px' : '5px',
-        height: '72px',
-      }}>
-        {days.map((d, i) => {
-          const val = getValue(d)
-          const heightPct = max > 0 ? val / max : 0
-          const atGoal = val >= goal * 0.9
-          const isSelected = selected === i
-          return (
-            <div
-              key={d.date}
-              onClick={() => setSelected(prev => prev === i ? null : i)}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '3px',
-                height: '100%',
-                justifyContent: 'flex-end',
-                cursor: 'pointer',
-              }}
-            >
-              <div
-                style={{
-                  width: '100%',
-                  borderRadius: '4px 4px 2px 2px',
-                  backgroundColor: color,
-                  opacity: isSelected ? 1 : (atGoal ? 1 : 0.4),
-                  height: mounted ? `${Math.max(heightPct * 100, val > 0 ? 4 : 0)}%` : '0%',
-                  transition: 'height 0.5s var(--ease-smooth), opacity 0.3s ease',
-                  transitionDelay: `${i * 40}ms`,
-                  minHeight: val > 0 ? '3px' : '0',
-                  boxShadow: isSelected ? `0 0 0 2px ${color}` : 'none',
-                }}
-              />
-            </div>
-          )
-        })}
-      </div>
-
-      {/* X-axis labels */}
-      <div style={{
-        display: 'flex',
-        gap: period === 30 ? '3px' : '5px',
-        marginTop: '6px',
-      }}>
-        {days.map((d, i) => (
-          <div key={d.date} style={{ flex: 1, textAlign: 'center' }}>
-            {(period === 7 || i % labelEvery === 0) && (
-              <span style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: period === 30 ? '8px' : '9px',
-                color: selected === i ? color : 'var(--tg-theme-hint-color)',
-                fontWeight: selected === i ? 600 : 400,
-                display: 'block',
-              }}>
-                {period === 7 ? dayLabel(d.date) : shortDate(d.date)}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-interface StatRowProps {
-  label: string
-  value: string
-  sub?: string
-  color?: string
-}
-
-function StatRow({ label, value, sub, color }: StatRowProps) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-      <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
-        {label}
-      </span>
-      <span style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 500, color: color ?? 'var(--tg-theme-text-color)' }}>
-        {value}
-        {sub && <span style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginLeft: '3px' }}>{sub}</span>}
-      </span>
-    </div>
-  )
-}
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <p style={{
-      fontFamily: 'var(--font-display)',
-      fontSize: '11px',
-      fontWeight: 500,
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase',
-      color: 'var(--tg-theme-hint-color)',
-      marginBottom: '-10px',
-    }}>
-      {title}
-    </p>
-  )
-}
-
-type Domain = 'food' | 'exercise'
-type ExerciseSub = 'runs' | 'workouts' | 'steps'
 
 export default function AnalyticsPage() {
   const { user } = useUser()
-  const [period, setPeriod] = useState<Period>(7)
+  const [period, setPeriodState] = useState<Period>(() => (readPref('trends.period', ['7', '30'], '7') === '30' ? 30 : 7))
+  const [domain, setDomainState] = useState<Domain>(() => readPref('trends.domain', DOMAINS.map(d => d.value), 'food') as Domain)
+  const setPeriod = (p: Period) => { setPeriodState(p); writePref('trends.period', String(p)) }
+  const setDomain = (d: Domain) => { setDomainState(d); writePref('trends.domain', d) }
+
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [loading, setLoading] = useState(true)
-  const [domain, setDomain] = useState<Domain>('food')
-  const [exerciseSub, setExerciseSub] = useState<ExerciseSub>('runs')
-  const [runningData, setRunningData] = useState<RunningAnalyticsResponse | null>(null)
-  const [runningLoading, setRunningLoading] = useState(false)
-  const [stepsData, setStepsData] = useState<StepLog[]>([])
+  // `null` until the first response, so the first frame shows the skeleton.
+  const [stepsAll, setStepsAll] = useState<StepLog[] | null>(null)
   const [stepsLoading, setStepsLoading] = useState(false)
-  const [workoutData, setWorkoutData] = useState<WorkoutLog[]>([])
-  const [workoutLoading, setWorkoutLoading] = useState(false)
+  const [failed, setFailed] = useState<{ analytics?: boolean; steps?: boolean }>({})
+  const [reload, setReload] = useState(0)
   const stepGoal = user?.goals.daily_step_goal ?? 10000
 
   // Switching 7d/30d or tabs quickly can land responses out of order — each
   // fetch keeps a request id and only the newest one is allowed to write.
   const analyticsReqRef = useRef(0)
-  const runningReqRef = useRef(0)
   const stepsReqRef = useRef(0)
-  const workoutReqRef = useRef(0)
 
+  // Food, water and steps fetch twice the period: the older half is
+  // the "vs last week" comparison, the newer half is exactly what `?days=period`
+  // returned before (see `splitWindow`).
   useEffect(() => {
     const requestId = ++analyticsReqRef.current
     setLoading(true)
-    getAnalytics(period)
+    setFailed(f => ({ ...f, analytics: false }))
+    getAnalytics(period * 2)
       .then(result => { if (analyticsReqRef.current === requestId) setData(result) })
-      .catch(console.error)
+      .catch(err => {
+        console.error(err)
+        if (analyticsReqRef.current === requestId) setFailed(f => ({ ...f, analytics: true }))
+      })
       .finally(() => { if (analyticsReqRef.current === requestId) setLoading(false) })
-  }, [period])
+  }, [period, reload])
 
   useEffect(() => {
-    if (domain === 'exercise' && exerciseSub === 'runs') {
-      const requestId = ++runningReqRef.current
-      setRunningLoading(true)
-      getRunningAnalytics(period)
-        .then(result => { if (runningReqRef.current === requestId) setRunningData(result) })
-        .catch(console.error)
-        .finally(() => { if (runningReqRef.current === requestId) setRunningLoading(false) })
-    }
-  }, [domain, exerciseSub, period])
-
-  useEffect(() => {
-    if (domain === 'exercise' && exerciseSub === 'steps') {
+    if (domain === 'steps') {
       const requestId = ++stepsReqRef.current
       setStepsLoading(true)
-      getSteps(period)
+      setFailed(f => ({ ...f, steps: false }))
+      getSteps(period * 2)
         .then(data => {
           if (stepsReqRef.current !== requestId) return
-          setStepsData(data.map(d => ({ ...d, date: d.date.slice(0, 10) })).sort((a, b) => a.date.localeCompare(b.date)))
+          setStepsAll(data.map(d => ({ ...d, date: d.date.slice(0, 10) })).sort((a, b) => a.date.localeCompare(b.date)))
         })
-        .catch(console.error)
+        .catch(err => {
+          console.error(err)
+          if (stepsReqRef.current === requestId) setFailed(f => ({ ...f, steps: true }))
+        })
         .finally(() => { if (stepsReqRef.current === requestId) setStepsLoading(false) })
     }
-  }, [domain, exerciseSub, period])
+  }, [domain, period, reload])
 
-  useEffect(() => {
-    if (domain === 'exercise' && exerciseSub === 'workouts') {
-      const requestId = ++workoutReqRef.current
-      setWorkoutLoading(true)
-      getWorkouts(period)
-        .then(result => { if (workoutReqRef.current === requestId) setWorkoutData(result) })
-        .catch(console.error)
-        .finally(() => { if (workoutReqRef.current === requestId) setWorkoutLoading(false) })
-    }
-  }, [domain, exerciseSub, period])
-
-  // The exercise→muscle table is code-split, so intensities resolve in an
-  // effect rather than during render.
-  const [workoutIntensities, setWorkoutIntensities] = useState<Record<string, number>>({})
-
-  useEffect(() => {
-    let cancelled = false
-    if (workoutData.length === 0) {
-      setWorkoutIntensities({})
-      return
-    }
-    calculateMuscleIntensities(workoutData.flatMap(w => w.exercises))
-      .then(result => { if (!cancelled) setWorkoutIntensities(result) })
-      .catch(err => console.error('Failed to compute muscle intensities:', err))
-    return () => { cancelled = true }
-  }, [workoutData])
-
-  /**
-   * The distance and calorie charts have no configurable target, so the
-   * highlight threshold is the user's own average on days they actually ran —
-   * previously a hard-coded 5 km / 500 kcal that meant nothing to anyone.
-   */
-  const runDayAverages = useMemo(() => {
-    const runDays = runningData?.days.filter(d => d.run_count > 0) ?? []
-    if (runDays.length === 0) return { distanceKm: 0, calories: 0 }
-    return {
-      distanceKm: runDays.reduce((s, d) => s + d.total_distance, 0) / runDays.length / 1000,
-      calories: runDays.reduce((s, d) => s + d.total_calories, 0) / runDays.length,
-    }
-  }, [runningData])
-
-  const activeZoneCount = useMemo(() => {
-    return Object.values(workoutIntensities).filter((v): v is number => typeof v === 'number' && v >= 0.2).length
-  }, [workoutIntensities])
-
-  const days = data?.days ?? []
-  const goals = data?.goals
-
-  // Summary stats
-  const activeDays = days.filter(d => d.meals_logged > 0)
-  const avgCalories = activeDays.length > 0
-    ? Math.round(activeDays.reduce((s, d) => s + d.calories, 0) / activeDays.length)
-    : 0
-  const avgProtein = activeDays.length > 0
-    ? Math.round(activeDays.reduce((s, d) => s + d.protein, 0) / activeDays.length * 10) / 10
-    : 0
-  const waterDays = days.filter(d => d.water > 0)
-  const avgWater = waterDays.length > 0
-    ? Math.round(waterDays.reduce((s, d) => s + d.water, 0) / waterDays.length * 100) / 100
-    : 0
-  const avgFiber = activeDays.length > 0
-    ? Math.round(activeDays.reduce((s, d) => s + d.fiber, 0) / activeDays.length * 10) / 10
-    : 0
-  const calorieGoalDays = goals
-    ? days.filter(d => d.meals_logged > 0 && d.calories >= goals.calories * 0.9 && d.calories <= goals.calories * 1.1).length
-    : 0
-  const proteinGoalDays = goals
-    ? days.filter(d => d.meals_logged > 0 && d.protein >= goals.protein * 0.9).length
-    : 0
+  const food = useMemo(() => splitWindow(data?.days ?? [], d => d.date, period), [data, period])
+  const steps = useMemo(() => splitWindow(stepsAll ?? [], d => d.date, period), [stepsAll, period])
 
   const [insight, setInsight] = useState<string | null>(null)
+  const [insightAt, setInsightAt] = useState<Date | null>(null)
   const [insightLoading, setInsightLoading] = useState(false)
   const [insightError, setInsightError] = useState<string | null>(null)
   // The API returns `insight: null` when there is nothing logged in the window.
@@ -344,788 +128,58 @@ export default function AnalyticsPage() {
         if (insightReqRef.current !== requestId) return
         const text = data.insight
         setInsight(text ?? null)
+        setInsightAt(new Date())
         setInsightEmpty(!text)
       })
       .catch(err => {
         if (insightReqRef.current !== requestId) return
-        setInsightError(errorMessage(err, 'Failed to generate insights'))
+        setInsightError(errorMessage(err, 'Couldn’t write your read just now. Try again in a moment.'))
       })
       .finally(() => { if (insightReqRef.current === requestId) setInsightLoading(false) })
   }
 
+  const retry = () => setReload(r => r + 1)
+
+  let view: ReactNode
+  if (domain === 'food' || domain === 'water') {
+    if (loading || (!data && !failed.analytics)) view = <TrendsSkeleton />
+    else if (failed.analytics) view = <ErrorCard onRetry={retry} />
+    else if (domain === 'food') view = <FoodView days={food.current} prevDays={food.previous} goals={data?.goals} period={period} />
+    else view = <WaterView days={food.current} prevDays={food.previous} goal={data?.goals.water} period={period} />
+  } else {
+    if (stepsLoading || (!stepsAll && !failed.steps)) view = <TrendsSkeleton />
+    else if (failed.steps) view = <ErrorCard onRetry={retry} />
+    else view = <StepsView stepsData={steps.current} prevSteps={steps.previous} stepGoal={stepGoal} user={user} period={period} />
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div>
+      <PageHeader title="Trends" />
 
-      {/* Header */}
-      <div className="fade-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <div>
-          <p style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '12px',
-            fontWeight: 500,
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            color: 'var(--tg-theme-hint-color)',
-            marginBottom: '5px',
-          }}>
-            Progress
-          </p>
-          <h1 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '32px',
-            fontWeight: 700,
-            lineHeight: 1.15,
-            letterSpacing: '-0.02em',
-            color: 'var(--tg-theme-text-color)',
-          }}>
-            Trends
-          </h1>
-        </div>
-
-        {/* Period toggle */}
-        <div style={{
-          display: 'flex',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          borderRadius: '99px',
-          padding: '3px',
-          gap: '2px',
-        }}>
-          {([7, 30] as Period[]).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '99px',
-                border: 'none',
-                backgroundColor: period === p ? 'var(--tg-theme-button-color)' : 'transparent',
-                color: period === p ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-hint-color)',
-                fontFamily: 'var(--font-display)',
-                fontSize: '12px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease',
-              }}
-            >
-              {p === 7 ? '7d' : '30d'}
-            </button>
-          ))}
-        </div>
+      <div style={{ maxWidth: 220 }}>
+        <Segmented
+          label="Period"
+          options={PERIODS}
+          value={String(period) as '7' | '30'}
+          onChange={v => setPeriod(v === '30' ? 30 : 7)}
+        />
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <Segmented label="Show trends for" options={DOMAINS} value={domain} onChange={setDomain} />
       </div>
 
-      {/* Domain toggle */}
-      <div style={{
-        display: 'flex',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        borderRadius: '12px',
-        padding: '3px',
-        gap: '2px',
-      }}>
-        {(['food', 'exercise'] as Domain[]).map(d => (
-          <button
-            key={d}
-            onClick={() => setDomain(d)}
-            style={{
-              flex: 1,
-              padding: '11px 16px',
-              borderRadius: '10px',
-              border: 'none',
-              backgroundColor: domain === d ? 'var(--tg-theme-button-color)' : 'transparent',
-              color: domain === d ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-hint-color)',
-              fontFamily: 'var(--font-display)',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'background-color 0.2s ease, color 0.2s ease',
-            }}
-          >
-            {d === 'food' ? 'Food' : 'Exercise'}
-          </button>
-        ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+        {view}
+        <ReadCard
+          period={period}
+          insight={insight}
+          loading={insightLoading}
+          error={insightError}
+          empty={insightEmpty}
+          updatedAt={insightAt}
+          onGenerate={handleGetInsights}
+        />
       </div>
-
-      {/* Exercise sub-filter */}
-      {domain === 'exercise' && (
-        <div style={{
-          display: 'flex',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          borderRadius: '10px',
-          padding: '3px',
-          gap: '2px',
-        }}>
-          {(['runs', 'workouts', 'steps'] as ExerciseSub[]).map(s => (
-            <button
-              key={s}
-              onClick={() => setExerciseSub(s)}
-              style={{
-                flex: 1,
-                padding: '9px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: exerciseSub === s ? 'var(--tg-theme-bg-color)' : 'transparent',
-                color: exerciseSub === s ? 'var(--tg-theme-text-color)' : 'var(--tg-theme-hint-color)',
-                fontFamily: 'var(--font-display)',
-                fontSize: '12px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                boxShadow: exerciseSub === s ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
-              }}
-            >
-              {s === 'runs' ? 'Runs' : s === 'workouts' ? 'Workouts' : 'Steps'}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {domain === 'food' && loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
-            Loading…
-          </p>
-        </div>
-      ) : (
-        <>
-          {domain === 'food' && !loading && (<>
-          <SectionHeader title="Overview" />
-          {/* Summary stats */}
-          <div className="fade-up fade-up-1">
-            <SummaryCard title={`${period}-day average`}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <StatRow label="Calories" value={avgCalories.toString()} sub="kcal" color="var(--accent-calories)" />
-                <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                <StatRow label="Protein" value={`${avgProtein}`} sub="g" color="var(--accent-protein)" />
-                <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                <StatRow label="Water" value={`${avgWater}`} sub="L" color="var(--accent-water)" />
-                <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                <StatRow label="Fiber" value={`${avgFiber}`} sub="g" color="var(--accent-water)" />
-                {goals && activeDays.length > 0 && (
-                  <>
-                    <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <div style={{
-                        flex: 1, padding: '12px', borderRadius: '12px',
-                        backgroundColor: 'var(--tg-theme-bg-color)',
-                        textAlign: 'center',
-                      }}>
-                        <p style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 500, color: 'var(--accent-calories)', margin: 0 }}>
-                          {calorieGoalDays}
-                          <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>d</span>
-                        </p>
-                        <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '2px' }}>
-                          Calorie goal
-                        </p>
-                      </div>
-                      <div style={{
-                        flex: 1, padding: '12px', borderRadius: '12px',
-                        backgroundColor: 'var(--tg-theme-bg-color)',
-                        textAlign: 'center',
-                      }}>
-                        <p style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 500, color: 'var(--accent-protein)', margin: 0 }}>
-                          {proteinGoalDays}
-                          <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--tg-theme-hint-color)', marginLeft: '2px' }}>d</span>
-                        </p>
-                        <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '2px' }}>
-                          Protein goal
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </SummaryCard>
-          </div>
-
-          {/* Macro split */}
-          {days.length > 0 && activeDays.length > 0 && (
-            <div className="fade-up fade-up-2">
-              <SummaryCard title="Macro split (avg)">
-                {(() => {
-                  const avgCarbs = Math.round(activeDays.reduce((s, d) => s + d.carbohydrates, 0) / activeDays.length)
-                  const avgFatsVal = Math.round(activeDays.reduce((s, d) => s + d.fats, 0) / activeDays.length)
-                  const totalCals = avgCalories || 1
-                  const pP = Math.round((avgProtein * 4 / totalCals) * 100)
-                  const pC = Math.round((avgCarbs * 4 / totalCals) * 100)
-                  const pF = Math.round((avgFatsVal * 9 / totalCals) * 100)
-                  const segments = [
-                    { label: 'P', pct: pP, color: 'var(--accent-protein)' },
-                    { label: 'C', pct: pC, color: 'var(--accent-calories)' },
-                    { label: 'F', pct: pF, color: 'var(--accent-fats)' },
-                  ]
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <div style={{ display: 'flex', height: '8px', borderRadius: '99px', overflow: 'hidden', gap: '2px' }}>
-                        {segments.map(s => (
-                          <div key={s.label} style={{
-                            flex: s.pct,
-                            backgroundColor: s.color,
-                            borderRadius: '99px',
-                            transition: 'flex 0.5s var(--ease-smooth)',
-                          }} />
-                        ))}
-                      </div>
-                      <div style={{ display: 'flex', gap: '16px' }}>
-                        {[
-                          { label: 'Protein', val: `${avgProtein}g`, pct: pP, color: 'var(--accent-protein)' },
-                          { label: 'Carbs', val: `${avgCarbs}g`, pct: pC, color: 'var(--accent-calories)' },
-                          { label: 'Fats', val: `${avgFatsVal}g`, pct: pF, color: 'var(--accent-fats)' },
-                        ].map(m => (
-                          <div key={m.label} style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
-                              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: m.color }} />
-                              <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{m.label}</span>
-                            </div>
-                            <span style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 500, color: 'var(--tg-theme-text-color)' }}>{m.val}</span>
-                            <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', marginLeft: '3px' }}>{m.pct}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })()}
-              </SummaryCard>
-            </div>
-          )}
-
-          <SectionHeader title="AI Coach" />
-          <div className="fade-up fade-up-2">
-            <SummaryCard title="Nutrition Insights">
-              {insight ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <p style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: '14px',
-                    lineHeight: '1.6',
-                    color: 'var(--tg-theme-text-color)',
-                  }}>
-                    {insight}
-                  </p>
-                  <button
-                    onClick={handleGetInsights}
-                    disabled={insightLoading}
-                    style={{
-                      alignSelf: 'center',
-                      background: 'none',
-                      border: '1px solid var(--surface-border)',
-                      padding: '8px 18px',
-                      borderRadius: '99px',
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '11px',
-                      color: 'var(--tg-theme-hint-color)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Regenerate
-                  </button>
-                </div>
-              ) : insightLoading ? (
-                <div style={{ padding: '24px 0', textAlign: 'center' }}>
-                  <div style={{
-                    width: '20px', height: '20px', margin: '0 auto 10px',
-                    border: '2px solid var(--surface-border)',
-                    borderTopColor: 'var(--accent)',
-                    borderRadius: '50%',
-                    animation: 'spin 0.7s linear infinite',
-                  }} />
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '12px',
-                    color: 'var(--tg-theme-hint-color)',
-                  }}>
-                    Analyzing your {period}-day data...
-                  </p>
-                </div>
-              ) : insightEmpty ? (
-                <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '12px',
-                    color: 'var(--tg-theme-hint-color)',
-                  }}>
-                    Log a few days of meals to unlock weekly insights
-                  </p>
-                </div>
-              ) : insightError ? (
-                <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '12px',
-                    color: 'var(--accent-calories)', marginBottom: '10px',
-                  }}>
-                    {insightError}
-                  </p>
-                  <button
-                    onClick={handleGetInsights}
-                    style={{
-                      background: 'none',
-                      border: '1px solid var(--surface-border)',
-                      padding: '8px 18px',
-                      borderRadius: '99px',
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '11px',
-                      color: 'var(--tg-theme-hint-color)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Try again
-                  </button>
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                  <p style={{
-                    fontFamily: 'var(--font-display)', fontSize: '12px',
-                    color: 'var(--tg-theme-hint-color)', marginBottom: '12px',
-                  }}>
-                    Get AI-powered feedback on your {period}-day nutrition patterns
-                  </p>
-                  <button
-                    onClick={handleGetInsights}
-                    className="btn-primary"
-                    style={{
-                      width: 'auto',
-                      padding: '10px 24px',
-                      borderRadius: '99px',
-                      fontSize: '12px',
-                    }}
-                  >
-                    Get Insights
-                  </button>
-                </div>
-              )}
-            </SummaryCard>
-          </div>
-
-          <SectionHeader title="Daily Trends" />
-          {/* Calories chart */}
-          <div className="fade-up fade-up-3">
-            <SummaryCard title="Calories">
-              {days.length > 0 && goals ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {/* Goal line label */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <span style={{
-                      fontFamily: 'var(--font-display)', fontSize: '10px',
-                      color: 'var(--tg-theme-hint-color)',
-                      letterSpacing: '0.06em',
-                    }}>
-                      Goal: {goals.calories} kcal
-                    </span>
-                  </div>
-                  <BarChart
-                    key={period}
-                    days={days}
-                    getValue={d => d.calories}
-                    goal={goals.calories}
-                    color="var(--accent-calories)"
-                    unit="kcal"
-                    period={period}
-                  />
-                </div>
-              ) : (
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
-                  No data yet
-                </p>
-              )}
-            </SummaryCard>
-          </div>
-
-          {/* Protein chart */}
-          <div className="fade-up fade-up-4">
-            <SummaryCard title="Protein">
-              {days.length > 0 && goals ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
-                      Goal: {goals.protein}g
-                    </span>
-                  </div>
-                  <BarChart
-                    key={period}
-                    days={days}
-                    getValue={d => d.protein}
-                    goal={goals.protein}
-                    color="var(--accent-protein)"
-                    unit="g"
-                    period={period}
-                  />
-                </div>
-              ) : (
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
-                  No data yet
-                </p>
-              )}
-            </SummaryCard>
-          </div>
-
-          {/* Water chart */}
-          <div className="fade-up fade-up-4">
-            <SummaryCard title="Hydration">
-              {days.length > 0 && goals ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
-                      Goal: {goals.water}L
-                    </span>
-                  </div>
-                  <BarChart
-                    key={period}
-                    days={days}
-                    getValue={d => d.water}
-                    goal={goals.water}
-                    color="var(--accent-water)"
-                    unit="L"
-                    period={period}
-                  />
-                </div>
-              ) : (
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
-                  No data yet
-                </p>
-              )}
-            </SummaryCard>
-          </div>
-
-          {/* Fiber chart */}
-          <div className="fade-up fade-up-4">
-            <SummaryCard title="Fiber">
-              {days.length > 0 && goals ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', letterSpacing: '0.06em' }}>
-                      Goal: {goals.fiber}g
-                    </span>
-                  </div>
-                  <BarChart
-                    key={period}
-                    days={days}
-                    getValue={d => d.fiber}
-                    goal={goals.fiber}
-                    color="var(--accent-water)"
-                    unit="g"
-                    period={period}
-                  />
-                </div>
-              ) : (
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
-                  No data yet
-                </p>
-              )}
-            </SummaryCard>
-          </div>
-
-          </>)}
-
-          {domain === 'exercise' && exerciseSub === 'runs' && runningLoading && (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
-                Loading…
-              </p>
-            </div>
-          )}
-
-          {domain === 'exercise' && exerciseSub === 'runs' && !runningLoading && runningData && (
-            <>
-              {/* Running summary */}
-              <div className="fade-up fade-up-1">
-                <SummaryCard title={`${period}-day summary`}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <StatRow label="Total Distance" value={`${(runningData.totals.distance / 1000).toFixed(1)}`} sub="km" color="var(--accent-calories)" />
-                    <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                    <StatRow label="Total Runs" value={`${runningData.totals.run_count}`} color="var(--accent-protein)" />
-                    <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                    <StatRow label="Calories Burned" value={`${Math.round(runningData.totals.calories)}`} sub="kcal" color="var(--accent-calories)" />
-                  </div>
-                </SummaryCard>
-              </div>
-
-              {/* Distance chart */}
-              <div className="fade-up fade-up-2">
-                <SummaryCard title="Distance">
-                  {runningData.days.length > 0 ? (
-                    <BarChart
-                      key={`run-dist-${period}`}
-                      days={runningData.days.map(d => ({
-                        date: d.date,
-                        calories: d.total_distance / 1000,
-                        protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
-                      }))}
-                      getValue={d => d.calories}
-                      goal={runDayAverages.distanceKm}
-                      color="var(--accent-protein)"
-                      unit="km"
-                      period={period}
-                    />
-                  ) : (
-                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
-                      No data yet
-                    </p>
-                  )}
-                </SummaryCard>
-              </div>
-
-              {/* Calories burned chart */}
-              <div className="fade-up fade-up-3">
-                <SummaryCard title="Calories Burned">
-                  {runningData.days.length > 0 ? (
-                    <BarChart
-                      key={`run-cal-${period}`}
-                      days={runningData.days.map(d => ({
-                        date: d.date,
-                        calories: d.total_calories,
-                        protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
-                      }))}
-                      getValue={d => d.calories}
-                      goal={runDayAverages.calories}
-                      color="var(--accent-calories)"
-                      unit="kcal"
-                      period={period}
-                    />
-                  ) : (
-                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
-                      No data yet
-                    </p>
-                  )}
-                </SummaryCard>
-              </div>
-
-              {/* Frequency chart */}
-              <div className="fade-up fade-up-4">
-                <SummaryCard title="Frequency">
-                  {runningData.days.length > 0 ? (
-                    <BarChart
-                      key={`run-freq-${period}`}
-                      days={runningData.days.map(d => ({
-                        date: d.date,
-                        calories: d.run_count,
-                        protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
-                      }))}
-                      getValue={d => d.calories}
-                      goal={1}
-                      color="var(--accent-water)"
-                      unit="runs"
-                      period={period}
-                    />
-                  ) : (
-                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
-                      No data yet
-                    </p>
-                  )}
-                </SummaryCard>
-              </div>
-            </>
-          )}
-
-          {domain === 'exercise' && exerciseSub === 'workouts' && workoutLoading && (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
-                Loading…
-              </p>
-            </div>
-          )}
-
-          {domain === 'exercise' && exerciseSub === 'workouts' && !workoutLoading && (
-            <>
-              <div className="fade-up fade-up-1">
-                <SummaryCard title="Muscles worked">
-                  {workoutData.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <MuscleMap intensities={workoutIntensities} size="md" sex={user?.personal?.sex} />
-                      <p style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '12px',
-                        color: 'var(--tg-theme-hint-color)',
-                        textAlign: 'center',
-                      }}>
-                        {workoutData.length} workout{workoutData.length !== 1 ? 's' : ''} · {activeZoneCount} muscle groups hit
-                      </p>
-                    </div>
-                  ) : (
-                    <p style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '13px',
-                      color: 'var(--tg-theme-hint-color)',
-                      textAlign: 'center',
-                      padding: '16px 0',
-                    }}>
-                      No workouts logged in this period
-                    </p>
-                  )}
-                </SummaryCard>
-              </div>
-
-              <div className="fade-up fade-up-2">
-                <VolumeTrendsChart workouts={workoutData} period={period} />
-              </div>
-
-              <div className="fade-up fade-up-3">
-                <PersonalRecords period={period} />
-              </div>
-
-              <div className="fade-up fade-up-4">
-                <TrainingRecap period={period} workoutCount={workoutData.length} />
-              </div>
-
-              <div className="fade-up fade-up-4">
-                <MuscleBalance workouts={workoutData} />
-              </div>
-            </>
-          )}
-
-          {domain === 'exercise' && exerciseSub === 'steps' && stepsLoading && (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>Loading…</p>
-            </div>
-          )}
-
-          {domain === 'exercise' && exerciseSub === 'steps' && !stepsLoading && (
-            <>
-              {/* Streaks & Consistency */}
-              <div className="fade-up fade-up-1">
-                <SummaryCard title="Streaks & Consistency">
-                  {(() => {
-                    const currentStreak = currentStepStreak(stepsData, stepGoal)
-                    const longestStreak = longestStepStreak(stepsData, stepGoal)
-                    const chronological = [...stepsData].sort((a, b) => a.date.localeCompare(b.date))
-                    const goalHitDays = stepsData.filter(d => d.steps >= stepGoal).length
-                    // Last 14 days dots
-                    const last14 = chronological.slice(-14)
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        <StatRow label="Current Streak" value={`${currentStreak}`} sub="days" color="var(--accent-steps)" />
-                        <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                        <StatRow label="Longest Streak" value={`${longestStreak}`} sub="days" color="var(--accent-steps)" />
-                        <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                        <StatRow label="Goal Hit Rate" value={`${goalHitDays}/${stepsData.length}`} sub="days" />
-                        <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                        {/* Dot visualization — last 14 days */}
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                          {last14.map((d) => (
-                            <div
-                              key={d.date}
-                              style={{
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: '50%',
-                                backgroundColor: d.steps >= stepGoal ? 'var(--accent-steps)' : 'transparent',
-                                border: d.steps >= stepGoal ? 'none' : '1.5px solid var(--tg-theme-hint-color)',
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  })()}
-                </SummaryCard>
-              </div>
-
-              {/* Stats card */}
-              <div className="fade-up fade-up-2">
-                <SummaryCard title={`${period}-day steps`}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <StatRow label="Average" value={`${stepsData.length > 0 ? Math.round(stepsData.reduce((s, d) => s + d.steps, 0) / stepsData.length).toLocaleString() : '0'}`} sub="steps/day" />
-                    <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                    <StatRow label="Total" value={`${stepsData.reduce((s, d) => s + d.steps, 0).toLocaleString()}`} sub="steps" />
-                    <div style={{ height: '1px', backgroundColor: 'var(--surface-border)' }} />
-                    <StatRow
-                      label="Extra Calories Earned"
-                      value={`${(() => {
-                        const activityLevel = user?.personal?.activity_level ?? 'moderately_active'
-                        const weight = user?.personal?.weight_kg ?? null
-                        // Same per-day allowance the dashboard/API credits (src/lib/steps.ts)
-                        const total = stepsData.reduce(
-                          (sum, d) => sum + calculateStepAllowance(d.steps, activityLevel, weight),
-                          0,
-                        )
-                        // Per-day allowances are fractional; without the round
-                        // this renders as "1,234.5678901".
-                        return Math.round(total).toLocaleString()
-                      })()}`}
-                      sub="kcal"
-                      color="var(--accent-steps)"
-                    />
-                  </div>
-                </SummaryCard>
-              </div>
-
-              {/* Daily Steps Bar Chart */}
-              <div className="fade-up fade-up-3">
-                <SummaryCard title="Daily Steps">
-                  {stepsData.length > 0 ? (
-                    <BarChart
-                      key={`steps-${period}`}
-                      days={stepsData.map(d => ({
-                        date: d.date,
-                        calories: d.steps,
-                        protein: 0, carbohydrates: 0, fats: 0, fiber: 0, water: 0, meals_logged: 0,
-                      }))}
-                      getValue={d => d.calories}
-                      goal={stepGoal}
-                      color="var(--accent-steps)"
-                      unit=" steps"
-                      period={period}
-                    />
-                  ) : (
-                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
-                      No step data yet
-                    </p>
-                  )}
-                </SummaryCard>
-              </div>
-
-              {/* Day-of-Week Pattern */}
-              <div className="fade-up fade-up-4">
-                <SummaryCard title="Day-of-Week Pattern">
-                  {stepsData.length >= 7 ? (
-                    (() => {
-                      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-                      const daySums: number[] = [0, 0, 0, 0, 0, 0, 0]
-                      const dayCounts: number[] = [0, 0, 0, 0, 0, 0, 0]
-                      stepsData.forEach(d => {
-                        const parsed = parseIsoDay(d.date)
-                        if (!parsed) return
-                        const dow = parsed.getUTCDay()
-                        daySums[dow] += d.steps
-                        dayCounts[dow]++
-                      })
-                      const dayAvgs = daySums.map((sum, i) => dayCounts[i] > 0 ? Math.round(sum / dayCounts[i]) : 0)
-                      const maxAvg = Math.max(...dayAvgs, 1)
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '80px' }}>
-                          {dayAvgs.map((avg, i) => (
-                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                              <div
-                                style={{
-                                  width: '100%',
-                                  borderRadius: '4px 4px 2px 2px',
-                                  backgroundColor: 'var(--accent-steps)',
-                                  opacity: avg >= stepGoal ? 1 : 0.5,
-                                  height: `${Math.max((avg / maxAvg) * 100, avg > 0 ? 4 : 0)}%`,
-                                  minHeight: avg > 0 ? '3px' : '0',
-                                  transition: 'height 0.5s var(--ease-out-expo)',
-                                }}
-                              />
-                              <span style={{
-                                fontFamily: 'var(--font-display)',
-                                fontSize: '10px',
-                                color: 'var(--tg-theme-hint-color)',
-                                marginTop: '4px',
-                              }}>
-                                {dayNames[i]}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )
-                    })()
-                  ) : (
-                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '16px 0' }}>
-                      Need at least 7 days of data
-                    </p>
-                  )}
-                </SummaryCard>
-              </div>
-            </>
-          )}
-        </>
-      )}
-
     </div>
   )
 }

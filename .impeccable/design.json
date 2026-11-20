@@ -1,0 +1,556 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-19T18:26:02.317941+00:00",
+  "title": "Design System: Quadfather",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "tonalRamp": [
+          "oklch(15% 0.004 70)",
+          "oklch(26% 0.006 70)",
+          "oklch(37% 0.008 70)",
+          "oklch(48% 0.011 70)",
+          "oklch(59% 0.011 70)",
+          "oklch(70% 0.009 70)",
+          "oklch(82% 0.007 70)",
+          "oklch(95% 0.004 70)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "White Card",
+        "tonalRamp": [
+          "oklch(15% 0 70)",
+          "oklch(26% 0 70)",
+          "oklch(37% 0 70)",
+          "oklch(48% 0 70)",
+          "oklch(59% 0 70)",
+          "oklch(70% 0 70)",
+          "oklch(82% 0 70)",
+          "oklch(95% 0 70)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Pine Ink",
+        "tonalRamp": [
+          "oklch(15% 0.007 160)",
+          "oklch(26% 0.01 160)",
+          "oklch(37% 0.014 160)",
+          "oklch(48% 0.018 160)",
+          "oklch(59% 0.019 160)",
+          "oklch(70% 0.015 160)",
+          "oklch(82% 0.011 160)",
+          "oklch(95% 0.007 160)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Stone",
+        "tonalRamp": [
+          "oklch(15% 0.003 155)",
+          "oklch(26% 0.005 155)",
+          "oklch(37% 0.007 155)",
+          "oklch(48% 0.009 155)",
+          "oklch(59% 0.009 155)",
+          "oklch(70% 0.007 155)",
+          "oklch(82% 0.006 155)",
+          "oklch(95% 0.003 155)"
+        ]
+      },
+      "track": {
+        "role": "neutral",
+        "displayName": "Track",
+        "tonalRamp": [
+          "oklch(15% 0.003 70)",
+          "oklch(26% 0.005 70)",
+          "oklch(37% 0.007 70)",
+          "oklch(48% 0.009 70)",
+          "oklch(59% 0.009 70)",
+          "oklch(70% 0.007 70)",
+          "oklch(82% 0.006 70)",
+          "oklch(95% 0.003 70)"
+        ]
+      },
+      "action": {
+        "role": "primary",
+        "displayName": "Field Green",
+        "tonalRamp": [
+          "oklch(15% 0.027 160)",
+          "oklch(26% 0.041 160)",
+          "oklch(37% 0.056 160)",
+          "oklch(48% 0.071 160)",
+          "oklch(59% 0.075 160)",
+          "oklch(70% 0.06 160)",
+          "oklch(82% 0.044 160)",
+          "oklch(95% 0.027 160)"
+        ]
+      },
+      "good": {
+        "role": "primary",
+        "displayName": "At-goal Green",
+        "tonalRamp": [
+          "oklch(15% 0.027 160)",
+          "oklch(26% 0.041 160)",
+          "oklch(37% 0.056 160)",
+          "oklch(48% 0.071 160)",
+          "oklch(59% 0.075 160)",
+          "oklch(70% 0.06 160)",
+          "oklch(82% 0.044 160)",
+          "oklch(95% 0.027 160)"
+        ]
+      },
+      "over": {
+        "role": "secondary",
+        "displayName": "Brick",
+        "tonalRamp": [
+          "oklch(15% 0.043 35)",
+          "oklch(26% 0.067 35)",
+          "oklch(37% 0.091 35)",
+          "oklch(48% 0.115 35)",
+          "oklch(59% 0.121 35)",
+          "oklch(70% 0.098 35)",
+          "oklch(82% 0.072 35)",
+          "oklch(95% 0.043 35)"
+        ]
+      },
+      "m-calories": {
+        "role": "tertiary",
+        "displayName": "Clay",
+        "tonalRamp": [
+          "oklch(15% 0.027 40)",
+          "oklch(26% 0.041 40)",
+          "oklch(37% 0.056 40)",
+          "oklch(48% 0.071 40)",
+          "oklch(59% 0.075 40)",
+          "oklch(70% 0.06 40)",
+          "oklch(82% 0.044 40)",
+          "oklch(95% 0.027 40)"
+        ]
+      },
+      "m-protein": {
+        "role": "tertiary",
+        "displayName": "Berry",
+        "tonalRamp": [
+          "oklch(15% 0.02 0)",
+          "oklch(26% 0.031 0)",
+          "oklch(37% 0.042 0)",
+          "oklch(48% 0.053 0)",
+          "oklch(59% 0.056 0)",
+          "oklch(70% 0.045 0)",
+          "oklch(82% 0.033 0)",
+          "oklch(95% 0.02 0)"
+        ]
+      },
+      "m-carbs": {
+        "role": "tertiary",
+        "displayName": "Ochre",
+        "tonalRamp": [
+          "oklch(15% 0.03 80)",
+          "oklch(26% 0.046 80)",
+          "oklch(37% 0.063 80)",
+          "oklch(48% 0.08 80)",
+          "oklch(59% 0.084 80)",
+          "oklch(70% 0.068 80)",
+          "oklch(82% 0.05 80)",
+          "oklch(95% 0.03 80)"
+        ]
+      },
+      "m-fats": {
+        "role": "tertiary",
+        "displayName": "Sand",
+        "tonalRamp": [
+          "oklch(15% 0.017 65)",
+          "oklch(26% 0.026 65)",
+          "oklch(37% 0.035 65)",
+          "oklch(48% 0.044 65)",
+          "oklch(59% 0.047 65)",
+          "oklch(70% 0.038 65)",
+          "oklch(82% 0.028 65)",
+          "oklch(95% 0.017 65)"
+        ]
+      },
+      "m-fibre": {
+        "role": "tertiary",
+        "displayName": "Olive",
+        "tonalRamp": [
+          "oklch(15% 0.02 105)",
+          "oklch(26% 0.031 105)",
+          "oklch(37% 0.042 105)",
+          "oklch(48% 0.053 105)",
+          "oklch(59% 0.056 105)",
+          "oklch(70% 0.045 105)",
+          "oklch(82% 0.033 105)",
+          "oklch(95% 0.02 105)"
+        ]
+      },
+      "m-water": {
+        "role": "tertiary",
+        "displayName": "Slate",
+        "tonalRamp": [
+          "oklch(15% 0.017 250)",
+          "oklch(26% 0.026 250)",
+          "oklch(37% 0.035 250)",
+          "oklch(48% 0.044 250)",
+          "oklch(59% 0.047 250)",
+          "oklch(70% 0.038 250)",
+          "oklch(82% 0.028 250)",
+          "oklch(95% 0.017 250)"
+        ]
+      },
+      "m-steps": {
+        "role": "tertiary",
+        "displayName": "Sage",
+        "tonalRamp": [
+          "oklch(15% 0.01 165)",
+          "oklch(26% 0.015 165)",
+          "oklch(37% 0.021 165)",
+          "oklch(48% 0.026 165)",
+          "oklch(59% 0.028 165)",
+          "oklch(70% 0.022 165)",
+          "oklch(82% 0.017 165)",
+          "oklch(95% 0.01 165)"
+        ]
+      },
+      "gradient-clay": {
+        "role": "tertiary",
+        "displayName": "Gradient Clay",
+        "tonalRamp": [
+          "oklch(15% 0.033 40)",
+          "oklch(26% 0.052 40)",
+          "oklch(37% 0.07 40)",
+          "oklch(48% 0.088 40)",
+          "oklch(59% 0.093 40)",
+          "oklch(70% 0.075 40)",
+          "oklch(82% 0.055 40)",
+          "oklch(95% 0.033 40)"
+        ]
+      },
+      "gradient-ochre": {
+        "role": "tertiary",
+        "displayName": "Gradient Ochre",
+        "tonalRamp": [
+          "oklch(15% 0.04 80)",
+          "oklch(26% 0.062 80)",
+          "oklch(37% 0.084 80)",
+          "oklch(48% 0.106 80)",
+          "oklch(59% 0.112 80)",
+          "oklch(70% 0.09 80)",
+          "oklch(82% 0.066 80)",
+          "oklch(95% 0.04 80)"
+        ]
+      },
+      "gradient-slate": {
+        "role": "tertiary",
+        "displayName": "Gradient Slate",
+        "tonalRamp": [
+          "oklch(15% 0.023 250)",
+          "oklch(26% 0.036 250)",
+          "oklch(37% 0.049 250)",
+          "oklch(48% 0.062 250)",
+          "oklch(59% 0.065 250)",
+          "oklch(70% 0.053 250)",
+          "oklch(82% 0.039 250)",
+          "oklch(95% 0.023 250)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline"
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Hairline Strong"
+      },
+      "action-soft": {
+        "role": "primary",
+        "displayName": "Action Soft"
+      },
+      "action-ink": {
+        "role": "primary",
+        "displayName": "Action Ink"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Today's gradient date only."
+      },
+      "hero-figure": {
+        "displayName": "Hero figure",
+        "purpose": "The one number a screen exists for."
+      },
+      "stat-figure": {
+        "displayName": "Stat figure",
+        "purpose": "Secondary big numbers."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles via PageHeader."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Sheet titles."
+      },
+      "card-title": {
+        "displayName": "Card title",
+        "purpose": "Card headings and the primary-button label."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default text and rows."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, group titles, metric captions; sentence case."
+      },
+      "tab-label": {
+        "displayName": "Tab label",
+        "purpose": "Bottom navigation only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 1px 3px rgba(31,42,36,.04)",
+        "purpose": "Every card; a whisper under the hairline."
+      },
+      {
+        "name": "raised",
+        "value": "0 8px 24px -8px rgba(31,42,36,.22)",
+        "purpose": "Floating surfaces."
+      },
+      {
+        "name": "button-primary",
+        "value": "0 2px 6px rgba(47,107,79,.18)",
+        "purpose": "Green lift on the primary action."
+      },
+      {
+        "name": "log-button",
+        "value": "0 6px 16px -6px rgba(47,107,79,.6)",
+        "purpose": "Centre Log button in the nav."
+      },
+      {
+        "name": "sheet",
+        "value": "0 -12px 40px -12px rgba(31,42,36,.3)",
+        "purpose": "Bottom sheet, over a rgba(31,42,36,.32) scrim."
+      },
+      {
+        "name": "segmented-selected",
+        "value": "0 1px 3px rgba(31,42,36,.1)",
+        "purpose": "Selected segment."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 3px rgba(47,107,79,.16)",
+        "purpose": "Input and textarea focus."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrances, sheet, bar and column fills."
+      },
+      {
+        "name": "ease-spring",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Button press; no overshoot despite the name."
+      },
+      {
+        "name": "ease-smooth",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Goal sweep and landing wash."
+      },
+      {
+        "name": "page-in",
+        "value": "0.32s fade-rise of 6px via top",
+        "purpose": "One entrance per navigation (template.tsx)."
+      },
+      {
+        "name": "gradient-drift",
+        "value": "18s ease-in-out infinite alternate",
+        "purpose": "The date; pauses while any other gradient moves."
+      },
+      {
+        "name": "gradient-sweep",
+        "value": "1.6s; starts 1.9s after a landing, 1.7s queue slots",
+        "purpose": "Goal reached, once per in-session crossing."
+      },
+      {
+        "name": "land-wash",
+        "value": "1.8s multiply fade",
+        "purpose": "A new log row landed."
+      },
+      {
+        "name": "ai-shimmer",
+        "value": "1.6s linear infinite",
+        "purpose": "AI working, in place of a spinner."
+      },
+      {
+        "name": "sheet-up",
+        "value": "0.32s translateY(100%) to none",
+        "purpose": "Bottom sheet entrance."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "390px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one green call to action per card; full width.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Log a meal</button>",
+      "css": ".ds-btn-primary{font-family:'Figtree',system-ui,sans-serif;width:100%;min-height:52px;padding:14px 18px;border-radius:16px;border:none;background:var(--action,#2F6B4F);color:#fff;font-size:16px;font-weight:600;letter-spacing:-0.005em;box-shadow:0 2px 6px rgba(47,107,79,.18);display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:opacity .2s ease,transform .15s cubic-bezier(.22,1,.36,1)}.ds-btn-primary:active{transform:scale(.98)}.ds-btn-primary:focus-visible{outline:2px solid #2F6B4F;outline-offset:2px}.ds-btn-primary:disabled{opacity:.4;box-shadow:none}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Bordered white button for the second choice.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary{font-family:'Figtree',system-ui,sans-serif;min-height:48px;padding:12px 16px;border-radius:14px;border:1px solid rgba(31,42,36,.13);background:#fff;color:#1F2A24;font-size:15px;font-weight:600;cursor:pointer;transition:background-color .15s ease,transform .15s}.ds-btn-secondary:hover{background:#F3EEE8}.ds-btn-secondary:active{transform:scale(.98)}.ds-btn-secondary:focus-visible{outline:2px solid #2F6B4F;outline-offset:2px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Quiet stone-text button for tertiary actions.",
+      "html": "<button class=\"ds-btn-ghost\">Skip</button>",
+      "css": ".ds-btn-ghost{font-family:'Figtree',system-ui,sans-serif;min-height:44px;padding:10px 14px;border-radius:14px;border:none;background:transparent;color:#646B66;font-size:15px;font-weight:600;cursor:pointer;transition:background-color .15s}.ds-btn-ghost:hover{background:#F1ECE6}.ds-btn-ghost:focus-visible{outline:2px solid #2F6B4F;outline-offset:2px}"
+    },
+    {
+      "name": "Pill",
+      "kind": "chip",
+      "refersTo": "button-pill",
+      "description": "Small choice chip; active is soft green.",
+      "html": "<button class=\"ds-pill\">Lunch</button> <button class=\"ds-pill\" data-active=\"true\">Dinner</button>",
+      "css": ".ds-pill{font-family:'Figtree',system-ui,sans-serif;min-height:36px;padding:8px 14px;border-radius:99px;border:1px solid rgba(31,42,36,.13);background:#fff;color:#1F2A24;font-size:14px;font-weight:600;cursor:pointer;transition:background-color .2s,color .2s}.ds-pill[data-active=\"true\"]{background:rgba(47,107,79,.11);color:#2F6B4F;border-color:transparent}.ds-pill:focus-visible{outline:2px solid #2F6B4F;outline-offset:2px}"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Labelled text field with green focus ring.",
+      "html": "<label class=\"ds-label\">Calories<input class=\"ds-input\" placeholder=\"e.g. 540\"></label>",
+      "css": ".ds-label{font-family:'Figtree',system-ui,sans-serif;display:block;font-size:13px;font-weight:600;color:#646B66}.ds-input{font-family:'Figtree',system-ui,sans-serif;display:block;margin-top:6px;width:100%;min-height:48px;border-radius:14px;padding:12px 14px;font-size:16px;border:1px solid rgba(31,42,36,.13);outline:none;background:#fff;color:#1F2A24;transition:box-shadow .2s,border-color .2s}.ds-input::placeholder{color:#646B66}.ds-input:focus{border-color:#2F6B4F;box-shadow:0 0 0 3px rgba(47,107,79,.16)}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "White surface that answers one question.",
+      "html": "<section class=\"ds-card\"><h2 class=\"ds-card-title\">Left today</h2><p class=\"ds-hero\">940<span>kcal</span></p></section>",
+      "css": ".ds-card{font-family:'Figtree',system-ui,sans-serif;background:#fff;border:1px solid rgba(31,42,36,.07);border-radius:20px;box-shadow:0 1px 3px rgba(31,42,36,.04);padding:18px 20px;color:#1F2A24}.ds-card-title{margin:0;font-size:15px;font-weight:600;color:#646B66}.ds-hero{margin:2px 0 0;font-size:64px;font-weight:700;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums}.ds-hero span{margin-left:6px;font-size:20px;font-weight:600;letter-spacing:0;color:#646B66}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": "segmented",
+      "description": "The one segmented control; white selected tab in a track well.",
+      "html": "<div class=\"ds-seg\" role=\"radiogroup\" aria-label=\"Range\"><button role=\"radio\" aria-checked=\"true\">Week</button><button role=\"radio\" aria-checked=\"false\">Month</button></div>",
+      "css": ".ds-seg{font-family:'Figtree',system-ui,sans-serif;display:flex;padding:3px;gap:2px;border-radius:14px;background:#F1ECE6}.ds-seg button{flex:1;min-height:36px;padding:6px 10px;border:none;border-radius:11px;background:transparent;color:#646B66;font:inherit;font-size:14px;font-weight:600;cursor:pointer}.ds-seg button[aria-checked=\"true\"]{background:#fff;color:#1F2A24;box-shadow:0 1px 3px rgba(31,42,36,.1)}.ds-seg button:focus-visible{outline:2px solid #2F6B4F;outline-offset:2px}"
+    },
+    {
+      "name": "Progress Line",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Goal line with under, at and over states; tint fill, brick when over.",
+      "html": "<div class=\"ds-pl\"><div class=\"ds-pl-row\"><span>Calories</span><span><b>1,460</b> / 2,400 kcal</span></div><div class=\"ds-pl-track\"><i style=\"width:61%\"></i></div></div><div class=\"ds-pl ds-over\"><div class=\"ds-pl-row\"><span>Carbs</span><span><b>260</b> / 220 g <em>· 40 over</em></span></div><div class=\"ds-pl-track\"><i style=\"width:100%\"></i></div></div>",
+      "css": ".ds-pl{font-family:'Figtree',system-ui,sans-serif;margin-bottom:16px;color:#1F2A24;font-variant-numeric:tabular-nums}.ds-pl-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;font-size:15px}.ds-pl-row span:last-child{font-size:14px;color:#646B66}.ds-pl-row b{font-size:16px;font-weight:600;color:#1F2A24}.ds-pl-row em{font-style:normal;color:#B4432F;font-weight:500}.ds-pl-track{position:relative;height:6px;border-radius:3px;background:#F1ECE6;overflow:hidden}.ds-pl-track i{position:absolute;inset:0 auto 0 0;border-radius:3px;background:#CB8C76;transition:width .8s cubic-bezier(.16,1,.3,1)}.ds-over b{color:#B4432F}.ds-over .ds-pl-track i{background:#B4432F}"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "nav-tab-active",
+      "description": "Four tabs plus a centre green Log button; Settings lives behind the Today avatar.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main\"><a href=\"#\" aria-current=\"page\"><span><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-5.5h-6V20H5a1 1 0 0 1-1-1z\"/></svg></span>Today</a><a href=\"#\"><span><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 3v18\"/><path d=\"M4.5 3v5a2.5 2.5 0 0 0 5 0V3\"/><path d=\"M17.5 21V3c-2 1.4-3 4-3 7.5h3\"/></svg></span>Food</a><div><button aria-label=\"Log\"><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg></button></div><a href=\"#\"><span><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 6.5v11M17 6.5v11\"/><path d=\"M4 9.5v5M20 9.5v5\"/><path d=\"M7 12h10\"/></svg></span>Training</a><a href=\"#\"><span><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 20h16\"/><path d=\"M5 15.5l4.5-4.5 3 3L19 7.5\"/><path d=\"M15 7.5h4v4\"/></svg></span>Trends</a></nav>",
+      "css": ".ds-nav{font-family:'Figtree',system-ui,sans-serif;display:grid;grid-template-columns:1fr 1fr 76px 1fr 1fr;align-items:start;height:68px;background:rgba(251,248,244,.94);backdrop-filter:saturate(1.4) blur(18px);-webkit-backdrop-filter:saturate(1.4) blur(18px);border-top:1px solid rgba(31,42,36,.07)}.ds-nav a{display:flex;flex-direction:column;align-items:center;gap:3px;padding-top:7px;font-size:12px;font-weight:600;color:#646B66;text-decoration:none}.ds-nav a span{display:grid;place-items:center;width:54px;height:30px;border-radius:15px;transition:background-color .25s}.ds-nav a[aria-current=\"page\"]{color:#2F6B4F}.ds-nav a[aria-current=\"page\"] span{background:rgba(47,107,79,.11)}.ds-nav div{display:grid;place-items:center;padding-top:6px}.ds-nav button{width:54px;height:54px;border-radius:27px;border:none;background:#2F6B4F;color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px -6px rgba(47,107,79,.6);cursor:pointer;transition:transform .15s}.ds-nav button:active{transform:scale(.98)}.ds-nav a:focus-visible,.ds-nav button:focus-visible{outline:2px solid #2F6B4F;outline-offset:2px}"
+    },
+    {
+      "name": "Gradient Date",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Today's drifting date: the first of the four gradient moments.",
+      "html": "<h1 class=\"ds-date\">November 20</h1>",
+      "css": "@keyframes ds-drift{from{background-position:0% 50%}to{background-position:100% 50%}}.ds-date{font-family:'Figtree',system-ui,sans-serif;margin:0;font-size:52px;font-weight:700;line-height:1.04;letter-spacing:-.035em;background:linear-gradient(100deg,#C0705A,#2F6B4F 36%,#D9A441 66%,#5C7FA3);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:ds-drift 18s ease-in-out infinite alternate}@media (prefers-reduced-motion:reduce){.ds-date{animation:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Kind Kitchen Notebook",
+    "overview": "A warm consumer app done with real care. Warm paper ground, white cards that each answer one question, plain sentence-case words, and a single deep green that only ever means \"tap me\". Numbers are the heroes: big, tabular, set in Figtree at 700 with tight tracking, so \"940 kcal left\" reads without arithmetic.\n\nDensity is phone-native and generous. One column at 390px inside Telegram's chrome, cards stacked 12px apart, rows at least 52px tall. Colour beyond ink and green is reserved for data: muted clay, berry, ochre, sand, olive, slate and sage tints mark progress, never words. The only flourish is a four-stop gradient (clay, green, ochre, slate) that appears in exactly four places and never moves twice at once.\n\nThe system rejects the template it replaced: tracked uppercase micro-labels, tinted-smudge cards, progress rings, and a fade-up cascade replaying on every block.",
+    "keyCharacteristics": [
+      "Warm ground, white 20px cards, hairline borders, a barely-there shadow.",
+      "One action green; metric tints for data marks only.",
+      "Figtree throughout, tabular numerals on every figure.",
+      "Goals read as under / at / over, never as rings.",
+      "One page entrance per navigation; one moving gradient at a time.",
+      "Thin-stroke icons drawn as one set (24px grid, 1.7 stroke, round caps)."
+    ],
+    "rules": [
+      {
+        "name": "The Green Means Tap Rule",
+        "body": "Field Green appears only on something the user can press. If it is not interactive, it is ink, stone, a data tint, or brick. The single exception is the at-goal \"done\" word and check.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tints Are Marks Rule",
+        "body": "Metric tints colour bars, pips, blocks and chart marks only. Labels and values beside them stay ink or stone.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed Palette Rule",
+        "body": "The app ships its own palette and overrides Telegram's `--tg-theme-*` variables; it does not follow the client's theme.",
+        "section": "colors"
+      },
+      {
+        "name": "The Sentence Case Rule",
+        "body": "No uppercase, no letter-spaced micro-labels, no eyebrow above a title. A group title is 13px/600 stone in sentence case.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every figure is tabular. Units (\"kcal\", \"g\", \"L\") sit beside the number in stone at a smaller size.",
+        "section": "typography"
+      },
+      {
+        "name": "The Hairline First Rule",
+        "body": "Cards separate from the ground by a 1px `line` border; shadow is a whisper, never a drop.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Moving Gradient Rule",
+        "body": "Never more than one gradient moves at a time. The date pauses (`body:has(.gradient-sweep, .row-landed, .ai-shimmer)`) while any other moment plays, and goal sweeps share one queue: each waits 1.9s for the landing wash, then for any earlier sweep, so a log that crosses calories and protein lights them in turn.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** keep Field Green (#2F6B4F) on tappable elements only; the at-goal \"done\" word and check are the one exception.",
+      "**Do** colour data marks with the metric tints and keep their labels ink or stone.",
+      "**Do** show every goal metric as under / at / over, with brick only where over is bad.",
+      "**Do** lead each screen with one tabular hero figure and plain sentence-case words.",
+      "**Do** use PageHeader for every page title, and give sub-pages a `back` so Telegram's native button appears.",
+      "**Do** import Telegram hooks from `src/components/telegram.ts` and keep the SDK inside the client-only provider.",
+      "**Do** route new gradient motion through the four moments and the shared sweep queue.",
+      "**Do** draw new icons on the 24px, 1.7-stroke, round-cap grid in `icons.tsx`."
+    ],
+    "donts": [
+      "**Don't** use uppercase or letter-spaced micro-labels, or put an eyebrow above a title.",
+      "**Don't** draw progress rings; use lines, columns, pips or blocks.",
+      "**Don't** add a per-block fade-up cascade; the page entrance plays once in `template.tsx`.",
+      "**Don't** let two gradients move at once, or add a fifth gradient moment.",
+      "**Don't** use metric tints for text.",
+      "**Don't** add a fifth tab or put Settings in the nav.",
+      "**Don't** import `@twa-dev/sdk` from a page or any module rendered during prerender.",
+      "**Don't** animate `transform` on a page wrapper; it re-parents fixed sheets and docks."
+    ]
+  }
+}

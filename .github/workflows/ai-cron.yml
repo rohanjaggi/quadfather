@@ -2,13 +2,10 @@ name: AI Coaching Cron
 
 on:
   schedule:
-    # Daily coach at 1pm UTC (9pm SGT)
+    # Close the day (evening summary) at 1pm UTC (9pm SGT)
     - cron: '0 13 * * *'
-    # Weekly insights at 1am UTC Monday (9am SGT Monday)
+    # Weekly letter (insights + training) at 1am UTC Monday (9am SGT Monday)
     - cron: '0 1 * * 1'
-    # Weekly training digest at 2am UTC Monday (10am SGT Monday) — offset an
-    # hour from the insights run so the two digests don't land together.
-    - cron: '0 2 * * 1'
   workflow_dispatch:
     inputs:
       endpoint:
@@ -18,7 +15,6 @@ on:
         options:
           - daily-coach
           - weekly-insights
-          - weekly-exercise
 
 jobs:
   trigger:
@@ -37,7 +33,6 @@ jobs:
           case "${{ github.event.schedule }}" in
             '0 13 * * *') echo "path=daily-coach" >> $GITHUB_OUTPUT ;;
             '0 1 * * 1')  echo "path=weekly-insights" >> $GITHUB_OUTPUT ;;
-            '0 2 * * 1')  echo "path=weekly-exercise" >> $GITHUB_OUTPUT ;;
             *)
               echo "No endpoint mapped for schedule '${{ github.event.schedule }}'" >&2
               exit 1

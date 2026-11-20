@@ -2,8 +2,11 @@ import { dayKey } from './day'
 
 const DAY_MS = 86_400_000
 
+// /api/steps returns Prisma dates as full ISO timestamps; compare by day key.
+const day = (d: string) => d.slice(0, 10)
+
 const dayGap = (later: string, earlier: string) =>
-  (Date.parse(`${later}T00:00:00Z`) - Date.parse(`${earlier}T00:00:00Z`)) / DAY_MS
+  (Date.parse(`${day(later)}T00:00:00Z`) - Date.parse(`${day(earlier)}T00:00:00Z`)) / DAY_MS
 
 /** Longest run of consecutive calendar days meeting the goal. */
 export function longestStepStreak(rows: { date: string; steps: number }[], goal: number): number {
@@ -32,7 +35,7 @@ export function currentStepStreak(
   today: string = dayKey(),
 ): number {
   const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date))
-  if (sorted[0]?.date === today && sorted[0].steps < goal) sorted.shift()
+  if (sorted[0] && day(sorted[0].date) === day(today) && sorted[0].steps < goal) sorted.shift()
   let streak = 0
   let prev = today
   for (const r of sorted) {

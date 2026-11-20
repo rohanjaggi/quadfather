@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { searchExercises } from '@/lib/api'
 import type { Exercise } from '@/types/exercises'
 
@@ -20,9 +20,18 @@ interface ExerciseAutocompleteProps {
    * use it to keep half-typed names (`'ben'`) out of paid endpoints.
    */
   onResolvedChange?: (resolved: boolean) => void
+  /** Accessible name for the field (there is no visible label beside it). */
+  label?: string
+  /** Defaults to true: an exercise row can't be saved without a name. */
+  required?: boolean
+  autoFocus?: boolean
+  inputStyle?: CSSProperties
 }
 
-export default function ExerciseAutocomplete({ value, onChange, placeholder, onCommit, onResolvedChange }: ExerciseAutocompleteProps) {
+export default function ExerciseAutocomplete({
+  value, onChange, placeholder, onCommit, onResolvedChange,
+  label = 'Exercise name', required = true, autoFocus, inputStyle,
+}: ExerciseAutocompleteProps) {
   const [query, setQuery] = useState(value)
   const [results, setResults] = useState<Exercise[]>([])
   const [open, setOpen] = useState(false)
@@ -31,7 +40,11 @@ export default function ExerciseAutocomplete({ value, onChange, placeholder, onC
   const blurTimerRef = useRef<NodeJS.Timeout | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { setQuery(value) }, [value])
+  useEffect(() => {
+    setQuery(value)
+    // A field the parent cleared shouldn't reopen on stale matches.
+    if (!value) setResults([])
+  }, [value])
 
   // Neither a pending search nor the blur close-timer may fire after the field
   // is gone (removing an exercise row unmounts this mid-gesture).
@@ -88,7 +101,7 @@ export default function ExerciseAutocomplete({ value, onChange, placeholder, onC
   }
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', flex: 1 }}>
+    <div ref={containerRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
       <input
         className="input-field"
         value={query}
@@ -96,18 +109,21 @@ export default function ExerciseAutocomplete({ value, onChange, placeholder, onC
         onFocus={() => { if (results.length > 0) setOpen(true) }}
         onBlur={handleBlur}
         placeholder={placeholder ?? 'Exercise name'}
-        required
-        style={{ width: '100%' }}
+        aria-label={label}
+        autoComplete="off"
+        autoFocus={autoFocus}
+        required={required}
+        style={{ width: '100%', ...inputStyle }}
       />
       {open && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-          maxHeight: '180px', overflowY: 'auto',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          borderRadius: '12px', marginTop: '4px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          border: '1px solid var(--surface-border)',
-        }}>
+        <div
+          style={{
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+            maxHeight: 220, overflowY: 'auto', marginTop: 6, padding: '4px 0',
+            background: 'var(--card)', borderRadius: 'var(--radius-control)',
+            border: '1px solid var(--line)', boxShadow: 'var(--shadow-raised)',
+          }}
+        >
           {results.map(ex => (
             <button
               key={ex.id}
@@ -115,23 +131,19 @@ export default function ExerciseAutocomplete({ value, onChange, placeholder, onC
               onMouseDown={e => e.preventDefault()}
               onClick={() => handleSelect(ex)}
               style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                width: '100%', padding: '10px 14px', border: 'none',
-                backgroundColor: 'transparent', cursor: 'pointer', textAlign: 'left',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+                width: '100%', minHeight: 44, padding: '10px 14px', border: 'none',
+                background: 'transparent', textAlign: 'left', color: 'var(--ink)',
               }}
             >
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-text-color)' }}>
-                {ex.name}
-              </span>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: 'var(--tg-theme-hint-color)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {ex.category}
+              <span style={{ fontSize: 15 }}>{ex.name}</span>
+              <span style={{ flexShrink: 0, fontSize: 13, color: 'var(--muted)' }}>
+                {ex.category ? ex.category.charAt(0).toUpperCase() + ex.category.slice(1).toLowerCase() : ''}
               </span>
             </button>
           ))}
           {loading && (
-            <p style={{ padding: '8px 14px', fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>
-              Searching...
-            </p>
+            <p style={{ margin: 0, padding: '8px 14px', fontSize: 13, color: 'var(--muted)' }}>Searching…</p>
           )}
         </div>
       )}

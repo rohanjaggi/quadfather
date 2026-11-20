@@ -559,7 +559,7 @@ export async function generateDailyCoach(
     waterGoal: number;
     exerciseCalories: number;
     dietaryRestrictions: string[];
-    steps?: { today: number; goal: number; streak: number; extraAllowance: number };
+    steps?: { today: number; goal: number; extraAllowance: number };
   },
 ): Promise<string> {
   const restrictionsBlock = context.dietaryRestrictions.length > 0
@@ -568,9 +568,8 @@ export async function generateDailyCoach(
 
   let stepsBlock = '';
   if (context.steps) {
-    const { today, goal, streak, extraAllowance } = context.steps;
+    const { today, goal, extraAllowance } = context.steps;
     stepsBlock = `Steps: ${today.toLocaleString()} / ${goal.toLocaleString()} goal`;
-    if (streak > 0) stepsBlock += ` (${streak}-day streak)`;
     if (extraAllowance > 0) {
       stepsBlock += ` — earned +${extraAllowance} kcal, already credited into the daily goal above (do not add it again)`;
     }

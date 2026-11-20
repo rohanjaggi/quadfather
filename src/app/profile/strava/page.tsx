@@ -2,14 +2,12 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-// Same import style as `@/lib/api` (already in this page's module graph); every
-// use is guarded by a `typeof window` check because the SDK is browser-only.
 import { useUser } from '@/context/UserContext'
 import { getStravaConnectUrl, disconnectStrava } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
-import SummaryCard from '@/components/dashboard/SummaryCard'
-
-const SCOPE_NOTICE = "Strava is connected without activity access — reconnect and allow 'View data about your activities'"
+import PageHeader from '@/components/ui/PageHeader'
+import { toast } from '@/components/ui/Toast'
+import { ConfirmSheet, FormError } from '@/components/settings/ui'
 
 /**
  * Navigate the Mini App webview itself to the Strava OAuth page. We deliberately
@@ -38,6 +36,7 @@ function StravaSettings() {
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const connected = !!user?.strava_connected
 
   const errorParam = searchParams.get('error')
@@ -47,20 +46,14 @@ function StravaSettings() {
   // access, so this is a persistent state — not just a one-time callback banner.
   const scopeMissing = connected && user?.strava_scope_ok === false
   const showScopeNotice = scopeMissing || errorParam === 'insufficient_scope'
-
-  const callbackNotice: { text: string; tone: 'error' | 'success' } | null = showScopeNotice
-    ? { text: SCOPE_NOTICE, tone: 'error' }
-    : errorParam
-      ? { text: "Couldn't connect to Strava. Please try again.", tone: 'error' }
-      : successParam
-        ? { text: 'Connected', tone: 'success' }
-        : null
+  const callbackError = !showScopeNotice && errorParam ? "Couldn't connect to Strava. Try again." : null
 
   // Returning from the OAuth callback — pull the fresh connection state.
   useEffect(() => {
     if (errorParam || successParam) {
       refreshUser().catch(err => console.error('Failed to refresh user after Strava callback:', err))
     }
+    if (successParam && !errorParam) toast('Strava connected', { type: 'success' })
   }, [errorParam, successParam, refreshUser])
 
   async function handleConnect() {
@@ -70,10 +63,10 @@ function StravaSettings() {
       const { url } = await getStravaConnectUrl()
       openExternal(url)
     } catch (err) {
-      setActionError(errorMessage(err, 'Failed to start Strava connection'))
+      setActionError(errorMessage(err, "Couldn't open Strava. Try again."))
     } finally {
       // The webview may defer or block the navigation; leaving the button stuck
-      // on "Connecting…" would give the user nothing to retry with.
+      // on "Opening Strava…" would give the user nothing to retry with.
       setLoading(false)
     }
   }
@@ -84,149 +77,92 @@ function StravaSettings() {
     try {
       await disconnectStrava()
       await refreshUser()
+      setConfirmOpen(false)
+      toast('Strava disconnected', { type: 'success' })
     } catch (err) {
-      setActionError(errorMessage(err, 'Failed to disconnect Strava'))
+      setActionError(errorMessage(err, "Couldn't disconnect Strava. Try again."))
     } finally {
       setLoading(false)
     }
   }
 
   const lastSynced = user?.strava_last_synced_at
-    ? new Date(user.strava_last_synced_at).toLocaleString()
+    ? new Date(user.strava_last_synced_at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
     : null
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div className="fade-up">
-        <p style={{
-          fontFamily: 'var(--font-body)', fontSize: '11px',
-          letterSpacing: '0.1em', textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)', marginBottom: '5px',
-        }}>
-          Integration
-        </p>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '36px',
-          fontWeight: 400, lineHeight: 1.1, color: 'var(--tg-theme-text-color)',
-        }}>
-          Strava
-        </h1>
-      </div>
+  const headline = showScopeNotice
+    ? 'Connected without run access'
+    : connected ? 'Connected' : 'Not connected'
+  const detail = showScopeNotice
+    ? 'Reconnect and allow “View data about your activities” so your runs can come in.'
+    : connected
+      ? `New runs come in when you open your runs.${lastSynced ? ` Last synced ${lastSynced}.` : ''}`
+      : 'Connect to bring your runs in from Strava.'
 
-      {callbackNotice && (
-        <div className="fade-up" style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '10px',
-          fontFamily: 'var(--font-display)', fontSize: '12px',
-          padding: '10px 14px', borderRadius: '10px', lineHeight: 1.5,
-          color: callbackNotice.tone === 'success' ? 'oklch(0.35 0.04 155)' : 'var(--accent-calories)',
-          backgroundColor: callbackNotice.tone === 'success' ? 'oklch(0.92 0.02 155)' : 'oklch(0.94 0.02 30)',
-        }}>
-          <span>{callbackNotice.text}</span>
-          {showScopeNotice && (
+  return (
+    <div>
+      <PageHeader title="Strava" back={{ href: '/profile', label: 'Settings' }} />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <section className="card">
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.015em' }}>{headline}</h2>
+          <p style={{ margin: '4px 0 16px', fontSize: 15, color: 'var(--muted)' }}>{detail}</p>
+
+          {(callbackError || (actionError && !confirmOpen)) && (
+            <div style={{ marginBottom: 12 }}>
+              <FormError>{actionError ?? callbackError}</FormError>
+            </div>
+          )}
+
+          {connected && !showScopeNotice ? (
             <button
               type="button"
               className="btn-secondary"
-              onClick={handleConnect}
+              onClick={() => { setActionError(null); setConfirmOpen(true) }}
               disabled={loading}
-              style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--accent-calories)' }}
+              style={{ width: '100%', color: 'var(--over)' }}
             >
-              {loading ? 'Opening Strava…' : 'Reconnect with Strava'}
+              Disconnect Strava
+            </button>
+          ) : (
+            <button type="button" className="btn-primary" onClick={handleConnect} disabled={loading}>
+              {loading ? 'Opening Strava…' : showScopeNotice ? 'Reconnect Strava' : 'Connect Strava'}
             </button>
           )}
-        </div>
-      )}
+        </section>
 
-      {actionError && (
-        <p style={{
-          fontFamily: 'var(--font-display)', fontSize: '12px',
-          color: 'var(--accent-calories)', padding: '10px 14px',
-          backgroundColor: 'oklch(0.94 0.02 30)', borderRadius: '10px',
-        }}>
-          {actionError}
-        </p>
-      )}
+        <section className="card">
+          <h2 className="card-title" style={{ margin: '0 0 6px' }}>What Quadfather reads</h2>
+          <p style={{ margin: 0, fontSize: 15, color: 'var(--muted)' }}>
+            Your runs, so they show up in Training. You can add a run’s kcal to your day.
+            Quadfather only reads activities and never posts to Strava or changes anything there.
+          </p>
+        </section>
 
-      <div className="fade-up fade-up-1">
-        <SummaryCard>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: '12px',
-                backgroundColor: connected ? '#FC4C021A' : 'var(--tg-theme-bg-color)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  stroke={connected ? '#FC4C02' : 'var(--tg-theme-hint-color)'}
-                  strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="13 17 18 12 13 7" />
-                  <polyline points="6 17 11 12 6 7" />
-                </svg>
-              </div>
-              <div>
-                <p style={{
-                  fontFamily: 'var(--font-display)', fontSize: '17px',
-                  fontWeight: 500, color: 'var(--tg-theme-text-color)',
-                }}>
-                  {connected ? 'Connected' : 'Not Connected'}
-                </p>
-                <p style={{
-                  fontFamily: 'var(--font-body)', fontSize: '12px',
-                  color: 'var(--tg-theme-hint-color)',
-                }}>
-                  {connected
-                    ? `Runs sync when you open the Running page${lastSynced ? ` · Last: ${lastSynced}` : ''}`
-                    : 'Connect to import your runs'}
-                </p>
-              </div>
-            </div>
-
-            {connected ? (
-              <button
-                className="btn-secondary"
-                onClick={handleDisconnect}
-                disabled={loading}
-                style={{ width: '100%' }}
-              >
-                {loading ? 'Disconnecting...' : 'Disconnect Strava'}
-              </button>
-            ) : (
-              <button
-                onClick={handleConnect}
-                disabled={loading}
-                style={{
-                  width: '100%', padding: '14px', borderRadius: '14px',
-                  border: 'none', backgroundColor: '#FC4C02', color: 'white',
-                  fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: 600,
-                  cursor: 'pointer', transition: 'opacity 0.2s',
-                  opacity: loading ? 0.7 : 1,
-                }}
-              >
-                {loading ? 'Connecting...' : 'Connect with Strava'}
-              </button>
-            )}
-          </div>
-        </SummaryCard>
+        {scopeMissing && (
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => { setActionError(null); setConfirmOpen(true) }}
+            disabled={loading}
+            style={{ color: 'var(--over)', alignSelf: 'center' }}
+          >
+            Disconnect Strava
+          </button>
+        )}
       </div>
 
-      <div className="fade-up fade-up-2">
-        <SummaryCard>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <p style={{
-              fontFamily: 'var(--font-body)', fontSize: '12px',
-              color: 'var(--tg-theme-hint-color)', lineHeight: 1.5,
-            }}>
-              Connecting Strava allows Quadfather to import your running activities.
-              Calories from your runs can be added to your daily allowance.
-            </p>
-            <p style={{
-              fontFamily: 'var(--font-body)', fontSize: '12px',
-              color: 'var(--tg-theme-hint-color)', lineHeight: 1.5,
-            }}>
-              We only read your activity data — we never post or modify anything on your Strava account.
-            </p>
-          </div>
-        </SummaryCard>
-      </div>
+      <ConfirmSheet
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Disconnect Strava?"
+        body="New runs stop coming in. Runs you already have stay in Quadfather."
+        confirmLabel="Disconnect"
+        busyLabel="Disconnecting…"
+        busy={loading}
+        error={confirmOpen ? actionError : null}
+        onConfirm={handleDisconnect}
+      />
     </div>
   )
 }

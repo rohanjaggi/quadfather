@@ -3,9 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getUserAICredentials } from '@/lib/auth'
 import { generateWorkoutAnalysis } from '@/lib/ai'
-import { escapeHtml } from '@/lib/html'
 import { withUser, requireInt, notFound, ApiError, callAIProvider } from '@/lib/api-handler'
-import { sendHtml } from '@/lib/telegram-bot'
 import type { WorkoutAnalysis } from '@/types/exercises'
 
 type Ctx = { params: { id: string } }
@@ -96,19 +94,6 @@ export const POST = withUser<Ctx>(async (request, user, { params }) => {
     where: { id: workoutId },
     data: { analysis: analysis as unknown as Prisma.InputJsonValue },
   })
-
-  const coachPrefs = user.ai_coaching_prefs as Record<string, boolean> | null
-  if (coachPrefs?.workout_analysis !== false) {
-    try {
-      const prsText = analysis.prs.length > 0
-        ? `\n🏆 ${analysis.prs.map(p => `${escapeHtml(p.exercise)}: ${escapeHtml(p.value)}`).join(', ')}`
-        : ''
-      const msg = `💪 <b>${escapeHtml(workout.name)}</b>\n\n${escapeHtml(analysis.volume_comparison)}${prsText}\n\n${escapeHtml(analysis.takeaway)}`
-      await sendHtml(user.telegram_id, msg)
-    } catch (err) {
-      console.error('Failed to send workout analysis via Telegram:', err)
-    }
-  }
 
   return NextResponse.json(analysis)
 })

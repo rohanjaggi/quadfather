@@ -1,7 +1,7 @@
 /**
  * Client-side image prep shared by every upload that ends up at a vision model.
  *
- * Extracted from `components/food/PhotoUpload.tsx`, which is where the rules
+ * Extracted from the original food photo upload flow (now `components/food/MealComposer.tsx`), which is where the rules
  * below were worked out; `components/running/RunPhotoUpload.tsx` hits the same
  * endpoints and needs the same guards.
  */

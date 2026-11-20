@@ -1,392 +1,214 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import BottleCounter from '@/components/water/BottleCounter'
-import Link from 'next/link'
+import { useCallback, useId, useRef, useState, useEffect } from 'react'
+import PageHeader from '@/components/ui/PageHeader'
 import SummaryCard from '@/components/dashboard/SummaryCard'
+import Sheet from '@/components/ui/Sheet'
+import SwipeToDelete, { SwipeDeleteProvider } from '@/components/SwipeToDelete'
+import BottomDock, { dockedPageStyle } from '@/components/food/BottomDock'
+import BottleCounter, { formatLiters } from '@/components/water/BottleCounter'
 import { useUser } from '@/context/UserContext'
+import { useHaptic } from '@/components/telegram'
 import { formatTime } from '@/lib/format'
-import { toast, errorMessage } from '@/components/ui/Toast'
+import { toast } from '@/components/ui/Toast'
+import { errorMessage } from '@/lib/errors'
+import { toastLogged } from '@/components/food/logged'
+import type { WaterLog, WaterLogCreate } from '@/types/api'
+
+type Busy = null | 'add' | 'custom'
+
+const caption: React.CSSProperties = { margin: 0, fontSize: 13, color: 'var(--muted)' }
 
 export default function WaterPage() {
   const { user, summary, waterLogs, logWater, deleteWater } = useUser()
+  const haptic = useHaptic()
+  const amountId = useId()
 
+  const [busy, setBusy] = useState<Busy>(null)
   const [customOpen, setCustomOpen] = useState(false)
+  // `/water?amount` (from the Log sheet's "Other amount") opens the sheet
+  // straight away; the flag is then dropped so a reload doesn't reopen it.
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has('amount')) return
+    setCustomOpen(true)
+    window.history.replaceState(null, '', window.location.pathname)
+  }, [])
   const [customAmount, setCustomAmount] = useState('')
-  const [pending, setPending] = useState(false)
-  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [openId, setOpenId] = useState<number | null>(null)
   // Ref, not state: a second tap in the same tick still sees the flag set, so
   // one tap can never turn into two POSTs (and two full context refreshes).
   const inFlight = useRef(false)
+  // A horizontal swipe can still end in a click; ignore taps that travelled.
+  const downX = useRef(0)
+
+  const closeCustom = useCallback(() => { setCustomOpen(false); setCustomAmount('') }, [])
+  const closeEntry = useCallback(() => setOpenId(null), [])
 
   const totalLiters = summary?.water.total ?? 0
   const goal = user?.goals.daily_water_goal ?? 3
   const bottleSize = user?.water_bottle_size ?? 0.5
-  // Whole bottles are only used for the dot row — the litre total is the truth.
-  // The epsilon keeps binary float error from eating a dot (1.8 / 0.6 = 2.9999…).
-  const currentBottles = bottleSize > 0 ? Math.floor(totalLiters / bottleSize + 1e-6) : 0
 
-  /** Runs one water mutation at a time, surfacing failures as a toast. */
-  async function guarded(action: () => Promise<void>, failMessage: string) {
-    if (inFlight.current) return
+  /** Logs water, one request at a time; rejects (after a toast) when another is in flight or it fails. */
+  async function add(kind: Exclude<Busy, null>, data: WaterLogCreate) {
+    if (inFlight.current) throw new Error('Another water change is still saving')
     inFlight.current = true
+    setBusy(kind)
     try {
-      await action()
+      const log = await logWater(data)
+      toastLogged(`Water logged · ${formatLiters(log.amount_liters)} L`, () => deleteWater(log.id, { undoable: false }))
     } catch (err) {
-      toast(errorMessage(err, failMessage))
+      toast(errorMessage(err, 'Could not log water'))
+      throw err
     } finally {
       inFlight.current = false
+      setBusy(null)
     }
   }
 
-  async function handleAdd() {
-    if (inFlight.current) return
-    setPending(true)
-    await guarded(() => logWater({ bottles: 1 }), 'Could not log water')
-    setPending(false)
+  function handleAdd() {
+    haptic.impact('light')
+    add('add', { bottles: 1 }).catch(() => {})
   }
 
-  async function handleRemove() {
-    if (inFlight.current || waterLogs.length === 0) return
-    setPending(true)
-    await guarded(() => deleteWater(waterLogs[0].id), 'Could not remove that log')
-    setPending(false)
-  }
-
-  async function handleCustomAdd() {
+  function handleCustomAdd(e: React.FormEvent) {
+    e.preventDefault()
     const ml = parseFloat(customAmount)
-    if (inFlight.current || !(ml > 0)) return
-    setPending(true)
-    await guarded(async () => {
-      await logWater({ amount_liters: ml / 1000 })
-      setCustomAmount('')
-      setCustomOpen(false)
-    }, 'Could not log water')
-    setPending(false)
+    if (!(ml > 0)) return
+    add('custom', { amount_liters: ml / 1000 }).then(closeCustom, () => {})
   }
 
-  async function handleDelete(id: number) {
-    if (inFlight.current) return
-    setDeletingId(id)
-    await guarded(() => deleteWater(id), 'Could not remove that log')
-    setDeletingId(null)
-  }
+  // Undoable: the row leaves at once and the toast offers Undo.
+  const removeEntry = (id: number) => deleteWater(id)
 
-  // A tap during a timeline delete is swallowed by the in-flight guard, so grey
-  // the button out rather than letting it look tappable and do nothing.
-  const customAddBlocked =
-    pending || deletingId !== null || !customAmount || parseFloat(customAmount) <= 0
+  const customMl = parseFloat(customAmount)
+  const customValid = customMl > 0
 
-  // Build running totals for the timeline
+  // Running totals, oldest first (the context keeps newest first).
   const logsAsc = [...waterLogs].reverse()
-  const runningTotals: number[] = []
   let acc = 0
-  for (const log of logsAsc) {
-    acc += log.amount_liters
-    runningTotals.push(acc)
-  }
+  const timeline = logsAsc.map(log => ({ log, running: (acc += log.amount_liters) }))
+  const selected = timeline.find(t => t.log.id === openId) ?? null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div style={dockedPageStyle}>
+      <PageHeader title="Water" back={{ href: '/food', label: 'Food' }} />
 
-      {/* Header */}
-      <div className="fade-up">
-        <Link href="/food" style={{
-          display: 'inline-flex', alignItems: 'center', gap: '4px',
-          fontFamily: 'var(--font-display)', fontSize: '13px',
-          color: 'var(--tg-theme-hint-color)', textDecoration: 'none',
-          marginBottom: '12px',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Nutrition
-        </Link>
-        <p style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '12px',
-          fontWeight: 500,
-          letterSpacing: '0.15em',
-          textTransform: 'uppercase',
-          color: 'var(--tg-theme-hint-color)',
-          marginBottom: '5px',
-        }}>
-          Hydration
-        </p>
-        <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '32px',
-          fontWeight: 700,
-          lineHeight: 1.15,
-          letterSpacing: '-0.02em',
-          color: 'var(--tg-theme-text-color)',
-        }}>
-          Water Intake
-        </h1>
-      </div>
+      <section className="card" style={{ padding: '22px 20px' }}>
+        <BottleCounter liters={totalLiters} goal={goal} bottleSize={bottleSize} />
+      </section>
 
-      {/* Counter */}
-      <div className="fade-up fade-up-1">
-        <SummaryCard title="Today's Hydration">
-          <BottleCounter
-            liters={totalLiters}
-            bottles={currentBottles}
-            goal={goal}
-            bottleSize={bottleSize}
-            onAdd={handleAdd}
-            onRemove={handleRemove}
-            pending={pending}
-            disabled={deletingId !== null}
-          />
-        </SummaryCard>
-      </div>
-
-      {/* Custom amount */}
-      <div className="fade-up fade-up-2">
-        {!customOpen ? (
-          <button
-            type="button"
-            onClick={() => setCustomOpen(true)}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              border: '1px dashed var(--accent-water)',
-              background: 'transparent',
-              color: 'var(--accent-water)',
-              fontFamily: 'var(--font-display)',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M2 12h20" />
-            </svg>
-            Custom Amount
-          </button>
+      <SummaryCard title="Today's log">
+        {timeline.length === 0 ? (
+          <p style={{ margin: 0, fontSize: 15, color: 'var(--muted)' }}>No water logged yet today.</p>
         ) : (
-          <div className="card" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <span className="label-caps" style={{ letterSpacing: '0.15em', marginBottom: 0 }}>
-                Custom Amount
-              </span>
-              <button
-                type="button"
-                onClick={() => { setCustomOpen(false); setCustomAmount('') }}
-                aria-label="Close custom amount"
-                style={{
-                  background: 'none', border: 'none', padding: '5px',
-                  // 14px icon + 4px padding was a 22×22 target; 24×24 is the
-                  // floor for a thumb on a phone.
-                  minWidth: 24, minHeight: 24,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', opacity: 0.6,
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--tg-theme-text-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
+          <SwipeDeleteProvider>
+            {timeline.map(({ log, running }, i) => (
+              <SwipeToDelete key={log.id} id={`water-${log.id}`} onDelete={() => removeEntry(log.id)}>
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-label={`${formatLiters(log.amount_liters)} litres at ${formatTime(log.logged_at)}, ${formatLiters(running)} litres by then`}
+                  onPointerDown={e => { downX.current = e.clientX }}
+                  onClick={e => { if (e.detail === 0 || Math.abs(e.clientX - downX.current) < 10) setOpenId(log.id) }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 52,
+                    padding: '8px 0', border: 'none', borderTop: i ? '1px solid var(--line)' : 'none',
+                    background: 'transparent', textAlign: 'left', color: 'var(--ink)',
+                  }}
+                >
+                  <span style={{ ...caption, width: 44, flexShrink: 0 }}>{formatTime(log.logged_at)}</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, width: 64, flexShrink: 0 }}>+{formatLiters(log.amount_liters)} L</span>
+                  <span aria-hidden="true" style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--track)', overflow: 'hidden' }}>
+                    <span style={{ display: 'block', height: '100%', width: `${Math.min(running / goal, 1) * 100}%`, background: 'var(--m-water)' }} />
+                  </span>
+                  <span style={{ ...caption, width: 44, flexShrink: 0, textAlign: 'right' }}>{formatLiters(running)} L</span>
+                </button>
+              </SwipeToDelete>
+            ))}
+          </SwipeDeleteProvider>
+        )}
+      </SummaryCard>
+
+      <BottomDock>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button type="button" className="btn-secondary" onClick={() => setCustomOpen(true)} style={{ flex: 1, minHeight: 52 }}>
+            Other amount
+          </button>
+          <button type="button" className="btn-primary" onClick={handleAdd} disabled={busy !== null} style={{ flex: 1.5 }}>
+            {busy === 'add' ? 'Adding…' : 'Add a bottle'}
+          </button>
+        </div>
+      </BottomDock>
+
+      <Sheet open={customOpen} onClose={closeCustom} title="Other amount">
+        <form onSubmit={handleCustomAdd} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label htmlFor={amountId} className="label-caps">Amount</label>
             <div style={{ position: 'relative' }}>
               <input
+                id={amountId}
                 type="number"
                 min="0"
                 step="any"
+                inputMode="decimal"
                 placeholder="250"
                 value={customAmount}
                 onChange={e => setCustomAmount(e.target.value)}
                 autoFocus
                 className="input-field"
-                style={{
-                  width: '100%',
-                  fontSize: '20px',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 400,
-                  padding: '14px 44px 14px 16px',
-                }}
+                style={{ fontSize: 20, padding: '14px 48px 14px 16px' }}
               />
-              <span style={{
-                position: 'absolute',
-                right: '16px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                fontFamily: 'var(--font-display)',
-                fontSize: '13px',
-                fontWeight: 500,
-                color: 'var(--tg-theme-hint-color)',
-                pointerEvents: 'none',
-              }}>
+              <span style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: 'var(--muted)', pointerEvents: 'none' }}>
                 ml
               </span>
             </div>
-            <button
-              type="button"
-              className="btn-primary"
-              disabled={customAddBlocked}
-              onClick={handleCustomAdd}
-              style={{
-                backgroundColor: 'var(--accent-water)',
-                opacity: customAddBlocked ? 0.4 : 1,
-              }}
-            >
-              {pending ? 'Saving…' : `Add ${customAmount ? `${customAmount}ml` : 'water'}`}
-            </button>
           </div>
-        )}
+          <button type="submit" className="btn-primary" disabled={busy !== null || !customValid}>
+            {busy === 'custom' ? 'Saving…' : customValid ? `Add ${customAmount} ml` : 'Add water'}
+          </button>
+        </form>
+      </Sheet>
+
+      <Sheet open={selected != null} onClose={closeEntry} title={selected ? `Water at ${formatTime(selected.log.logged_at)}` : ''}>
+        {selected && <EntryDetail entry={selected.log} running={selected.running} onRemove={removeEntry} onDone={closeEntry} />}
+      </Sheet>
+    </div>
+  )
+}
+
+function EntryDetail({ entry, running, onRemove, onDone }: {
+  entry: WaterLog
+  running: number
+  onRemove: (id: number) => Promise<void>
+  onDone: () => void
+}) {
+  const haptic = useHaptic()
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    if (deleting) return
+    haptic.notification('warning')
+    setDeleting(true)
+    try {
+      await onRemove(entry.id)
+      onDone()
+    } catch {
+      setDeleting(false) // the toast already said what went wrong
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="card">
+        <p style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.05 }}>+{formatLiters(entry.amount_liters)}</span>
+          <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--muted)' }}>L</span>
+        </p>
+        <p style={{ ...caption, marginTop: 6, fontSize: 14 }}>{formatLiters(running)} L by then</p>
       </div>
-
-      {/* Bottle size link */}
-      <div className="fade-up fade-up-3" style={{ display: 'flex', justifyContent: 'center' }}>
-        <Link
-          href="/profile/goals"
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '12px',
-            color: 'var(--tg-theme-hint-color)',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
-        >
-          Bottle size: {bottleSize < 1 ? `${bottleSize * 1000}ml` : `${bottleSize}L`}
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </Link>
-      </div>
-
-      {/* Log timeline */}
-      {waterLogs.length > 0 && (
-        <div className="fade-up fade-up-4">
-          <SummaryCard title="Today's Log">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-              {logsAsc.map((log, i) => {
-                const running = runningTotals[i]
-                const pct = Math.min(running / goal, 1)
-                const isLast = i === logsAsc.length - 1
-
-                return (
-                  <div
-                    key={log.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      paddingBottom: isLast ? 0 : '12px',
-                      marginBottom: isLast ? 0 : '12px',
-                      borderBottom: isLast ? 'none' : '1px solid var(--surface-border)',
-                    }}
-                  >
-                    {/* Timeline dot */}
-                    <div style={{
-                      width: 8, height: 8,
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--accent-water)',
-                      flexShrink: 0,
-                      opacity: 0.5 + 0.5 * pct,
-                    }} />
-
-                    {/* Time */}
-                    <span style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '11px',
-                      color: 'var(--tg-theme-hint-color)',
-                      flexShrink: 0,
-                      width: '36px',
-                    }}>
-                      {formatTime(log.logged_at)}
-                    </span>
-
-                    {/* Amount */}
-                    <span style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '15px',
-                      fontWeight: 500,
-                      color: 'var(--tg-theme-text-color)',
-                    }}>
-                      +{log.amount_liters.toFixed(2)}L
-                    </span>
-
-                    {/* Running total bar */}
-                    <div style={{ flex: 1, position: 'relative', height: '2px', borderRadius: '99px', backgroundColor: 'var(--tg-theme-bg-color)' }}>
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        borderRadius: '99px',
-                        width: `${pct * 100}%`,
-                        backgroundColor: 'var(--accent-water)',
-                        transition: 'width 0.5s var(--ease-smooth)',
-                      }} />
-                    </div>
-
-                    {/* Running total label */}
-                    <span style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '11px',
-                      color: 'var(--tg-theme-hint-color)',
-                      flexShrink: 0,
-                    }}>
-                      {running.toFixed(1)}L
-                    </span>
-
-                    {/* Delete — the 13px glyph is centred in a 36px box so the
-                        touch target clears the 36–44px minimum without the row
-                        growing: the extra size comes from negative margin, not
-                        from layout. */}
-                    <button
-                      onClick={() => handleDelete(log.id)}
-                      disabled={pending || deletingId !== null}
-                      aria-label={`Remove ${log.amount_liters.toFixed(2)} litre entry logged at ${formatTime(log.logged_at)}`}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        width: '36px',
-                        height: '36px',
-                        margin: '-11px -10px -11px 0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: (pending || deletingId !== null) ? 'not-allowed' : 'pointer',
-                        opacity: deletingId === log.id ? 0.15 : 0.55,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                        stroke="var(--tg-theme-text-color)" strokeWidth="2"
-                        strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </SummaryCard>
-        </div>
-      )}
-
+      <button type="button" className="btn-ghost" onClick={handleDelete} disabled={deleting} style={{ color: 'var(--over)' }}>
+        {deleting ? 'Deleting…' : 'Delete entry'}
+      </button>
     </div>
   )
 }

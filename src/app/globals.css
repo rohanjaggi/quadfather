@@ -1,4 +1,4 @@
-/* DM Sans is loaded by the <link rel="stylesheet"> in `layout.tsx` (behind the
+/* Figtree is loaded by the <link rel="stylesheet"> in `layout.tsx` (behind the
    two preconnects there). Deliberately NOT an @import here: an @import at the
    top of the entry stylesheet is render-blocking and only starts downloading
    once this file has itself arrived, which serialises two round trips. */
@@ -7,35 +7,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Warm consumer world: warm ground, white cards, one green that only ever
+   means "tap me". Direction contract: .impeccable/surfaces/src-app.md */
 :root {
-  /* Palette — warm plaster with burnt-rose accent, charcoal primaries */
-  --tg-theme-bg-color: #F5F2EF;
-  --tg-theme-secondary-bg-color: #EBE8E4;
-  --tg-theme-text-color: #1A1614;
-  /* Hint text runs at 10–12px all over the app, so it has to clear WCAG AA for
-     normal text: #6F655D on #F5F2EF is 5.1:1 (the old #8C827A was only 3.4:1,
-     and ~2.2:1 wherever an extra opacity was stacked on top of it — hence the
-     opacity stacking having been removed rather than just this being darkened). */
-  --tg-theme-hint-color: #6F655D;
-  --tg-theme-link-color: #8C5B53;
-  --tg-theme-button-color: #3D4F44;
-  --tg-theme-button-text-color: #F5F2EF;
+  --ground: #F3EEE8;
+  --card: #FFFFFF;
+  --ink: #1F2A24;
+  /* #646B66 is 4.7:1 on the ground and 5.4:1 on white: clears AA for the
+     12–13px secondary text it carries everywhere. */
+  --muted: #646B66;
+  --line: rgba(31, 42, 36, 0.07);
+  --line-strong: rgba(31, 42, 36, 0.13);
+  --track: #F1ECE6;
+  --action: #2F6B4F;
+  --action-soft: rgba(47, 107, 79, 0.11);
+  --action-ink: #FFFFFF;
+  --over: #B4432F;
+  --good: #2F6B4F;
 
-  /* Extended design tokens */
-  --accent: #8C5B53;
-  --accent-calories: #BE6D56;
-  --accent-protein: #648E72;
-  --accent-water: #567F8B;
-  --accent-fats: #A49055;
-  --accent-steps: oklch(0.62 0.14 245);
-  --surface-border: rgba(140, 130, 122, 0.14);
+  /* Metric tints: data marks only, never text (they are too light to read). */
+  --m-calories: #CB8C76;
+  --m-protein: #B4808F;
+  --m-carbs: #D6B068;
+  --m-fats: #C4A285;
+  --m-fibre: #A9A47C;
+  --m-water: #86A2BE;
+  --m-steps: #93A79E;
 
-  --font-display: 'DM Sans', system-ui, sans-serif;
-  --font-body: 'DM Sans', system-ui, sans-serif;
+  --radius-card: 20px;
+  --radius-control: 14px;
+  --shadow-card: 0 1px 3px rgba(31, 42, 36, 0.04);
+  --shadow-raised: 0 8px 24px -8px rgba(31, 42, 36, 0.22);
 
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Legacy names kept so every component picks the new world up without a
+     rewrite; new code should use the names above. */
+  --tg-theme-bg-color: var(--ground);
+  --tg-theme-secondary-bg-color: var(--card);
+  --tg-theme-text-color: var(--ink);
+  --tg-theme-hint-color: var(--muted);
+  --tg-theme-link-color: var(--action);
+  --tg-theme-button-color: var(--action);
+  --tg-theme-button-text-color: var(--action-ink);
+  --accent: var(--action);
+  --accent-calories: var(--m-calories);
+  --accent-protein: var(--m-protein);
+  --accent-water: var(--m-water);
+  --accent-fats: var(--m-fats);
+  --accent-steps: var(--m-steps);
+  --surface-border: var(--line-strong);
+
+  --font-display: 'Figtree', system-ui, sans-serif;
+  --font-body: 'Figtree', system-ui, sans-serif;
+
+  /* No overshoot anywhere: the old spring read playful, not calm. The name is
+     kept because components reference it. */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --gradient-date: linear-gradient(100deg, #C0705A, #2F6B4F 36%, #D9A441 66%, #5C7FA3);
 }
 
 * {
@@ -43,163 +73,181 @@
   box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 body {
   /* Intentional: the Mini App ships its own fixed palette rather than adopting
      the Telegram client's theme, so these override the `--tg-theme-*` custom
      properties Telegram writes onto <body> at runtime (which is why they need
      `!important` — Telegram sets them inline, and an inline declaration beats
-     any stylesheet rule that isn't important). Keeping the app's own palette
-     means one set of verified contrast ratios instead of one per client theme.
-     `TelegramProvider` tells Telegram about it via `setHeaderColor` /
-     `setBackgroundColor` so the native chrome matches these values. */
-  --tg-theme-bg-color: #F5F2EF !important;
-  --tg-theme-secondary-bg-color: #EBE8E4 !important;
-  --tg-theme-text-color: #1A1614 !important;
-  --tg-theme-hint-color: #6F655D !important;
-  --tg-theme-link-color: #8C5B53 !important;
-  --tg-theme-button-color: #3D4F44 !important;
-  --tg-theme-button-text-color: #F5F2EF !important;
+     any stylesheet rule that isn't important). `TelegramProvider` tells
+     Telegram about it via `setHeaderColor` / `setBackgroundColor` so the
+     native chrome matches. */
+  --tg-theme-bg-color: #F3EEE8 !important;
+  --tg-theme-secondary-bg-color: #FFFFFF !important;
+  --tg-theme-text-color: #1F2A24 !important;
+  --tg-theme-hint-color: #646B66 !important;
+  --tg-theme-link-color: #2F6B4F !important;
+  --tg-theme-button-color: #2F6B4F !important;
+  --tg-theme-button-text-color: #FFFFFF !important;
 
-  background-color: #F5F2EF;
-  color: #1A1614;
+  background-color: var(--ground);
+  color: var(--ink);
   font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+::selection {
+  background: rgba(47, 107, 79, 0.18);
+  color: var(--ink);
+}
+
+input, textarea, select {
+  caret-color: var(--action);
+}
+
+:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}
+
 button {
   cursor: pointer;
-  transition: opacity 0.2s ease, transform 0.15s var(--ease-spring);
+  transition: opacity 0.2s ease, transform 0.15s var(--ease-spring), background-color 0.2s ease;
   font-family: var(--font-display);
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(0.98);
 }
 
-/* No extra opacity — the hint token is already the lightest value that clears
-   4.5:1 on the page background, so dimming it further would fail AA. */
 textarea::placeholder {
-  color: var(--tg-theme-hint-color);
+  color: var(--muted);
   opacity: 1;
 }
 
-/* Entrance animations */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* One entrance per navigation, played by `app/template.tsx`. The old per-block
+   `fade-up` cascade replayed on every tab switch and read as loading; the
+   classes are kept as no-ops so stale call sites do nothing. */
+/* Animates `top`, not `transform`: a transformed ancestor becomes the
+   containing block for `position: fixed` children, which would pin sheets,
+   docks and the compact header to the page instead of the screen. */
+@keyframes pageIn {
+  from { opacity: 0; top: 6px; }
+  to   { opacity: 1; top: 0; }
 }
+.page-in { position: relative; animation: pageIn 0.32s var(--ease-out-expo) both; }
 
-.fade-up   { animation: fadeUp 0.45s var(--ease-smooth) both; }
-.fade-up-1 { animation-delay: 0.07s; }
-.fade-up-2 { animation-delay: 0.14s; }
-.fade-up-3 { animation-delay: 0.21s; }
-.fade-up-4 { animation-delay: 0.28s; }
-.fade-up-5 { animation-delay: 0.35s; }
-.fade-up-6 { animation-delay: 0.42s; }
+.fade-up, .fade-up-1, .fade-up-2, .fade-up-3,
+.fade-up-4, .fade-up-5, .fade-up-6 { animation: none; }
 
 /* ======= Component utility classes ======= */
 
 .btn-primary {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 12px;
+  min-height: 52px;
+  padding: 14px 18px;
+  border-radius: 16px;
   border: none;
-  background-color: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
+  background-color: var(--action);
+  color: var(--action-ink);
   font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  box-shadow: 0 2px 6px rgba(47, 107, 79, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   cursor: pointer;
   transition: opacity 0.2s ease, transform 0.15s var(--ease-spring);
 }
 .btn-primary:disabled {
-  opacity: 0.35;
+  opacity: 0.4;
+  box-shadow: none;
   cursor: not-allowed;
-}
-.btn-primary:hover:not(:disabled) {
-  opacity: 0.88;
 }
 
 .btn-secondary {
+  min-height: 48px;
   padding: 12px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--surface-border);
-  background-color: transparent;
-  color: var(--tg-theme-text-color);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--line-strong);
+  background-color: var(--card);
+  color: var(--ink);
   font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s ease, transform 0.15s var(--ease-spring),
-              background-color 0.15s ease;
+  transition: opacity 0.2s ease, transform 0.15s var(--ease-spring), background-color 0.15s ease;
 }
 .btn-secondary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--tg-theme-secondary-bg-color);
+  background-color: var(--ground);
 }
 
 .btn-ghost {
-  padding: 12px 16px;
-  border-radius: 12px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
   border: none;
-  background-color: var(--tg-theme-bg-color);
-  color: var(--tg-theme-hint-color);
+  background-color: transparent;
+  color: var(--muted);
   font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s ease, transform 0.15s var(--ease-spring);
+  transition: opacity 0.2s ease, transform 0.15s var(--ease-spring), background-color 0.15s ease;
 }
 .btn-ghost:disabled {
-  opacity: 0.3;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 .btn-ghost:hover:not(:disabled) {
-  opacity: 0.75;
+  background-color: var(--track);
 }
 
 .btn-pill {
+  min-height: 36px;
   padding: 8px 14px;
   border-radius: 99px;
-  border: 1px solid var(--surface-border);
-  background-color: transparent;
-  color: var(--tg-theme-text-color);
+  border: 1px solid var(--line-strong);
+  background-color: var(--card);
+  color: var(--ink);
   font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 .btn-pill[data-active="true"] {
-  background-color: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
-  border-color: var(--tg-theme-button-color);
+  background-color: var(--action-soft);
+  color: var(--action);
+  border-color: transparent;
 }
 
 .option-group {
-  border: 1px solid var(--surface-border);
-  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--card);
   overflow: hidden;
 }
 .option-group-item {
   width: 100%;
-  padding: 12px 14px;
+  min-height: 48px;
+  padding: 12px 16px;
   border: none;
-  border-top: 1px solid var(--surface-border);
+  border-top: 1px solid var(--line);
   background-color: transparent;
-  color: var(--tg-theme-text-color);
+  color: var(--ink);
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   text-align: left;
@@ -212,112 +260,161 @@ textarea::placeholder {
   border-top: none;
 }
 .option-group-item[data-active="true"] {
-  background-color: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
-}
-.option-group-item[data-active="true"] span {
-  opacity: 1;
+  background-color: var(--action-soft);
+  color: var(--action);
+  font-weight: 600;
 }
 
-.input-field {
-  width: 100%;
-  border-radius: 12px;
-  padding: 11px 13px;
-  font-size: 15px;
-  font-family: var(--font-display);
-  font-weight: 400;
-  border: 1px solid var(--surface-border);
-  outline: none;
-  background-color: var(--tg-theme-bg-color);
-  color: var(--tg-theme-text-color);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-.input-field:focus {
-  box-shadow: 0 0 0 2px rgba(140, 91, 83, 0.22);
-}
-.input-field::placeholder {
-  color: var(--tg-theme-hint-color);
-  opacity: 1;
-}
-
+.input-field,
 .input-field-bordered {
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--surface-border);
-  background-color: var(--tg-theme-bg-color);
-  color: var(--tg-theme-text-color);
+  min-height: 48px;
+  border-radius: var(--radius-control);
+  padding: 12px 14px;
+  font-size: 16px;
   font-family: var(--font-display);
-  font-size: 14px;
+  font-weight: 400;
+  border: 1px solid var(--line-strong);
   outline: none;
-  box-sizing: border-box;
+  background-color: var(--card);
+  color: var(--ink);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
-select.input-field-bordered {
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236F655D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-}
+.input-field:focus,
 .input-field-bordered:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(140, 91, 83, 0.14);
+  border-color: var(--action);
+  box-shadow: 0 0 0 3px rgba(47, 107, 79, 0.16);
+}
+.input-field::placeholder,
+.input-field-bordered::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+select.input-field-bordered {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23646B66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
 }
 
 .textarea-field {
   width: 100%;
-  border-radius: 14px;
-  padding: 13px 16px;
-  font-size: 14px;
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-size: 16px;
   font-family: var(--font-display);
   resize: none;
   outline: none;
-  border: none;
-  background-color: var(--tg-theme-secondary-bg-color);
-  color: var(--tg-theme-text-color);
-  transition: box-shadow 0.2s ease;
+  border: 1px solid var(--line-strong);
+  background-color: var(--card);
+  color: var(--ink);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .textarea-field:focus {
-  box-shadow: 0 0 0 2px rgba(140, 91, 83, 0.18);
+  border-color: var(--action);
+  box-shadow: 0 0 0 3px rgba(47, 107, 79, 0.16);
 }
 
+/* Field label. Sentence case on purpose: the old tracked uppercase micro-label
+   was the app's loudest template tell. */
 .label-caps {
   font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--tg-theme-hint-color);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
 .card {
-  background-color: var(--tg-theme-secondary-bg-color);
-  border-radius: 18px;
-  padding: 20px;
+  background-color: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
   overflow: hidden;
 }
 
-@keyframes gradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--ink);
 }
 
+/* ======= The gradient, used only where it means something =======
+   1. the date (always drifting), 2. a goal just reached (one sweep, ends in
+   ink), 3. a log that just landed (a wash that fades out), 4. AI working
+   (shimmer in place of a spinner). Never more than one moving at a time. */
+
+@keyframes gradientDrift {
+  from { background-position: 0% 50%; }
+  to   { background-position: 100% 50%; }
+}
 .text-gradient-animate {
-  background: linear-gradient(
-    135deg,
-    var(--accent) 0%,
-    var(--accent-calories) 25%,
-    var(--accent-protein) 50%,
-    var(--accent-water) 75%,
-    var(--accent) 100%
-  );
-  background-size: 300% 300%;
+  background: var(--gradient-date);
+  background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: gradientShift 8s ease infinite;
+  color: transparent;
+  animation: gradientDrift 18s ease-in-out infinite alternate;
+}
+
+/* One moving gradient at a time: the date holds still while a sweep, a
+   landing wash or the AI shimmer plays anywhere on screen. */
+body:has(.gradient-sweep, .row-landed, .ai-shimmer) .text-gradient-animate {
+  animation-play-state: paused;
+}
+
+@keyframes gradientSweep {
+  from { background-position: 100% 50%; }
+  to   { background-position: 0% 50%; }
+}
+.gradient-sweep {
+  background: linear-gradient(100deg, var(--ink) 0 38%, #C0705A 44%, #2F6B4F 50%, #D9A441 56%, #5C7FA3 62%, var(--ink) 68% 100%);
+  background-size: 300% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: gradientSweep 1.6s var(--ease-smooth) both;
+}
+
+@keyframes landWash {
+  0%   { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+.row-landed { position: relative; }
+.row-landed::before {
+  content: "";
+  position: absolute;
+  inset: 0 -10px;
+  border-radius: 12px;
+  background: var(--gradient-date);
+  opacity: 0;
+  mix-blend-mode: multiply;
+  filter: saturate(0.6);
+  pointer-events: none;
+  animation: landWash 1.8s var(--ease-smooth) both;
+  z-index: 0;
+}
+.row-landed::before { background-size: 100% 100%; }
+.row-landed > * { position: relative; z-index: 1; }
+
+@keyframes shimmer {
+  from { background-position: 100% 50%; }
+  to   { background-position: -100% 50%; }
+}
+.ai-shimmer {
+  background: linear-gradient(100deg, var(--track) 0 30%, rgba(192, 112, 90, 0.35) 40%, rgba(47, 107, 79, 0.3) 50%, rgba(217, 164, 65, 0.35) 60%, var(--track) 70% 100%);
+  background-size: 250% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: 12px;
 }
 
 @keyframes pulse {
@@ -330,49 +427,32 @@ select.input-field-bordered {
   to { transform: rotate(360deg); }
 }
 
+/* Bottom sheet (Log). */
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: none; }
+}
+@keyframes scrimIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* ======= Reduced motion =======
-   Four animations run in this app: `gradientShift` loops forever on the hero
-   text, `pulse` loops on the AI-suggestion skeletons, `spin` loops on every
-   pending button, and `fadeUp` plays on nearly every section that mounts.
-   For a user who has asked the OS for less motion the looping decorative ones
-   stop, and `fadeUp` collapses to an instant appearance with no travel.
-
-   Two of them (`spin`, `pulse`) are applied as *inline* `style={{ animation }}`
-   from components, which no class-based rule can reach — hence overriding them
-   by redefining the keyframes themselves (keyframes cascade by name, and the
-   last matching definition wins) and, for `spin`, one `!important` duration
-   (an important author declaration does outrank a non-important inline one).
-
-   `spin` is slowed rather than stopped on purpose: a frozen spinner reads as a
-   hung app, and rotation in place is not the across-the-viewport travel that
-   triggers vestibular discomfort. */
+   Looping decoration stops; one-shot moments resolve instantly to their end
+   state; `spin` is slowed rather than stopped so a pending button never reads
+   as hung. `spin` and `pulse` are also set inline by some components, which no
+   class rule reaches, hence redefining the keyframes and one `!important`. */
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
+  .text-gradient-animate { animation: none; background-position: 0% 50%; }
+  .gradient-sweep { animation: none; background: none; -webkit-text-fill-color: currentColor; color: inherit; }
+  .row-landed::before { animation: none; opacity: 0; }
+  .ai-shimmer { animation: none; }
+  .page-in { animation: none; }
 
-  .text-gradient-animate {
-    animation: none;
-    background-position: 0% 50%;
-  }
-
-  .fade-up {
-    animation-duration: 0.01s;
-  }
-  .fade-up-1, .fade-up-2, .fade-up-3,
-  .fade-up-4, .fade-up-5, .fade-up-6 {
-    animation-delay: 0s;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 1; transform: none; }
-    to   { opacity: 1; transform: none; }
-  }
-
-  /* Skeletons hold a steady dim instead of breathing. */
   @keyframes pulse {
     0%, 50%, 100% { opacity: 0.3; }
   }
+  @keyframes sheetUp { from { transform: none; } to { transform: none; } }
 
   [style*="spin"] {
     animation-duration: 1.6s !important;

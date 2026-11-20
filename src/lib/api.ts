@@ -28,6 +28,9 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
       ...options.headers,
     },
     signal: timeoutSignal(),
+    // A delete may be flushed as the Mini App closes (an Undo window ending
+    // early); keepalive lets it outlive the page. Deletes carry no body.
+    keepalive: options.method === 'DELETE' || options.keepalive,
   })
   if (!res.ok) {
     const body = await res.text()
@@ -194,3 +197,6 @@ export const syncStravaRuns = () =>
     total_fetched: number
     last_synced_at: string
   }>('/runs/sync', { method: 'POST' })
+
+/** Last ~10 different meals from the past 30 days, newest first. */
+export const getRecentFoods = () => apiFetch<FoodLog[]>('/foods/recent')

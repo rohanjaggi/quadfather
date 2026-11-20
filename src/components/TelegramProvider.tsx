@@ -1,23 +1,8 @@
 'use client'
 
-import { createContext, useContext, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import WebApp from '@twa-dev/sdk'
-
-interface HapticAPI {
-  impact: (style?: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void
-  notification: (type?: 'success' | 'warning' | 'error') => void
-  selection: () => void
-}
-
-const HapticContext = createContext<HapticAPI>({
-  impact: () => {},
-  notification: () => {},
-  selection: () => {},
-})
-
-export function useHaptic(): HapticAPI {
-  return useContext(HapticContext)
-}
+import { BackContext, HapticContext, enterFullscreen, type BackAPI, type HapticAPI } from '@/components/telegram'
 
 /**
  * The app's own background, hard-coded in `globals.css` (`body` background-color
@@ -25,7 +10,7 @@ export function useHaptic(): HapticAPI {
  * behind the webview are painted by the client, not by CSS, so they have to be
  * told this value explicitly or a dark-theme client frames a light app in black.
  */
-const APP_BG_COLOR = '#F5F2EF'
+const APP_BG_COLOR = '#F3EEE8'
 
 /**
  * Calls one optional Telegram method. Every one of these landed in a specific
@@ -58,6 +43,8 @@ export default function TelegramProvider({ children }: { children: React.ReactNo
     if (typeof WebApp.disableVerticalSwipes === 'function') {
       tryWebAppCall(() => WebApp.disableVerticalSwipes())
     }
+    // Bot API 8.0: open like an app, edge to edge. No-op on older clients.
+    return enterFullscreen()
   }, [])
 
   const haptic = useMemo<HapticAPI>(() => {
@@ -69,9 +56,36 @@ export default function TelegramProvider({ children }: { children: React.ReactNo
     }
   }, [])
 
+  // Native back button (Bot API 6.1). Only offered inside a real Telegram
+  // session (initData present); elsewhere pages fall back to an in-page link.
+  // A stack, so the top-most layer wins: with a sheet open over a subpage,
+  // back closes the sheet first, then leaves the page.
+  const back = useMemo<BackAPI>(() => {
+    const available = typeof window !== 'undefined' && !!WebApp.initData
+      && typeof WebApp.isVersionAtLeast === 'function' && WebApp.isVersionAtLeast('6.1')
+    const stack: (() => void)[] = []
+    const dispatch = () => stack[stack.length - 1]?.()
+    if (available) tryWebAppCall(() => WebApp.BackButton.onClick(dispatch))
+    return {
+      available,
+      attach: (onBack) => {
+        if (!available) return () => {}
+        stack.push(onBack)
+        tryWebAppCall(() => WebApp.BackButton.show())
+        return () => {
+          const i = stack.lastIndexOf(onBack)
+          if (i >= 0) stack.splice(i, 1)
+          if (stack.length === 0) tryWebAppCall(() => WebApp.BackButton.hide())
+        }
+      },
+    }
+  }, [])
+
   return (
     <HapticContext.Provider value={haptic}>
-      {children}
+      <BackContext.Provider value={back}>
+        {children}
+      </BackContext.Provider>
     </HapticContext.Provider>
   )
 }

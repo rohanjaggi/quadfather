@@ -1,116 +1,77 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
-import { getWorkouts, deleteWorkout } from '@/lib/api'
 import type { WorkoutLog } from '@/types/workouts'
+import SummaryCard from '@/components/dashboard/SummaryCard'
 import WorkoutAnalysis from './WorkoutAnalysis'
 import { useUser } from '@/context/UserContext'
 import { dayKey } from '@/lib/day'
-import SwipeToDelete, { SwipeDeleteProvider } from '@/components/SwipeToDelete'
-import { toast, errorMessage } from '@/components/ui/Toast'
+import { RowsSkeleton, ErrorRetry, linkStyle } from './bits'
+import { formatKg, relativeDay, sessionVolume, setsSummary } from './format'
 
-const VISIBLE_COUNT = 7
-
-export default function RecentWorkouts() {
+/**
+ * The most recent session, as list rows, with its coaching note underneath.
+ * The page owns the 30-day fetch so it can fold the empty Training screen.
+ */
+export default function RecentWorkouts({ workouts, error, onRetry }: {
+  /** Last 30 days, newest first; null while loading. */
+  workouts: WorkoutLog[] | null
+  error: string | null
+  onRetry: () => void
+}) {
   const { user } = useUser()
-  const showAnalysis = (user?.ai_coaching_prefs as Record<string, boolean> | undefined)?.workout_analysis !== false
 
-  const [workouts, setWorkouts] = useState<WorkoutLog[]>([])
-  const [loading, setLoading] = useState(true)
+  const loading = workouts === null && !error
+  const last = workouts?.[0] ?? null
 
-  useEffect(() => {
-    getWorkouts(30)
-      .then(setWorkouts)
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
+  const action = <Link href="/workouts/history" style={linkStyle}>History</Link>
 
-  const visible = useMemo(() => workouts.slice(0, VISIBLE_COUNT), [workouts])
-
-  // Analysis is a paid LLM call per workout (and sends a Telegram message), so
-  // only the newest un-analysed session runs on its own; the rest get an
-  // explicit "Analyse" button.
-  //
-  // The target is latched ONCE, the first time a non-empty list is rendered,
-  // and never re-derived. Deriving it live meant deleting the auto-analysed
-  // workout promoted the next one, billing an unrequested analysis per swipe.
-  // `undefined` = not latched yet, `null` = latched to "nothing to analyse".
-  const autoAnalyseIdRef = useRef<number | null | undefined>(undefined)
-  if (autoAnalyseIdRef.current === undefined && visible.length > 0) {
-    autoAnalyseIdRef.current = visible.find(w => !w.analysis)?.id ?? null
-  }
-  const autoAnalyseId = autoAnalyseIdRef.current ?? null
-
-  // Rethrow after toasting so SwipeToDelete restores the row it hid.
-  async function handleDelete(id: number) {
-    try {
-      await deleteWorkout(id)
-    } catch (err) {
-      toast(errorMessage(err, 'Could not delete this workout'), { type: 'error' })
-      throw err
-    }
-    setWorkouts(prev => prev.filter(w => w.id !== id))
-  }
-
-  if (loading) return null
-  if (workouts.length === 0) {
+  if (loading) return <SummaryCard title="Last session" action={action}><RowsSkeleton rows={3} /></SummaryCard>
+  if (error) return <SummaryCard title="Last session"><ErrorRetry message={error} onRetry={onRetry} /></SummaryCard>
+  if (!last) {
     return (
-      <p style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: 'var(--tg-theme-hint-color)', textAlign: 'center', padding: '20px 0' }}>
-        No workouts logged yet
-      </p>
+      <SummaryCard title="Last session">
+        <p style={{ margin: 0, fontSize: 15, color: 'var(--muted)' }}>
+          Nothing logged in the last 30 days. Your next session shows up here.
+        </p>
+      </SummaryCard>
     )
   }
 
+  const volume = sessionVolume(last)
+  const meta = [
+    relativeDay(dayKey(new Date(last.workout_date))),
+    last.duration_minutes ? `${last.duration_minutes} min` : null,
+    last.calories_burned ? `${Math.round(last.calories_burned)} kcal` : null,
+  ].filter(Boolean).join(' · ')
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--tg-theme-hint-color)' }}>
-          Recent Workouts
-        </p>
-        <Link href="/workouts/history" style={{
-          fontFamily: 'var(--font-display)', fontSize: '11px',
-          fontWeight: 500, color: 'var(--tg-theme-hint-color)',
-          textDecoration: 'none',
-        }}>
-          History {'→'}
-        </Link>
+    <SummaryCard title="Last session" action={action}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginTop: -6 }}>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.015em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{last.name}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--muted)' }}>{meta}</p>
+        </div>
+        {volume > 0 && <p style={{ margin: 0, flexShrink: 0, fontSize: 16, fontWeight: 600 }}>{formatKg(volume)}</p>}
       </div>
-      <SwipeDeleteProvider>
-        {visible.map(w => {
-          const totalSets = w.exercises.reduce((s, ex) => s + ex.sets.length, 0)
-          const date = new Date(`${dayKey(new Date(w.workout_date))}T00:00:00Z`)
-            .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
-          return (
-            <SwipeToDelete key={w.id} id={`workout-${w.id}`} onDelete={() => handleDelete(w.id)} borderRadius="14px">
-              <div style={{
-                padding: '14px 16px', borderRadius: '14px',
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 500, color: 'var(--tg-theme-text-color)', marginBottom: '2px' }}>
-                      {w.name}
-                    </p>
-                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'var(--tg-theme-hint-color)' }}>
-                      {date} · {w.exercises.length} exercises · {totalSets} sets
-                      {w.calories_burned ? ` · ${Math.round(w.calories_burned)} kcal` : ''}
-                    </p>
-                  </div>
-                </div>
-                {showAnalysis && (
-                  <WorkoutAnalysis
-                    workoutId={w.id}
-                    existingAnalysis={w.analysis}
-                    exercises={w.exercises}
-                    autoAnalyse={w.id === autoAnalyseId}
-                  />
-                )}
-              </div>
-            </SwipeToDelete>
-          )
-        })}
-      </SwipeDeleteProvider>
-    </div>
+      <ol style={{ listStyle: 'none', margin: '10px 0 0', padding: 0 }}>
+        {last.exercises.map((ex, i) => (
+          <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '10px 0', borderTop: '1px solid var(--line)' }}>
+            <span style={{ minWidth: 0, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.exercise_name}</span>
+            <span style={{ flexShrink: 0, fontSize: 15, color: 'var(--muted)' }}>{setsSummary(ex.sets)}</span>
+          </li>
+        ))}
+      </ol>
+      {/* Analysis is a paid call: it runs only when the user taps for it. */}
+      {(last.analysis || user?.has_api_key) && (
+        <div style={{ paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+          <WorkoutAnalysis
+            workoutId={last.id}
+            existingAnalysis={last.analysis}
+            exercises={last.exercises}
+          />
+        </div>
+      )}
+    </SummaryCard>
   )
 }
